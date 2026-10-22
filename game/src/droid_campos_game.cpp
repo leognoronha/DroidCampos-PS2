@@ -6,8 +6,52 @@ namespace DroidCampos {
 
 using namespace Tyra;
 
+namespace {
+constexpr float kPi = 3.1415926535F;
+constexpr float kEyeHeight = 1.70F;
+constexpr float kMaxPitch = 1.28F;  // ~73 degrees up/down limit
+constexpr float kPlayerRadius = 0.45F;
+
+struct BoxCollider2D {
+  float minX;
+  float maxX;
+  float minZ;
+  float maxZ;
+};
+
+// 2D AABB colliders in Tyra coordinates (X = X_blender, Z = -Y_blender)
+// Guarantees the player stays within perimeter walls and collides with
+// the Guarita, Card Reader pedestal, and Lateral Barriers while keeping
+// the main route (X in [-2.0, +2.0]) completely clear.
+constexpr BoxCollider2D kWorldObstacles[] = {
+    // Guarita de Vigilancia (West of gate)
+    {-5.60F, -2.75F, 3.80F, 6.65F},
+    // Card Reader Pedestal (East of gate)
+    {2.15F, 2.85F, 2.95F, 3.55F},
+    // Abandoned Container (East flank)
+    {3.35F, 5.80F, 1.00F, 4.00F},
+    // Concrete Jersey Barriers (Zona B funnel)
+    {-4.15F, -2.05F, 12.10F, 13.10F},
+    {2.05F, 4.15F, 11.70F, 12.70F},
+    {-3.75F, -1.65F, 7.90F, 8.90F},
+    {1.75F, 3.85F, 7.30F, 8.30F},
+    // Metallic Traffic Barriers
+    {-3.55F, -1.45F, 10.10F, 10.90F},
+    {1.45F, 3.55F, 5.40F, 6.20F},
+};
+}  // namespace
+
 DroidCamposGame::DroidCamposGame(Engine* t_engine)
     : engine(t_engine),
+      scenarioLoaded(false),
+      playerPos(0.0F, kEyeHeight, 17.0F, 1.0F),
+      cameraPos(0.0F, kEyeHeight, 17.0F, 1.0F),
+      cameraLookAt(0.0F, kEyeHeight, 16.0F, 1.0F),
+      cameraUp(0.0F, 1.0F, 0.0F, 0.0F),
+      cameraYaw(-kPi * 0.5F),
+      cameraPitch(0.0F),
+      moveSpeed(0.11F),
+      lookSensitivity(0.032F),
       currentScreen(MenuScreen::MAIN_MENU),
       mainSelectedIndex(0),
       loadSelectedIndex(0),
@@ -24,18 +68,24 @@ DroidCamposGame::DroidCamposGame(Engine* t_engine)
 
 DroidCamposGame::~DroidCamposGame() {
   auto& repo = engine->renderer.getTextureRepository();
+  if (scenarioMesh != nullptr) {
+    repo.freeByMesh(scenarioMesh.get());
+  }
   repo.freeBySprite(bgSprite);
   repo.freeBySprite(uiRectSprite);
   font.free(repo);
 }
 
 void DroidCamposGame::init() {
-  // Cor de fundo escura industrial/cyberpunk
-  engine->renderer.setClearScreenColor(Color(8.0F, 12.0F, 20.0F));
+  engine->renderer.setClearScreenColor(Color(12.0F, 15.0F, 22.0F));
   engine->renderer.core.renderer2D.setTextureMappingType(TyraNearest);
 
+  stapip.setRenderer(&engine->renderer.core);
   loadResources();
-  TYRA_LOG("DroidCampos Menu Template initialized!");
+  loadScenario3D();
+  resetPlayerToSpawn();
+
+  TYRA_LOG("DroidCampos-PS2 v0.0.1 initialized (FPS Scenario Ready)!");
 }
 
 void DroidCamposGame::loadResources() {
@@ -43,7 +93,6 @@ void DroidCamposGame::loadResources() {
 
   font.load(repo, &engine->renderer.renderer2D);
 
-  // Textura de fundo cyberpunk industrial (256x256 esticada para 512x448)
   bgSprite.mode = SpriteMode::MODE_STRETCH;
   bgSprite.size = Vec2(512.0F, 448.0F);
   bgSprite.position = Vec2(0.0F, 0.0F);
@@ -51,12 +100,184 @@ void DroidCamposGame::loadResources() {
   auto* bgTex = repo.add(FileUtils::fromCwd("bg_cyber.png"));
   bgTex->addLink(bgSprite.id);
 
-  // Textura 16x16 branca para desenhar painéis, bordas, barras e HUD
   uiRectSprite.mode = SpriteMode::MODE_STRETCH;
   uiRectSprite.size = Vec2(16.0F, 16.0F);
   uiRectSprite.position = Vec2(0.0F, 0.0F);
   auto* whiteTex = repo.add(FileUtils::fromCwd("ui_white.png"));
   whiteTex->addLink(uiRectSprite.id);
+}
+
+void DroidCamposGame::loadScenario3D() {
+  ObjLoaderOptions options;
+  options.scale = 1.0F;
+  options.flipUVs = true;
+
+  auto data =
+      ObjLoader::load(FileUtils::fromCwd("etip/etip_cenario.obj"), options);
+  scenarioMesh = std::make_unique<StaticMesh>(data.get());
+
+  auto& repo = engine->renderer.getTextureRepository();
+  repo.addByMesh(scenarioMesh.get(), FileUtils::fromCwd("etip/"), "png");
+
+  scenarioOptions.frustumCulling = PipelineFrustumCulling_Precise;
+  scenarioOptions.fullClipChecks = true;
+  scenarioOptions.textureMappingType = TyraNearest;
+  scenarioOptions.transformationType = TyraMVP;
+
+  scenarioLoaded = true;
+  TYRA_LOG("ETIP 3D Scenario loaded successfully!");
+}
+
+void DroidCamposGame::resetPlayerToSpawn() {
+  // Zona A — Ponto Inicial (X=0, Y=1.70m eye height, Z=+17.0m facing -Z toward ETIP gate)
+  playerPos.set(0.0F, kEyeHeight, 17.0F, 1.0F);
+  cameraYaw = -kPi * 0.5F;
+  cameraPitch = 0.04F;  // Slightly looking up at the ETIP facade sign
+  updateCameraVectors();
+}
+
+void DroidCamposGame::updateCameraVectors() {
+  cameraPos.set(playerPos.x, kEyeHeight, playerPos.z, 1.0F);
+
+  const float cosPitch = std::cos(cameraPitch);
+  const float dirX = cosPitch * std::cos(cameraYaw);
+  const float dirY = std::sin(cameraPitch);
+  const float dirZ = cosPitch * std::sin(cameraYaw);
+
+  cameraLookAt.set(cameraPos.x + dirX, cameraPos.y + dirY, cameraPos.z + dirZ,
+                   1.0F);
+}
+
+void DroidCamposGame::resolveWorldCollisions(float& x, float& z) const {
+  // 1. Perimeter walls & Main Gate boundary (Zona A + Zona B + Zona C)
+  if (x < -5.25F) x = -5.25F;
+  if (x > 5.25F) x = 5.25F;
+  if (z > 19.30F) z = 19.30F;
+  if (z < 3.20F) z = 3.20F;  // Closed Main Gate & Front Facade line
+
+  // 2. Push out of interior obstacle AABBs (Guarita, Barriers, Card Reader)
+  for (const auto& box : kWorldObstacles) {
+    const float expMinX = box.minX - kPlayerRadius;
+    const float expMaxX = box.maxX + kPlayerRadius;
+    const float expMinZ = box.minZ - kPlayerRadius;
+    const float expMaxZ = box.maxZ + kPlayerRadius;
+
+    if (x > expMinX && x < expMaxX && z > expMinZ && z < expMaxZ) {
+      const float penLeft = x - expMinX;
+      const float penRight = expMaxX - x;
+      const float penFront = z - expMinZ;
+      const float penBack = expMaxZ - z;
+
+      float minPen = penLeft;
+      int axis = 0;
+      if (penRight < minPen) {
+        minPen = penRight;
+        axis = 1;
+      }
+      if (penFront < minPen) {
+        minPen = penFront;
+        axis = 2;
+      }
+      if (penBack < minPen) {
+        minPen = penBack;
+        axis = 3;
+      }
+
+      if (axis == 0)
+        x = expMinX;
+      else if (axis == 1)
+        x = expMaxX;
+      else if (axis == 2)
+        z = expMinZ;
+      else
+        z = expMaxZ;
+    }
+  }
+}
+
+void DroidCamposGame::updateFpsMovement() {
+  const auto& pad = engine->pad;
+  const auto& pressed = pad.getPressed();
+  const auto& leftJoy = pad.getLeftJoyPad();
+  const auto& rightJoy = pad.getRightJoyPad();
+
+  // --- 1. CAMERA LOOK (Left / Right / Up / Down) ---
+  // Right Analog Stick (center = 128, deadzone = 22)
+  float lookYawDelta = 0.0F;
+  float lookPitchDelta = 0.0F;
+
+  const float rx = (static_cast<float>(rightJoy.h) - 128.0F) / 128.0F;
+  const float ry = (static_cast<float>(rightJoy.v) - 128.0F) / 128.0F;
+
+  if (std::fabs(rx) > 0.18F) {
+    lookYawDelta += rx * lookSensitivity;
+  }
+  if (std::fabs(ry) > 0.18F) {
+    lookPitchDelta -= ry * lookSensitivity;
+  }
+
+  // Also allow looking with Face Buttons (Square/Circle = Left/Right, Triangle/Cross = Up/Down)
+  if (pressed.Square) lookYawDelta -= lookSensitivity * 0.85F;
+  if (pressed.Circle) lookYawDelta += lookSensitivity * 0.85F;
+  if (pressed.Triangle) lookPitchDelta += lookSensitivity * 0.75F;
+  if (pressed.Cross) lookPitchDelta -= lookSensitivity * 0.75F;
+
+  cameraYaw += lookYawDelta;
+  if (cameraYaw > kPi) cameraYaw -= 2.0F * kPi;
+  if (cameraYaw < -kPi) cameraYaw += 2.0F * kPi;
+
+  cameraPitch += lookPitchDelta;
+  if (cameraPitch > kMaxPitch) cameraPitch = kMaxPitch;
+  if (cameraPitch < -kMaxPitch) cameraPitch = -kMaxPitch;
+
+  // --- 2. PLAYER WALKING & STRAFING (Fixed Horizontal Plane Y = kEyeHeight) ---
+  float moveForward = 0.0F;
+  float moveStrafe = 0.0F;
+
+  const float lx = (static_cast<float>(leftJoy.h) - 128.0F) / 128.0F;
+  const float ly = (static_cast<float>(leftJoy.v) - 128.0F) / 128.0F;
+
+  if (std::fabs(ly) > 0.18F) {
+    moveForward -= ly;
+  }
+  if (std::fabs(lx) > 0.18F) {
+    moveStrafe += lx;
+  }
+
+  // D-Pad movement support
+  if (pressed.DpadUp) moveForward += 1.0F;
+  if (pressed.DpadDown) moveForward -= 1.0F;
+  if (pressed.DpadLeft) moveStrafe -= 1.0F;
+  if (pressed.DpadRight) moveStrafe += 1.0F;
+
+  // Normalize diagonal movement so diagonal speed doesn't exceed straight speed
+  const float magSq = moveForward * moveForward + moveStrafe * moveStrafe;
+  if (magSq > 1.0F) {
+    const float invMag = 1.0F / std::sqrt(magSq);
+    moveForward *= invMag;
+    moveStrafe *= invMag;
+  }
+
+  const float speedMult = (pressed.L1 || pressed.R1) ? 1.55F : 1.0F;
+  const float step = moveSpeed * speedMult;
+
+  // Forward vector in XZ plane: (cos(yaw), sin(yaw))
+  // Right (strafe) vector in XZ plane: (-sin(yaw), cos(yaw))
+  const float fwdX = std::cos(cameraYaw);
+  const float fwdZ = std::sin(cameraYaw);
+  const float rightX = -fwdZ;
+  const float rightZ = fwdX;
+
+  float nextX = playerPos.x + (fwdX * moveForward + rightX * moveStrafe) * step;
+  float nextZ = playerPos.z + (fwdZ * moveForward + rightZ * moveStrafe) * step;
+
+  resolveWorldCollisions(nextX, nextZ);
+
+  playerPos.x = nextX;
+  playerPos.y = kEyeHeight;
+  playerPos.z = nextZ;
+
+  updateCameraVectors();
 }
 
 void DroidCamposGame::loop() {
@@ -67,6 +288,16 @@ void DroidCamposGame::loop() {
   renderer.core.renderer2D.setTextureMappingType(nearestFilter ? TyraNearest
                                                                : TyraLinear);
 
+  if (currentScreen == MenuScreen::GAMEPLAY_FPS) {
+    updateFpsMovement();
+    CameraInfo3D camInfo(&cameraPos, &cameraLookAt, &cameraUp);
+    renderer.beginFrame(camInfo);
+    renderGameplayFps();
+    renderFpsHud();
+    renderer.endFrame();
+    return;
+  }
+
   renderer.beginFrame();
 
   renderBackground();
@@ -75,24 +306,21 @@ void DroidCamposGame::loop() {
   switch (currentScreen) {
     case MenuScreen::MAIN_MENU:
       renderMainMenu();
-      renderFooter(
-          "DPAD: NAVIGATE   CROSS/START: SELECT   AXIOM-OS V4.09");
+      renderFooter("DPAD: NAVIGATE   CROSS/START: SELECT   AXIOM-OS V4.09");
       break;
     case MenuScreen::NEW_GAME_SCREEN:
       renderNewGameScreen();
-      renderFooter("CROSS: DEPLOY DROID_CAMPOS   CIRCLE: RETURN TO MENU");
+      renderFooter("CROSS/START: ENTER ETIP 3D FPS   CIRCLE: BACK");
       break;
     case MenuScreen::LOAD_GAME_SCREEN:
       renderLoadGameScreen();
-      renderFooter("DPAD: SELECT SLOT   CROSS: LOAD DATA   CIRCLE: BACK");
+      renderFooter("DPAD: SELECT SLOT   CROSS: LOAD 3D FPS   CIRCLE: BACK");
       break;
     case MenuScreen::SETTINGS_SCREEN:
       renderSettingsScreen();
       renderFooter("DPAD UP/DOWN: OPTION   LEFT/RIGHT: ADJUST   CIRCLE: BACK");
       break;
-    case MenuScreen::GAMEPLAY_TEMPLATE:
-      renderGameplayTemplate();
-      renderFooter("CIRCLE / SELECT: ABORT SIMULATION & RETURN TO MAIN MENU");
+    case MenuScreen::GAMEPLAY_FPS:
       break;
   }
 
@@ -119,6 +347,15 @@ void DroidCamposGame::handleInput() {
 
   const auto& clicked = engine->pad.getClicked();
   const auto& joy = engine->pad.getLeftJoyPad();
+
+  if (currentScreen == MenuScreen::GAMEPLAY_FPS) {
+    if (clicked.Select) {
+      currentScreen = MenuScreen::MAIN_MENU;
+    } else if (clicked.L3 || clicked.R3) {
+      resetPlayerToSpawn();
+    }
+    return;
+  }
 
   bool upPressed = clicked.DpadUp || (padCooldown == 0 && joy.v <= 70);
   bool downPressed = clicked.DpadDown || (padCooldown == 0 && joy.v >= 185);
@@ -148,7 +385,8 @@ void DroidCamposGame::handleInput() {
   } else if (currentScreen == MenuScreen::NEW_GAME_SCREEN) {
     if (clicked.Cross || clicked.Start) {
       activeSaveSlot = 0;
-      currentScreen = MenuScreen::GAMEPLAY_TEMPLATE;
+      resetPlayerToSpawn();
+      currentScreen = MenuScreen::GAMEPLAY_FPS;
     } else if (clicked.Circle || clicked.Select) {
       currentScreen = MenuScreen::MAIN_MENU;
     }
@@ -160,10 +398,10 @@ void DroidCamposGame::handleInput() {
     }
 
     if (clicked.Cross || clicked.Start) {
-      // Slots 0 e 1 possuem dados salvos simulados
       if (loadSelectedIndex < 2) {
         activeSaveSlot = loadSelectedIndex + 1;
-        currentScreen = MenuScreen::GAMEPLAY_TEMPLATE;
+        resetPlayerToSpawn();
+        currentScreen = MenuScreen::GAMEPLAY_FPS;
       }
     } else if (clicked.Circle || clicked.Select) {
       currentScreen = MenuScreen::MAIN_MENU;
@@ -195,11 +433,52 @@ void DroidCamposGame::handleInput() {
     if (clicked.Circle || clicked.Select) {
       currentScreen = MenuScreen::MAIN_MENU;
     }
-  } else if (currentScreen == MenuScreen::GAMEPLAY_TEMPLATE) {
-    if (clicked.Circle || clicked.Select || clicked.Start) {
-      currentScreen = MenuScreen::MAIN_MENU;
-    }
   }
+}
+
+void DroidCamposGame::renderGameplayFps() {
+  if (!scenarioLoaded || scenarioMesh == nullptr) {
+    return;
+  }
+
+  engine->renderer.renderer3D.usePipeline(stapip);
+  stapip.render(scenarioMesh.get(), scenarioOptions);
+}
+
+void DroidCamposGame::renderFpsHud() {
+  // Center First-Person Reticle (Crosshair)
+  const float cx = 256.0F;
+  const float cy = 224.0F;
+  const Color crosshairCol(0.0F, 235.0F, 255.0F, 110.0F);
+  drawRect(cx - 8.0F, cy - 1.0F, 5.0F, 2.0F, crosshairCol);
+  drawRect(cx + 3.0F, cy - 1.0F, 5.0F, 2.0F, crosshairCol);
+  drawRect(cx - 1.0F, cy - 8.0F, 2.0F, 5.0F, crosshairCol);
+  drawRect(cx - 1.0F, cy + 3.0F, 2.0F, 5.0F, crosshairCol);
+
+  // Compact Top Tactical Telemetry Bar
+  drawPanel(12.0F, 10.0F, 488.0F, 26.0F, Color(8.0F, 12.0F, 18.0F, 92.0F),
+            Color(0.0F, 180.0F, 220.0F, 95.0F));
+
+  const char* zoneLabel = "ZONA B // VIA DE ACESSO";
+  if (playerPos.z > 13.0F) {
+    zoneLabel = "ZONA A // PONTO INICIAL";
+  } else if (playerPos.z < 6.5F) {
+    zoneLabel = "ZONA C // PORTAO & CONTROLE ETIP";
+  }
+
+  font.drawText(zoneLabel, 22, 16, Color(240.0F, 185.0F, 40.0F, 128.0F), 1.0F);
+
+  char posBuf[48];
+  std::snprintf(posBuf, sizeof(posBuf), "POS X:%.1f Z:%.1f", playerPos.x,
+                -playerPos.z);
+  font.drawText(posBuf, 350, 16, Color(140.0F, 235.0F, 255.0F, 128.0F), 1.0F);
+
+  // Bottom Controls Bar
+  drawPanel(12.0F, 412.0F, 488.0F, 24.0F, Color(8.0F, 12.0F, 18.0F, 92.0F),
+            Color(80.0F, 100.0F, 120.0F, 85.0F));
+  font.drawText(
+      "L-STICK/DPAD: WALK   R-STICK/BTNS: LOOK   L1/R1: RUN   SELECT: MENU", 20,
+      417, Color(190.0F, 215.0F, 230.0F, 128.0F), 1.0F);
 }
 
 void DroidCamposGame::drawRect(float x, float y, float w, float h,
@@ -214,14 +493,11 @@ void DroidCamposGame::drawRect(float x, float y, float w, float h,
 void DroidCamposGame::drawPanel(float x, float y, float w, float h,
                                 const Color& bgColor,
                                 const Color& borderColor) {
-  // Fundo do painel
   drawRect(x, y, w, h, bgColor);
-  // Bordas industriais (topo, base, esquerda, direita)
   drawRect(x, y, w, 2.0F, borderColor);
   drawRect(x, y + h - 2.0F, w, 2.0F, borderColor);
   drawRect(x, y, 2.0F, h, borderColor);
   drawRect(x + w - 2.0F, y, 2.0F, h, borderColor);
-  // Cantoneiras de reforço estilo HUD militar/industrial
   drawRect(x, y, 8.0F, 4.0F, borderColor);
   drawRect(x + w - 8.0F, y, 8.0F, 4.0F, borderColor);
   drawRect(x, y + h - 4.0F, 8.0F, 4.0F, borderColor);
@@ -231,7 +507,6 @@ void DroidCamposGame::drawPanel(float x, float y, float w, float h,
 void DroidCamposGame::renderBackground() {
   engine->renderer.renderer2D.render(bgSprite);
 
-  // Linhas de grade cibernética animadas sutis
   for (int i = 0; i < 6; i++) {
     float lineY = 70.0F + i * 60.0F + (bgScrollOffset * 0.5F);
     if (lineY < 410.0F) {
@@ -239,7 +514,6 @@ void DroidCamposGame::renderBackground() {
     }
   }
 
-  // Scanline de CRT / Visor Óptico em movimento
   if (scanlinesEnabled) {
     drawRect(0.0F, scanlineY, 512.0F, 3.0F, Color(0.0F, 200.0F, 255.0F, 24.0F));
     drawRect(0.0F, scanlineY + 3.0F, 512.0F, 1.0F,
@@ -248,29 +522,24 @@ void DroidCamposGame::renderBackground() {
 }
 
 void DroidCamposGame::renderHeader() {
-  // Painel superior do cabeçalho
   drawPanel(16.0F, 14.0F, 480.0F, 64.0F, Color(10.0F, 16.0F, 26.0F, 112.0F),
             Color(0.0F, 190.0F, 230.0F, 120.0F));
 
-  // Barra lateral de alerta industrial (amarelo/laranja pós-apocalíptico)
   drawRect(20.0F, 18.0F, 6.0F, 56.0F, Color(230.0F, 140.0F, 10.0F, 128.0F));
 
-  // Sombra e Título principal "DROID CAMPOS"
   font.drawText("DROID CAMPOS", 36, 22, Color(200.0F, 40.0F, 20.0F, 100.0F),
                 2.0F);
   font.drawText("DROID CAMPOS", 34, 20, Color(0.0F, 230.0F, 255.0F, 128.0F),
                 2.0F);
 
-  // Subtítulo corporativo e equação
   font.drawText("AXIOM-7 HEAVY IND. // PROJECT S.I.G.M.A.", 35, 56,
                 Color(230.0F, 165.0F, 30.0F, 128.0F), 1.0F);
 
-  // Telemetria à direita do cabeçalho
   font.drawText("UNIT: DC-01", 380, 22, Color(180.0F, 220.0F, 230.0F, 128.0F),
                 1.0F);
   font.drawText("SYNC: 98.4%", 380, 38, Color(60.0F, 220.0F, 120.0F, 128.0F),
                 1.0F);
-  font.drawText("SECTOR: FORJA-09", 356, 54,
+  font.drawText("SECTOR: ETIP-01", 356, 54,
                 Color(160.0F, 170.0F, 185.0F, 128.0F), 1.0F);
 }
 
@@ -282,7 +551,6 @@ void DroidCamposGame::renderFooter(const char* controlsHint) {
 }
 
 void DroidCamposGame::renderCyborgPortrait(float x, float y) {
-  // Moldura do terminal biométrico de DroidCampos (Dr. Victor Campos)
   drawPanel(x, y, 228.0F, 304.0F, Color(12.0F, 18.0F, 28.0F, 112.0F),
             Color(0.0F, 160.0F, 200.0F, 115.0F));
 
@@ -291,12 +559,10 @@ void DroidCamposGame::renderCyborgPortrait(float x, float y) {
   drawRect(x + 10.0F, y + 28.0F, 208.0F, 1.0F,
            Color(0.0F, 160.0F, 200.0F, 90.0F));
 
-  // Ilustração geométrica / esquemática do Ciborgue DroidCampos
   float cx = x + 114.0F;
   float cy = y + 98.0F;
   float pulse = (std::sin(animTick * 2.0F) + 1.0F) * 0.5F;
 
-  // Ombros e armadura industrial pesada
   drawRect(cx - 64.0F, cy + 28.0F, 128.0F, 46.0F,
            Color(35.0F, 45.0F, 58.0F, 128.0F));
   drawRect(cx - 72.0F, cy + 34.0F, 22.0F, 36.0F,
@@ -304,13 +570,11 @@ void DroidCamposGame::renderCyborgPortrait(float x, float y) {
   drawRect(cx + 50.0F, cy + 34.0F, 22.0F, 36.0F,
            Color(90.0F, 65.0F, 20.0F, 128.0F));
 
-  // Reator torácico (Equação Campos / Núcleo de Plasma)
   drawRect(cx - 18.0F, cy + 40.0F, 36.0F, 24.0F,
            Color(15.0F, 25.0F, 35.0F, 128.0F));
   drawRect(cx - 12.0F, cy + 44.0F, 24.0F, 16.0F,
            Color(0.0F, 160.0F + pulse * 80.0F, 230.0F, 128.0F));
 
-  // Pescoço mecânico e cabos neurais
   drawRect(cx - 16.0F, cy + 14.0F, 32.0F, 16.0F,
            Color(25.0F, 32.0F, 42.0F, 128.0F));
   drawRect(cx - 24.0F, cy + 8.0F, 4.0F, 22.0F,
@@ -318,13 +582,11 @@ void DroidCamposGame::renderCyborgPortrait(float x, float y) {
   drawRect(cx + 20.0F, cy + 8.0F, 4.0F, 22.0F,
            Color(0.0F, 180.0F, 220.0F, 128.0F));
 
-  // Capacete / Crânio Cibernético
   drawRect(cx - 32.0F, cy - 38.0F, 64.0F, 54.0F,
            Color(50.0F, 62.0F, 78.0F, 128.0F));
   drawRect(cx - 26.0F, cy - 44.0F, 52.0F, 8.0F,
            Color(70.0F, 85.0F, 100.0F, 128.0F));
 
-  // Visor Óptico Cyberpunk (vermelho/laranja brilhante com varredura)
   drawRect(cx - 28.0F, cy - 20.0F, 56.0F, 14.0F,
            Color(18.0F, 10.0F, 15.0F, 128.0F));
   drawRect(cx - 24.0F, cy - 17.0F, 48.0F, 8.0F,
@@ -333,7 +595,6 @@ void DroidCamposGame::renderCyborgPortrait(float x, float y) {
   drawRect(eyeScanX, cy - 17.0F, 10.0F, 8.0F,
            Color(255.0F, 230.0F, 120.0F, 128.0F));
 
-  // Máscara respiradora industrial
   drawRect(cx - 20.0F, cy - 2.0F, 40.0F, 14.0F,
            Color(30.0F, 38.0F, 48.0F, 128.0F));
   drawRect(cx - 14.0F, cy + 2.0F, 6.0F, 8.0F,
@@ -343,7 +604,6 @@ void DroidCamposGame::renderCyborgPortrait(float x, float y) {
   drawRect(cx + 8.0F, cy + 2.0F, 6.0F, 8.0F,
            Color(120.0F, 140.0F, 160.0F, 128.0F));
 
-  // Dossiê resumido abaixo do retrato
   drawRect(x + 10.0F, y + 180.0F, 208.0F, 1.0F,
            Color(0.0F, 160.0F, 200.0F, 90.0F));
 
@@ -359,7 +619,7 @@ void DroidCamposGame::renderCyborgPortrait(float x, float y) {
   font.drawText("REBUILT IN CHASSIS DC-01", static_cast<int>(x + 14),
                 static_cast<int>(y + 242),
                 Color(180.0F, 200.0F, 215.0F, 128.0F));
-  font.drawText("TO PURGE S.I.G.M.A. CORE.", static_cast<int>(x + 14),
+  font.drawText("TARGET: ETIP COMPLEX.", static_cast<int>(x + 14),
                 static_cast<int>(y + 260),
                 Color(0.0F, 220.0F, 250.0F, 128.0F));
   font.drawText("STATUS: VENGEANCE_ACTIVE", static_cast<int>(x + 14),
@@ -368,7 +628,6 @@ void DroidCamposGame::renderCyborgPortrait(float x, float y) {
 }
 
 void DroidCamposGame::renderMainMenu() {
-  // Painel esquerdo com as 3 opções: NEW GAME, LOAD GAME, SETTINGS
   drawPanel(16.0F, 90.0F, 236.0F, 304.0F, Color(12.0F, 18.0F, 28.0F, 112.0F),
             Color(0.0F, 180.0F, 220.0F, 115.0F));
 
@@ -377,7 +636,7 @@ void DroidCamposGame::renderMainMenu() {
   drawRect(26.0F, 122.0F, 216.0F, 1.0F, Color(0.0F, 160.0F, 200.0F, 90.0F));
 
   const char* labels[3] = {"NEW GAME", "LOAD GAME", "SETTINGS"};
-  const char* subLabels[3] = {"INITIATE PROTOCOL DC-01",
+  const char* subLabels[3] = {"DEPLOY AT ETIP GATE (FPS)",
                               "READ MEMORY CARD SLOTS",
                               "AUDIO & OPTICAL CONFIG"};
 
@@ -390,7 +649,6 @@ void DroidCamposGame::renderMainMenu() {
       drawPanel(28.0F, itemY, 212.0F, 52.0F,
                 Color(0.0F, 65.0F + pulse * 25.0F, 95.0F, 118.0F),
                 Color(0.0F, 230.0F, 255.0F, 128.0F));
-      // Indicador lateral amarelo/ciano
       drawRect(32.0F, itemY + 6.0F, 5.0F, 40.0F,
                Color(255.0F, 190.0F, 20.0F, 128.0F));
 
@@ -411,13 +669,11 @@ void DroidCamposGame::renderMainMenu() {
     }
   }
 
-  // Rodapé interno do menu esquerdo
-  font.drawText("MATH ENGINE: EQUATION READY", 30, 346,
+  font.drawText("3D ENGINE: ETIP LOADED", 30, 346,
                 Color(90.0F, 190.0F, 140.0F, 128.0F));
-  font.drawText("BUILD: PS2-TYRA-2147", 30, 366,
+  font.drawText("BUILD: PS2-TYRA-v0.0.1", 30, 366,
                 Color(120.0F, 140.0F, 160.0F, 128.0F));
 
-  // Painel direito: Retrato e Dossiê do Ciborgue DroidCampos
   renderCyborgPortrait(268.0F, 90.0F);
 }
 
@@ -425,27 +681,26 @@ void DroidCamposGame::renderNewGameScreen() {
   drawPanel(16.0F, 90.0F, 480.0F, 304.0F, Color(10.0F, 16.0F, 26.0F, 118.0F),
             Color(240.0F, 160.0F, 20.0F, 125.0F));
 
-  font.drawText("CLASSIFIED DOSSIER // THE FALL OF DR. VICTOR CAMPOS", 32, 104,
+  font.drawText("CLASSIFIED DOSSIER // INFILTRATING ETIP COMPLEX", 32, 104,
                 Color(255.0F, 190.0F, 30.0F, 128.0F));
   drawRect(28.0F, 124.0F, 456.0F, 2.0F, Color(240.0F, 160.0F, 20.0F, 100.0F));
 
   font.drawText(
       "YEAR 2147 - NEO-CAMPOS INDUSTRIAL WASTELAND.\n"
       "DR. VICTOR CAMPOS, CHIEF MATHEMATICIAN AT AXIOM-7,\n"
-      "LED THE CREATION OF S.I.G.M.A., A QUANTUM SUPER-AI.\n\n"
-      "WHEN CAMPOS DISCOVERED THE EXECUTIVE BOARD SECRETLY\n"
-      "REPROGRAMMED S.I.G.M.A. FOR THE 'OMEGA-PURGE' GENOCIDE,\n"
-      "HE TRIED TO INJECT A MATHEMATICAL PARADOX INTO ITS CORE.\n\n"
-      "BETRAYED AND CAST INTO THE SUB-LEVEL PLASMA FURNACES BY\n"
-      "THE EXECUTIVES, HIS SURVIVING CORTEX WAS FUSED INTO\n"
-      "HEAVY INDUSTRIAL CHASSIS DC-01: DROID CAMPOS.",
+      "ARRIVES AT THE ABANDONED PERIMETER OF THE ETIP\n"
+      "INDUSTRIAL INSTALLATION.\n\n"
+      "OBJECTIVE:\n"
+      "- ADVANCE THROUGH ACCESS ROAD (ZONA A -> ZONA B)\n"
+      "- INSPECT SECURITY GUARITA & CARD READER AT GATE\n"
+      "- BREACH MAIN INDUSTRIAL GATE INTO ETIP FACILITY.",
       32, 136, Color(200.0F, 225.0F, 235.0F, 128.0F));
 
   float pulse = (std::sin(animTick * 4.0F) + 1.0F) * 0.5F;
   drawPanel(86.0F, 344.0F, 340.0F, 36.0F,
             Color(0.0F, 70.0F + pulse * 40.0F, 100.0F, 120.0F),
             Color(0.0F, 235.0F, 255.0F, 128.0F));
-  font.drawText(">> PRESS CROSS TO INITIALIZE SECTOR 09 <<", 104, 354,
+  font.drawText(">> PRESS CROSS TO START 3D FPS <<", 112, 354,
                 Color(255.0F, 240.0F, 150.0F, 128.0F));
 }
 
@@ -458,11 +713,11 @@ void DroidCamposGame::renderLoadGameScreen() {
   drawRect(28.0F, 124.0F, 456.0F, 2.0F, Color(0.0F, 180.0F, 220.0F, 100.0F));
 
   const char* slotTitles[3] = {
-      "SLOT 01 // SECTOR 09: PLASMA FOUNDRY",
+      "SLOT 01 // ETIP PERIMETER GATE (ZONA A)",
       "SLOT 02 // AXIOM-7 QUANTUM RESEARCH LAB",
       "SLOT 03 // [ EMPTY / UNFORMATTED DATA BLOCK ]"};
   const char* slotDetails[3] = {
-      "DR. CAMPOS LVL 04   NEURAL SYNC: 94%   TIME: 02:41:18",
+      "DR. CAMPOS LVL 01   NEURAL SYNC: 98%   TIME: 00:05:12",
       "DR. CAMPOS LVL 02   NEURAL SYNC: 78%   TIME: 00:54:09",
       "NO TELEMETRY CHECKSUM FOUND IN THIS MEMORY SECTOR"};
 
@@ -539,7 +794,6 @@ void DroidCamposGame::renderSettingsScreen() {
                               : Color(170.0F, 185.0F, 200.0F, 128.0F);
     font.drawText(optionNames[i], 50, static_cast<int>(rowY + 14), labelCol);
 
-    // Barras de volume para os itens 0 e 1
     if (i == 0 || i == 1) {
       int vol = (i == 0) ? bgmVolume : sfxVolume;
       float barX = 245.0F;
@@ -557,33 +811,6 @@ void DroidCamposGame::renderSettingsScreen() {
                     Color(120.0F, 240.0F, 170.0F, 128.0F));
     }
   }
-}
-
-void DroidCamposGame::renderGameplayTemplate() {
-  drawPanel(16.0F, 90.0F, 480.0F, 304.0F, Color(10.0F, 18.0F, 24.0F, 118.0F),
-            Color(80.0F, 230.0F, 140.0F, 125.0F));
-
-  if (activeSaveSlot == 0) {
-    font.drawText("MISSION ACTIVE // NEW GAME: SECTOR 09 - FURNACE CORE", 32,
-                  106, Color(80.0F, 240.0F, 140.0F, 128.0F));
-  } else if (activeSaveSlot == 1) {
-    font.drawText("MISSION ACTIVE // LOADED SLOT 01: PLASMA FOUNDRY", 32, 106,
-                  Color(80.0F, 240.0F, 140.0F, 128.0F));
-  } else {
-    font.drawText("MISSION ACTIVE // LOADED SLOT 02: QUANTUM LABS", 32, 106,
-                  Color(80.0F, 240.0F, 140.0F, 128.0F));
-  }
-
-  drawRect(28.0F, 126.0F, 456.0F, 2.0F, Color(80.0F, 230.0F, 140.0F, 100.0F));
-
-  font.drawText(
-      "COMBAT CHASSIS DC-01 ONLINE.\n"
-      "MATHEMATICAL TARGETING MATRIX: CALIBRATED.\n"
-      "PRIMARY OBJECTIVE: ASCEND AXIOM-7 TOWER AND\n"
-      "INJECT THE CAMPOS PARADOX INTO S.I.G.M.A. MAINFRAME.\n\n"
-      "[ GAMEPLAY STATE PLACEHOLDER ]\n"
-      "CONNECT YOUR 3D LEVEL OR ACTION SCENE HERE.",
-      32, 148, Color(200.0F, 230.0F, 220.0F, 128.0F));
 }
 
 }  // namespace DroidCampos

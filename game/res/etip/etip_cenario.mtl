@@ -1,0 +1,97 @@
+# DroidCampos-PS2 MTL File
+
+newmtl PS2_Mat_AcoEscuro
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_acoescuro.png
+
+newmtl PS2_Mat_Advertencia
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_advertencia.png
+
+newmtl PS2_Mat_Asfalto_Via
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_asfalto_via.png
+
+newmtl PS2_Mat_Chao
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_chao.png
+
+newmtl PS2_Mat_Concreto
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_concreto.png
+
+newmtl PS2_Mat_Concreto_Bruto
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_concreto_bruto.png
+
+newmtl PS2_Mat_Ferrugem
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_ferrugem.png
+
+newmtl PS2_Mat_Logo_ETIP
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_logo_etip.png
+
+newmtl PS2_Mat_Metal_Ferrugem
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_metal_ferrugem.png
+
+newmtl PS2_Mat_PlacaCyber
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_placacyber.png
+
+newmtl PS2_Mat_Portao
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_portao.png
+
+newmtl PS2_Mat_VidroGuarita
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ps2_tex_vidroguarita.png

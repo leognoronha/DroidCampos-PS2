@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tyra>
+#include <memory>
 #include "font_sprite.hpp"
 
 namespace DroidCampos {
@@ -10,7 +11,7 @@ enum class MenuScreen {
   NEW_GAME_SCREEN = 1,
   LOAD_GAME_SCREEN = 2,
   SETTINGS_SCREEN = 3,
-  GAMEPLAY_TEMPLATE = 4
+  GAMEPLAY_FPS = 4
 };
 
 class DroidCamposGame : public Tyra::Game {
@@ -23,7 +24,13 @@ class DroidCamposGame : public Tyra::Game {
 
  private:
   void loadResources();
+  void loadScenario3D();
+  void resetPlayerToSpawn();
+
   void handleInput();
+  void updateFpsMovement();
+  void resolveWorldCollisions(float& x, float& z) const;
+  void updateCameraVectors();
   void updateAnimations();
 
   void renderBackground();
@@ -35,7 +42,8 @@ class DroidCamposGame : public Tyra::Game {
   void renderNewGameScreen();
   void renderLoadGameScreen();
   void renderSettingsScreen();
-  void renderGameplayTemplate();
+  void renderGameplayFps();
+  void renderFpsHud();
 
   void drawRect(float x, float y, float w, float h, const Tyra::Color& color);
   void drawPanel(float x, float y, float w, float h,
@@ -46,6 +54,22 @@ class DroidCamposGame : public Tyra::Game {
 
   Tyra::Sprite bgSprite;
   Tyra::Sprite uiRectSprite;
+
+  // 3D Scenario & Pipeline (ETIP Industrial Level)
+  Tyra::StaticPipeline stapip;
+  std::unique_ptr<Tyra::StaticMesh> scenarioMesh;
+  Tyra::StaPipOptions scenarioOptions;
+  bool scenarioLoaded;
+
+  // First-Person (FPS) Player & Camera State
+  Tyra::Vec4 playerPos;
+  Tyra::Vec4 cameraPos;
+  Tyra::Vec4 cameraLookAt;
+  Tyra::Vec4 cameraUp;
+  float cameraYaw;    // radians (horizontal look: left/right)
+  float cameraPitch;  // radians (vertical look: up/down)
+  float moveSpeed;
+  float lookSensitivity;
 
   MenuScreen currentScreen;
   int mainSelectedIndex;
