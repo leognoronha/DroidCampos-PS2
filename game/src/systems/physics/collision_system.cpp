@@ -12,7 +12,7 @@ constexpr float kPerimeterMaxX = 5.25F;
 constexpr float kPerimeterMinZ = 3.20F;
 constexpr float kPerimeterMaxZ = 19.30F;
 
-constexpr u32 kWorldObstacleCount = 9U;
+constexpr u32 kWorldObstacleCount = 11U;
 
 alignas(16) constexpr BoxCollider2D kWorldObstacles[kWorldObstacleCount] = {
     // Guarita de Vigilancia (West of gate)
@@ -29,6 +29,9 @@ alignas(16) constexpr BoxCollider2D kWorldObstacles[kWorldObstacleCount] = {
     // Metallic Traffic Barriers
     {-3.55F, -1.45F, 10.10F, 10.90F},
     {1.45F, 3.55F, 5.40F, 6.20F},
+    // Rear Physical Blockade (Zona A South: Cargo Container + Concrete/Hazard Barriers)
+    {-5.15F, 0.80F, 18.15F, 19.55F},
+    {0.65F, 5.68F, 18.25F, 19.45F},
 };
 }  // namespace
 

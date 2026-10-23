@@ -72,6 +72,25 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   drawer_->getFont().drawText(posBuf, 350, 16,
                               Color(140.0F, 235.0F, 255.0F, 128.0F), 1.0F);
 
+  // Contextual Card Reader Interaction Prompt
+  if (state.cardReader.isPlayerNearby && !state.radio.popupActive) {
+    if (state.cardReader.isUnlocked) {
+      drawer_->drawPanel(96.0F, 376.0F, 320.0F, 26.0F,
+                         Color(8.0F, 26.0F, 14.0F, 102.0F),
+                         Color(30.0F, 230.0F, 80.0F, 115.0F));
+      drawer_->getFont().drawText("[ACESSO LIBERADO - LUZ VERDE ATIVA]", 112,
+                                  382, Color(80.0F, 250.0F, 120.0F, 128.0F),
+                                  1.0F);
+    } else {
+      drawer_->drawPanel(76.0F, 376.0F, 360.0F, 26.0F,
+                         Color(28.0F, 10.0F, 12.0F, 102.0F),
+                         Color(235.0F, 50.0F, 50.0F, 115.0F));
+      drawer_->getFont().drawText(
+          "[QUADRADO] INTERAGIR LEITOR (LUZ VERMELHA)", 90, 382,
+          Color(255.0F, 140.0F, 140.0F, 128.0F), 1.0F);
+    }
+  }
+
   // Bottom Controls Bar
   drawer_->drawPanel(12.0F, 412.0F, 488.0F, 24.0F,
                      Color(8.0F, 12.0F, 18.0F, 92.0F),

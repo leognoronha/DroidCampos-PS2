@@ -78,12 +78,18 @@ struct AnimationFrameState {
   float bgScrollOffset;
 };
 
+struct CardReaderState {
+  bool isPlayerNearby;
+  bool isUnlocked;
+};
+
 struct alignas(64) WorldState {
   PlayerKinematicsState player;
   InputCommandState inputCmd;
   RadioCodecState radio;
   MenuNavigationState menu;
   AnimationFrameState anim;
+  CardReaderState cardReader;
 
   void resetPlayerToSpawn() {
     player.playerPos.set(0.0F, kDefaultEyeHeight, 17.0F, 1.0F);
@@ -98,6 +104,9 @@ struct alignas(64) WorldState {
     player.weaponSwayY = 0.0F;
 
     inputCmd.clear();
+
+    cardReader.isPlayerNearby = false;
+    cardReader.isUnlocked = false;
 
     radio.popupActive = true;
     radio.visibleChars = 0;

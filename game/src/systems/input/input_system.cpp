@@ -67,6 +67,20 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
         Events::EventType::PlayerSpawnResetRequested));
   }
 
+  // Check proximity to Card Reader pedestal (X = 2.48m, Z_tyra = 3.25m)
+  constexpr float kCardReaderX = 2.48F;
+  constexpr float kCardReaderZ = 3.25F;
+  constexpr float kInteractRadiusSq = 2.55F * 2.55F;
+  const float dxReader = state.player.playerPos.x - kCardReaderX;
+  const float dzReader = state.player.playerPos.z - kCardReaderZ;
+  state.cardReader.isPlayerNearby =
+      ((dxReader * dxReader + dzReader * dzReader) <= kInteractRadiusSq);
+
+  if (state.cardReader.isPlayerNearby && clicked.Square) {
+    bus.publish(Events::GameEvent::makeSimple(
+        Events::EventType::CardReaderInteracted));
+  }
+
   float lookYawDelta = 0.0F;
   float lookPitchDelta = 0.0F;
 
@@ -81,7 +95,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
     lookPitchDelta -= ry * lookSens;
   }
 
-  if (pressed.Square) {
+  if (!state.cardReader.isPlayerNearby && pressed.Square) {
     lookYawDelta -= lookSens * 0.85F;
   }
   if (pressed.Circle) {

@@ -8,11 +8,15 @@ namespace Render3D {
 using namespace Tyra;
 
 WorldRenderSystem::WorldRenderSystem()
-    : scenarioLoaded_(false), mistLoaded_(false), pistolLoaded_(false) {}
+    : etipLogoMat_(nullptr),
+      etipBoardMat_(nullptr),
+      cardReaderLightMat_(nullptr),
+      scenarioLoaded_(false),
+      mistLoaded_(false),
+      pistolLoaded_(false) {}
 
 void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
                              Events::EventBus& bus) {
-  (void)bus;
   if (engine == nullptr) {
     return;
   }
@@ -23,6 +27,8 @@ void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
   loadMist3D(engine);
   loadPistol3D(engine);
   updatePistolViewmodelTransform(state);
+  updateAbandonedSignFlicker(state);
+  updateCardReaderLight(state, bus);
 }
 
 void WorldRenderSystem::loadScenario3D(Engine* engine) {
@@ -37,8 +43,19 @@ void WorldRenderSystem::loadScenario3D(Engine* engine) {
   auto& repo = engine->renderer.getTextureRepository();
   repo.addByMesh(scenarioMesh_.get(), FileUtils::fromCwd("etip/"), "png");
 
+  etipLogoMat_ = nullptr;
+  etipBoardMat_ = nullptr;
+  cardReaderLightMat_ = nullptr;
   for (auto* mat : scenarioMesh_->materials) {
     mat->ambient.set(128.0F, 128.0F, 128.0F, 128.0F);
+    if (mat->name == "PS2_Mat_Logo_ETIP") {
+      etipLogoMat_ = mat;
+    } else if (mat->name == "PS2_Mat_PlacaCyber") {
+      etipBoardMat_ = mat;
+    } else if (mat->name == "PS2_Mat_Luz_Leitor") {
+      cardReaderLightMat_ = mat;
+      cardReaderLightMat_->ambient.set(220.0F, 18.0F, 18.0F, 128.0F);
+    }
   }
 
   scenarioOptions_.frustumCulling = PipelineFrustumCulling_Precise;
@@ -63,14 +80,14 @@ void WorldRenderSystem::loadMist3D(Engine* engine) {
   repo.addByMesh(mistMesh_.get(), FileUtils::fromCwd("etip/"), "png");
 
   for (auto* mat : mistMesh_->materials) {
-    // Soft translucent cool mist color modulated with 32-bit RGBA texture alpha
-    mat->ambient.set(118.0F, 126.0F, 134.0F, 88.0F);
+    // Light, delicate ground-hugging mist that preserves full map visibility
+    mat->ambient.set(120.0F, 126.0F, 134.0F, 38.0F);
   }
 
-  // Render in strict back-to-front order with bilinear filtering & alpha blending
+  // Render in back-to-front order with precise frustum/near-plane clipping & alpha blending
   mistOptions_.transformationType = TyraMVP;
-  mistOptions_.frustumCulling = PipelineFrustumCulling_None;
-  mistOptions_.fullClipChecks = false;
+  mistOptions_.frustumCulling = PipelineFrustumCulling_Precise;
+  mistOptions_.fullClipChecks = true;
   mistOptions_.textureMappingType = TyraLinear;
   mistOptions_.blendingEnabled = true;
   mistOptions_.zTestType = PipelineZTest_Standard;
@@ -136,11 +153,78 @@ void WorldRenderSystem::updatePistolViewmodelTransform(
   pistolMesh_->rotation.rotateZ(-bobX * 1.4F - p.weaponSwayX * 1.2F);
 }
 
+void WorldRenderSystem::updateAbandonedSignFlicker(
+    const Core::WorldState& state) {
+  if (!scenarioLoaded_ || scenarioMesh_ == nullptr) {
+    return;
+  }
+
+  // Deterministic pseudo-random fluorescent/neon ballast flicker pattern
+  const float t = state.anim.animTick * 0.65F;
+  const float waveA = std::sin(t * 17.3F);
+  const float waveB = std::sin(t * 41.7F);
+  const float waveC = std::cos(t * 7.9F);
+  const float cycle = std::fmod(t, 6.2831853F);
+
+  float intensity = 1.0F;
+  if (cycle > 1.20F && cycle < 1.36F) {
+    // Quick double-drop short-circuit stutter
+    intensity = (waveB > 0.0F) ? 0.16F : 0.72F;
+  } else if (cycle > 3.80F && cycle < 4.35F) {
+    // Prolonged dying-ballast brownout with high-frequency buzz
+    intensity = (waveA * waveB > 0.12F) ? 0.22F : 0.45F;
+  } else if (cycle > 5.45F && cycle < 5.56F) {
+    // Sudden voltage spike before brief blackout
+    intensity = (cycle < 5.50F) ? 1.22F : 0.12F;
+  } else {
+    // Subtle 60Hz fluorescent hum when lit
+    intensity = 0.94F + 0.06F * waveC;
+  }
+
+  if (etipLogoMat_ != nullptr) {
+    const float r = 128.0F * intensity;
+    const float g = 124.0F * intensity;
+    const float b = 114.0F * intensity;
+    etipLogoMat_->ambient.set(r, g, b, 128.0F);
+  }
+  if (etipBoardMat_ != nullptr) {
+    const float boardInt = 0.45F + 0.55F * intensity;
+    etipBoardMat_->ambient.set(120.0F * boardInt, 124.0F * boardInt,
+                               128.0F * boardInt, 128.0F);
+  }
+}
+
+void WorldRenderSystem::updateCardReaderLight(Core::WorldState& state,
+                                              Events::EventBus& bus) {
+  u32 eventCount = 0;
+  const Events::GameEvent* events = bus.getFrameEvents(eventCount);
+  for (u32 i = 0; i < eventCount; ++i) {
+    const auto& ev = events[i];
+    if (ev.type == Events::EventType::CardReaderInteracted) {
+      state.cardReader.isUnlocked = true;
+    } else if (ev.type == Events::EventType::PlayerSpawnResetRequested) {
+      state.cardReader.isUnlocked = false;
+    }
+  }
+
+  if (cardReaderLightMat_ == nullptr) {
+    return;
+  }
+
+  if (state.cardReader.isUnlocked) {
+    // Bright Emerald Green LED when interacted via Square button
+    cardReaderLightMat_->ambient.set(18.0F, 235.0F, 48.0F, 128.0F);
+  } else {
+    // Glowing Crimson Red LED before interaction
+    const float pulse = 0.92F + 0.08F * std::sin(state.anim.animTick * 3.5F);
+    cardReaderLightMat_->ambient.set(225.0F * pulse, 18.0F, 18.0F, 128.0F);
+  }
+}
+
 void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
                                      Core::WorldState& state,
                                      Events::EventBus& bus,
                                      Hardware::Ps2ScratchpadArena& scratchpad) {
-  (void)bus;
   (void)scratchpad;
 
   if (state.menu.currentScreen != Core::ScreenState::GameplayFps) {
@@ -149,6 +233,8 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
 
   if (stage == Core::HardwareStage::Stage1_EeVu0Simulation) {
     updatePistolViewmodelTransform(state);
+    updateAbandonedSignFlicker(state);
+    updateCardReaderLight(state, bus);
     return;
   }
 
@@ -164,7 +250,9 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
     }
 
     if (mistLoaded_ && mistMesh_ != nullptr) {
+      engine->renderer.core.gs.zBuffer.mask = 1;
       stapip_.render(mistMesh_.get(), mistOptions_);
+      engine->renderer.core.gs.zBuffer.mask = 0;
     }
 
     if (pistolLoaded_ && pistolMesh_ != nullptr) {
@@ -190,6 +278,9 @@ void WorldRenderSystem::shutdown(Engine* engine) {
   scenarioMesh_.reset();
   mistMesh_.reset();
   pistolMesh_.reset();
+  etipLogoMat_ = nullptr;
+  etipBoardMat_ = nullptr;
+  cardReaderLightMat_ = nullptr;
   scenarioLoaded_ = false;
   mistLoaded_ = false;
   pistolLoaded_ = false;

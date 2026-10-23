@@ -12,7 +12,8 @@ enum class EventType : u8 {
   RadioDismissRequested = 3,
   RadioTransmissionTriggered = 4,
   AudioSettingChanged = 5,
-  VideoFilterChanged = 6
+  VideoFilterChanged = 6,
+  CardReaderInteracted = 7
 };
 
 struct alignas(16) GameEvent {
