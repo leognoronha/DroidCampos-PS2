@@ -4,7 +4,9 @@
 #include <array>
 #include <string>
 
+#ifndef FONT_CHAR_SIZE
 #define FONT_CHAR_SIZE 96
+#endif
 
 namespace DroidCampos {
 
@@ -26,5 +28,14 @@ class Font {
   Tyra::Sprite allFont;
   std::array<Tyra::Sprite, FONT_CHAR_SIZE> font;
 };
+
+namespace Systems {
+namespace Ui {
+
+using Font = DroidCampos::Font;
+using FontSprite = DroidCampos::Font;
+
+}  // namespace Ui
+}  // namespace Systems
 
 }  // namespace DroidCampos

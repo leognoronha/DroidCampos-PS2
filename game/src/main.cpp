@@ -1,9 +1,9 @@
 #include <tyra>
-#include "droid_campos_game.hpp"
+#include "core/game_app.hpp"
 
 int main() {
   Tyra::Engine engine;
-  DroidCampos::DroidCamposGame game(&engine);
+  DroidCampos::Core::GameApp game(&engine);
   engine.run(&game);
   SleepThread();
   return 0;

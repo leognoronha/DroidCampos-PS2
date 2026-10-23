@@ -1,0 +1,135 @@
+#pragma once
+
+#include <tyra>
+
+namespace DroidCampos {
+namespace Core {
+
+constexpr float kDefaultPi = 3.1415926535F;
+constexpr float kDefaultEyeHeight = 1.70F;
+constexpr const char* kDefaultCodecMessage =
+    "DR. CAMPOS, DO YOU READ ME?\n"
+    "ETIP PERIMETER IS UNDER LOCKDOWN.\n"
+    "CHECK THE GUARD BOOTH AND CARD\n"
+    "READER TO BREACH THE MAIN GATE.";
+
+enum class ScreenState : u8 {
+  MainMenu = 0,
+  NewGame = 1,
+  LoadGame = 2,
+  Settings = 3,
+  GameplayFps = 4
+};
+
+struct alignas(16) PlayerKinematicsState {
+  Tyra::Vec4 playerPos;
+  Tyra::Vec4 cameraPos;
+  Tyra::Vec4 cameraLookAt;
+  Tyra::Vec4 cameraUp;
+  float yaw;
+  float pitch;
+  float moveSpeed;
+  float lookSensitivity;
+  float walkBobPhase;
+  float walkBobAmount;
+  float weaponSwayX;
+  float weaponSwayY;
+};
+
+struct alignas(16) InputCommandState {
+  float moveForward;
+  float moveStrafe;
+  float lookYawDelta;
+  float lookPitchDelta;
+  bool isRunning;
+
+  void clear() {
+    moveForward = 0.0F;
+    moveStrafe = 0.0F;
+    lookYawDelta = 0.0F;
+    lookPitchDelta = 0.0F;
+    isRunning = false;
+  }
+};
+
+struct RadioCodecState {
+  bool popupActive;
+  int visibleChars;
+  float typeTimer;
+  const char* currentMessage;
+};
+
+struct MenuNavigationState {
+  ScreenState currentScreen;
+  int mainSelectedIndex;
+  int loadSelectedIndex;
+  int settingsSelectedIndex;
+  int bgmVolume;
+  int sfxVolume;
+  bool scanlinesEnabled;
+  bool nearestFilter;
+  int padCooldown;
+  int activeSaveSlot;
+};
+
+struct AnimationFrameState {
+  float animTick;
+  float scanlineY;
+  float bgScrollOffset;
+};
+
+struct alignas(64) WorldState {
+  PlayerKinematicsState player;
+  InputCommandState inputCmd;
+  RadioCodecState radio;
+  MenuNavigationState menu;
+  AnimationFrameState anim;
+
+  void resetPlayerToSpawn() {
+    player.playerPos.set(0.0F, kDefaultEyeHeight, 17.0F, 1.0F);
+    player.cameraPos.set(0.0F, kDefaultEyeHeight, 17.0F, 1.0F);
+    player.cameraLookAt.set(0.0F, kDefaultEyeHeight, 16.0F, 1.0F);
+    player.cameraUp.set(0.0F, 1.0F, 0.0F, 0.0F);
+    player.yaw = -kDefaultPi * 0.5F;
+    player.pitch = 0.04F;
+    player.walkBobPhase = 0.0F;
+    player.walkBobAmount = 0.0F;
+    player.weaponSwayX = 0.0F;
+    player.weaponSwayY = 0.0F;
+
+    inputCmd.clear();
+
+    radio.popupActive = true;
+    radio.visibleChars = 0;
+    radio.typeTimer = 0.0F;
+    if (radio.currentMessage == nullptr) {
+      radio.currentMessage = kDefaultCodecMessage;
+    }
+  }
+
+  void resetToDefaults() {
+    player.moveSpeed = 0.11F;
+    player.lookSensitivity = 0.032F;
+    radio.currentMessage = kDefaultCodecMessage;
+    resetPlayerToSpawn();
+    player.pitch = 0.0F;
+
+    menu.currentScreen = ScreenState::MainMenu;
+    menu.mainSelectedIndex = 0;
+    menu.loadSelectedIndex = 0;
+    menu.settingsSelectedIndex = 0;
+    menu.bgmVolume = 80;
+    menu.sfxVolume = 90;
+    menu.scanlinesEnabled = true;
+    menu.nearestFilter = true;
+    menu.padCooldown = 0;
+    menu.activeSaveSlot = 1;
+
+    anim.animTick = 0.0F;
+    anim.scanlineY = 0.0F;
+    anim.bgScrollOffset = 0.0F;
+  }
+};
+
+}  // namespace Core
+}  // namespace DroidCampos
