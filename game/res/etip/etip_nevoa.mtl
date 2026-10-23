@@ -1,0 +1,8 @@
+# DroidCampos-PS2 - Mist Material
+newmtl PS2_Mat_Nevoa_Leve
+Ka 0.76000 0.82000 0.89000
+Kd 0.76000 0.82000 0.89000
+Ks 0.00000 0.00000 0.00000
+d 0.35000
+illum 1
+map_Kd ps2_tex_nevoa_leve.png

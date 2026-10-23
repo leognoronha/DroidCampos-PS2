@@ -1,6 +1,7 @@
 #include "droid_campos_game.hpp"
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 namespace DroidCampos {
 
@@ -9,8 +10,15 @@ using namespace Tyra;
 namespace {
 constexpr float kPi = 3.1415926535F;
 constexpr float kEyeHeight = 1.70F;
-constexpr float kMaxPitch = 1.28F;  // ~73 degrees up/down limit
-constexpr float kPlayerRadius = 0.45F;
+constexpr float kMaxPitch = 1.28F;
+constexpr float kPlayerRadius = 0.48F;
+
+// Test radio message (Metal Gear Codec style)
+constexpr const char* kRadioTestMessage =
+    "DR. CAMPOS, DO YOU READ ME?\n"
+    "ETIP PERIMETER IS UNDER LOCKDOWN.\n"
+    "CHECK THE GUARD BOOTH AND CARD\n"
+    "READER TO BREACH THE MAIN GATE.";
 
 struct BoxCollider2D {
   float minX;
@@ -19,10 +27,6 @@ struct BoxCollider2D {
   float maxZ;
 };
 
-// 2D AABB colliders in Tyra coordinates (X = X_blender, Z = -Y_blender)
-// Guarantees the player stays within perimeter walls and collides with
-// the Guarita, Card Reader pedestal, and Lateral Barriers while keeping
-// the main route (X in [-2.0, +2.0]) completely clear.
 constexpr BoxCollider2D kWorldObstacles[] = {
     // Guarita de Vigilancia (West of gate)
     {-5.60F, -2.75F, 3.80F, 6.65F},
@@ -44,6 +48,8 @@ constexpr BoxCollider2D kWorldObstacles[] = {
 DroidCamposGame::DroidCamposGame(Engine* t_engine)
     : engine(t_engine),
       scenarioLoaded(false),
+      mistLoaded(false),
+      pistolLoaded(false),
       playerPos(0.0F, kEyeHeight, 17.0F, 1.0F),
       cameraPos(0.0F, kEyeHeight, 17.0F, 1.0F),
       cameraLookAt(0.0F, kEyeHeight, 16.0F, 1.0F),
@@ -52,6 +58,13 @@ DroidCamposGame::DroidCamposGame(Engine* t_engine)
       cameraPitch(0.0F),
       moveSpeed(0.11F),
       lookSensitivity(0.032F),
+      walkBobPhase(0.0F),
+      walkBobAmount(0.0F),
+      weaponSwayX(0.0F),
+      weaponSwayY(0.0F),
+      radioPopupActive(true),
+      radioVisibleChars(0),
+      radioTypeTimer(0.0F),
       currentScreen(MenuScreen::MAIN_MENU),
       mainSelectedIndex(0),
       loadSelectedIndex(0),
@@ -71,6 +84,12 @@ DroidCamposGame::~DroidCamposGame() {
   if (scenarioMesh != nullptr) {
     repo.freeByMesh(scenarioMesh.get());
   }
+  if (mistMesh != nullptr) {
+    repo.freeByMesh(mistMesh.get());
+  }
+  if (pistolMesh != nullptr) {
+    repo.freeByMesh(pistolMesh.get());
+  }
   repo.freeBySprite(bgSprite);
   repo.freeBySprite(uiRectSprite);
   font.free(repo);
@@ -83,9 +102,11 @@ void DroidCamposGame::init() {
   stapip.setRenderer(&engine->renderer.core);
   loadResources();
   loadScenario3D();
+  loadMist3D();
+  loadPistol3D();
   resetPlayerToSpawn();
 
-  TYRA_LOG("DroidCampos-PS2 v0.0.1 initialized (FPS Scenario Ready)!");
+  TYRA_LOG("DroidCampos-PS2 initialized (FPS + Pistol + Radio + Fog Ready)!");
 }
 
 void DroidCamposGame::loadResources() {
@@ -119,6 +140,10 @@ void DroidCamposGame::loadScenario3D() {
   auto& repo = engine->renderer.getTextureRepository();
   repo.addByMesh(scenarioMesh.get(), FileUtils::fromCwd("etip/"), "png");
 
+  for (auto* mat : scenarioMesh->materials) {
+    mat->ambient.set(128.0F, 128.0F, 128.0F, 128.0F);
+  }
+
   scenarioOptions.frustumCulling = PipelineFrustumCulling_Precise;
   scenarioOptions.fullClipChecks = true;
   scenarioOptions.textureMappingType = TyraNearest;
@@ -128,16 +153,92 @@ void DroidCamposGame::loadScenario3D() {
   TYRA_LOG("ETIP 3D Scenario loaded successfully!");
 }
 
+void DroidCamposGame::loadMist3D() {
+  ObjLoaderOptions options;
+  options.scale = 1.0F;
+  options.flipUVs = true;
+
+  auto data =
+      ObjLoader::load(FileUtils::fromCwd("etip/etip_nevoa.obj"), options);
+  mistMesh = std::make_unique<StaticMesh>(data.get());
+
+  auto& repo = engine->renderer.getTextureRepository();
+  repo.addByMesh(mistMesh.get(), FileUtils::fromCwd("etip/"), "png");
+
+  for (auto* mat : mistMesh->materials) {
+    // Soft translucent cool mist color modulated with 32-bit RGBA texture alpha
+    mat->ambient.set(118.0F, 126.0F, 134.0F, 88.0F);
+  }
+
+  // Render in strict back-to-front order with bilinear filtering & alpha blending
+  mistOptions.transformationType = TyraMVP;
+  mistOptions.frustumCulling = PipelineFrustumCulling_None;
+  mistOptions.fullClipChecks = false;
+  mistOptions.textureMappingType = TyraLinear;
+  mistOptions.blendingEnabled = true;
+  mistOptions.zTestType = PipelineZTest_Standard;
+
+  mistLoaded = true;
+  TYRA_LOG("Blender 3D Atmospheric Mist loaded successfully!");
+}
+
+void DroidCamposGame::loadPistol3D() {
+  ObjLoaderOptions options;
+  options.scale = 1.0F;
+  options.flipUVs = true;
+
+  auto data =
+      ObjLoader::load(FileUtils::fromCwd("pistol/pistol_scifi.obj"), options);
+  pistolMesh = std::make_unique<StaticMesh>(data.get());
+
+  auto& repo = engine->renderer.getTextureRepository();
+  repo.addByMesh(pistolMesh.get(), FileUtils::fromCwd("pistol/"), "png");
+
+  for (auto* mat : pistolMesh->materials) {
+    mat->ambient.set(126.0F, 128.0F, 132.0F, 128.0F);
+  }
+
+  // Render pistol in Camera/View space (TyraMP) so it stays locked to FPS hand
+  pistolOptions.transformationType = TyraMP;
+  pistolOptions.frustumCulling = PipelineFrustumCulling_None;
+  pistolOptions.fullClipChecks = false;
+  pistolOptions.textureMappingType = TyraNearest;
+  pistolOptions.zTestType = PipelineZTest_Standard;
+
+  pistolLoaded = true;
+  updatePistolTransform();
+  TYRA_LOG("Sci-Fi Low-Poly Pistol loaded successfully!");
+}
+
 void DroidCamposGame::resetPlayerToSpawn() {
-  // Zona A — Ponto Inicial (X=0, Y=1.70m eye height, Z=+17.0m facing -Z toward ETIP gate)
   playerPos.set(0.0F, kEyeHeight, 17.0F, 1.0F);
   cameraYaw = -kPi * 0.5F;
-  cameraPitch = 0.04F;  // Slightly looking up at the ETIP facade sign
+  cameraPitch = 0.04F;
+  walkBobPhase = 0.0F;
+  walkBobAmount = 0.0F;
+  weaponSwayX = 0.0F;
+  weaponSwayY = 0.0F;
+
+  // Trigger incoming Metal Gear-style radio transmission at mission start
+  radioPopupActive = true;
+  radioVisibleChars = 0;
+  radioTypeTimer = 0.0F;
+
   updateCameraVectors();
+  updatePistolTransform();
 }
 
 void DroidCamposGame::updateCameraVectors() {
-  cameraPos.set(playerPos.x, kEyeHeight, playerPos.z, 1.0F);
+  // Subtle natural head-bob on camera while walking
+  const float bobVertical =
+      std::sin(walkBobPhase * 2.0F) * 0.042F * walkBobAmount;
+  const float bobLateral = std::cos(walkBobPhase) * 0.022F * walkBobAmount;
+
+  const float rightX = -std::sin(cameraYaw);
+  const float rightZ = std::cos(cameraYaw);
+
+  cameraPos.set(playerPos.x + rightX * bobLateral, kEyeHeight + bobVertical,
+                playerPos.z + rightZ * bobLateral, 1.0F);
 
   const float cosPitch = std::cos(cameraPitch);
   const float dirX = cosPitch * std::cos(cameraYaw);
@@ -148,14 +249,58 @@ void DroidCamposGame::updateCameraVectors() {
                    1.0F);
 }
 
+void DroidCamposGame::updatePistolTransform() {
+  if (!pistolLoaded || pistolMesh == nullptr) {
+    return;
+  }
+
+  // Lissajous figure-8 walking bob + idle breathing + camera look inertia sway
+  const float idleBreath = std::sin(animTick * 0.75F) * 0.0035F;
+  const float bobX = std::cos(walkBobPhase) * 0.015F * walkBobAmount;
+  const float bobY =
+      -std::fabs(std::sin(walkBobPhase)) * 0.018F * walkBobAmount;
+  const float bobZ = std::sin(walkBobPhase * 2.0F) * 0.008F * walkBobAmount;
+
+  pistolMesh->translation.identity();
+  pistolMesh->rotation.identity();
+  pistolMesh->scale.identity();
+
+  // Position in lower-right FPS hand (View Space: +X right, -Y down, -Z forward)
+  pistolMesh->translation.translate(
+      Vec4(0.145F + bobX + weaponSwayX,
+           -0.135F + bobY + weaponSwayY + idleBreath, -0.320F + bobZ, 1.0F));
+
+  // Slight natural inward angle toward center crosshair + dynamic sway tilt
+  pistolMesh->rotation.rotateY(0.11F - weaponSwayX * 1.8F);
+  pistolMesh->rotation.rotateX(0.03F + weaponSwayY * 1.6F + bobY * 0.9F);
+  pistolMesh->rotation.rotateZ(-bobX * 1.4F - weaponSwayX * 1.2F);
+}
+
+void DroidCamposGame::updateRadioTransmission() {
+  if (!radioPopupActive) {
+    return;
+  }
+
+  const int totalLen = static_cast<int>(std::strlen(kRadioTestMessage));
+  if (radioVisibleChars < totalLen) {
+    radioTypeTimer += 0.65F;
+    if (radioTypeTimer >= 1.0F) {
+      int step = static_cast<int>(radioTypeTimer);
+      radioTypeTimer -= static_cast<float>(step);
+      radioVisibleChars += step;
+      if (radioVisibleChars > totalLen) {
+        radioVisibleChars = totalLen;
+      }
+    }
+  }
+}
+
 void DroidCamposGame::resolveWorldCollisions(float& x, float& z) const {
-  // 1. Perimeter walls & Main Gate boundary (Zona A + Zona B + Zona C)
   if (x < -5.25F) x = -5.25F;
   if (x > 5.25F) x = 5.25F;
   if (z > 19.30F) z = 19.30F;
-  if (z < 3.20F) z = 3.20F;  // Closed Main Gate & Front Facade line
+  if (z < 3.20F) z = 3.20F;
 
-  // 2. Push out of interior obstacle AABBs (Guarita, Barriers, Card Reader)
   for (const auto& box : kWorldObstacles) {
     const float expMinX = box.minX - kPlayerRadius;
     const float expMaxX = box.maxX + kPlayerRadius;
@@ -202,7 +347,6 @@ void DroidCamposGame::updateFpsMovement() {
   const auto& rightJoy = pad.getRightJoyPad();
 
   // --- 1. CAMERA LOOK (Left / Right / Up / Down) ---
-  // Right Analog Stick (center = 128, deadzone = 22)
   float lookYawDelta = 0.0F;
   float lookPitchDelta = 0.0F;
 
@@ -216,11 +360,13 @@ void DroidCamposGame::updateFpsMovement() {
     lookPitchDelta -= ry * lookSensitivity;
   }
 
-  // Also allow looking with Face Buttons (Square/Circle = Left/Right, Triangle/Cross = Up/Down)
+  // Face Buttons look (note: while radio popup is open, 'X'/Cross closes radio instead of looking down)
   if (pressed.Square) lookYawDelta -= lookSensitivity * 0.85F;
   if (pressed.Circle) lookYawDelta += lookSensitivity * 0.85F;
   if (pressed.Triangle) lookPitchDelta += lookSensitivity * 0.75F;
-  if (pressed.Cross) lookPitchDelta -= lookSensitivity * 0.75F;
+  if (!radioPopupActive && pressed.Cross) {
+    lookPitchDelta -= lookSensitivity * 0.75F;
+  }
 
   cameraYaw += lookYawDelta;
   if (cameraYaw > kPi) cameraYaw -= 2.0F * kPi;
@@ -230,7 +376,15 @@ void DroidCamposGame::updateFpsMovement() {
   if (cameraPitch > kMaxPitch) cameraPitch = kMaxPitch;
   if (cameraPitch < -kMaxPitch) cameraPitch = -kMaxPitch;
 
-  // --- 2. PLAYER WALKING & STRAFING (Fixed Horizontal Plane Y = kEyeHeight) ---
+  // Inertial weapon sway when turning head/camera
+  weaponSwayX = weaponSwayX * 0.80F - lookYawDelta * 0.35F;
+  weaponSwayY = weaponSwayY * 0.80F - lookPitchDelta * 0.35F;
+  if (weaponSwayX > 0.032F) weaponSwayX = 0.032F;
+  if (weaponSwayX < -0.032F) weaponSwayX = -0.032F;
+  if (weaponSwayY > 0.028F) weaponSwayY = 0.028F;
+  if (weaponSwayY < -0.028F) weaponSwayY = -0.028F;
+
+  // --- 2. PLAYER WALKING & STRAFING + HEAD/WEAPON BOB ---
   float moveForward = 0.0F;
   float moveStrafe = 0.0F;
 
@@ -244,25 +398,38 @@ void DroidCamposGame::updateFpsMovement() {
     moveStrafe += lx;
   }
 
-  // D-Pad movement support
   if (pressed.DpadUp) moveForward += 1.0F;
   if (pressed.DpadDown) moveForward -= 1.0F;
   if (pressed.DpadLeft) moveStrafe -= 1.0F;
   if (pressed.DpadRight) moveStrafe += 1.0F;
 
-  // Normalize diagonal movement so diagonal speed doesn't exceed straight speed
-  const float magSq = moveForward * moveForward + moveStrafe * moveStrafe;
-  if (magSq > 1.0F) {
-    const float invMag = 1.0F / std::sqrt(magSq);
+  float moveMag =
+      std::sqrt(moveForward * moveForward + moveStrafe * moveStrafe);
+  if (moveMag > 1.0F) {
+    const float invMag = 1.0F / moveMag;
     moveForward *= invMag;
     moveStrafe *= invMag;
+    moveMag = 1.0F;
   }
 
-  const float speedMult = (pressed.L1 || pressed.R1) ? 1.55F : 1.0F;
+  const bool isRunning = (pressed.L1 || pressed.R1);
+  const float speedMult = isRunning ? 1.55F : 1.0F;
   const float step = moveSpeed * speedMult;
 
-  // Forward vector in XZ plane: (cos(yaw), sin(yaw))
-  // Right (strafe) vector in XZ plane: (-sin(yaw), cos(yaw))
+  if (moveMag > 0.05F) {
+    walkBobPhase += (isRunning ? 0.21F : 0.14F) * moveMag;
+    if (walkBobPhase > 2.0F * kPi) {
+      walkBobPhase -= 2.0F * kPi;
+    }
+    const float targetBob = moveMag * (isRunning ? 1.25F : 1.0F);
+    walkBobAmount = walkBobAmount * 0.82F + targetBob * 0.18F;
+  } else {
+    walkBobAmount *= 0.80F;
+    if (walkBobAmount < 0.005F) {
+      walkBobAmount = 0.0F;
+    }
+  }
+
   const float fwdX = std::cos(cameraYaw);
   const float fwdZ = std::sin(cameraYaw);
   const float rightX = -fwdZ;
@@ -278,6 +445,7 @@ void DroidCamposGame::updateFpsMovement() {
   playerPos.z = nextZ;
 
   updateCameraVectors();
+  updatePistolTransform();
 }
 
 void DroidCamposGame::loop() {
@@ -289,15 +457,22 @@ void DroidCamposGame::loop() {
                                                                : TyraLinear);
 
   if (currentScreen == MenuScreen::GAMEPLAY_FPS) {
+    renderer.setClearScreenColor(Color(16.0F, 20.0F, 30.0F));
     updateFpsMovement();
+    updateRadioTransmission();
+
     CameraInfo3D camInfo(&cameraPos, &cameraLookAt, &cameraUp);
     renderer.beginFrame(camInfo);
     renderGameplayFps();
     renderFpsHud();
+    if (radioPopupActive) {
+      renderRadioPopup();
+    }
     renderer.endFrame();
     return;
   }
 
+  renderer.setClearScreenColor(Color(12.0F, 15.0F, 22.0F));
   renderer.beginFrame();
 
   renderBackground();
@@ -349,6 +524,17 @@ void DroidCamposGame::handleInput() {
   const auto& joy = engine->pad.getLeftJoyPad();
 
   if (currentScreen == MenuScreen::GAMEPLAY_FPS) {
+    // Dismiss the Metal Gear-style radio popup when pressing 'X' (Cross)
+    if (radioPopupActive && clicked.Cross) {
+      radioPopupActive = false;
+      return;
+    }
+    // Allow re-triggering the radio test popup anytime with L2 or R2
+    if (!radioPopupActive && (clicked.L2 || clicked.R2)) {
+      radioPopupActive = true;
+      radioVisibleChars = 0;
+      radioTypeTimer = 0.0F;
+    }
     if (clicked.Select) {
       currentScreen = MenuScreen::MAIN_MENU;
     } else if (clicked.L3 || clicked.R3) {
@@ -437,12 +623,139 @@ void DroidCamposGame::handleInput() {
 }
 
 void DroidCamposGame::renderGameplayFps() {
-  if (!scenarioLoaded || scenarioMesh == nullptr) {
-    return;
+  engine->renderer.renderer3D.usePipeline(stapip);
+
+  if (scenarioLoaded && scenarioMesh != nullptr) {
+    stapip.render(scenarioMesh.get(), scenarioOptions);
   }
 
-  engine->renderer.renderer3D.usePipeline(stapip);
-  stapip.render(scenarioMesh.get(), scenarioOptions);
+  if (mistLoaded && mistMesh != nullptr) {
+    stapip.render(mistMesh.get(), mistOptions);
+  }
+
+  if (pistolLoaded && pistolMesh != nullptr) {
+    stapip.render(pistolMesh.get(), pistolOptions);
+  }
+}
+
+void DroidCamposGame::renderAnonymousCodecPortrait(float x, float y,
+                                                   bool speaking) {
+  // Metal Gear Solid-style Codec Portrait Box on the right side
+  drawPanel(x, y, 98.0F, 114.0F, Color(6.0F, 18.0F, 14.0F, 122.0F),
+            Color(40.0F, 210.0F, 145.0F, 125.0F));
+
+  // Inner dark green/cyan CRT screen background
+  drawRect(x + 4.0F, y + 4.0F, 90.0F, 90.0F, Color(8.0F, 26.0F, 20.0F, 128.0F));
+
+  const float cx = x + 49.0F;
+  const float cy = y + 48.0F;
+
+  // Anonymous Shadowed Silhouette (shoulders, high tactical collar, hooded head)
+  // Shoulders & tactical coat collar
+  drawRect(cx - 36.0F, cy + 20.0F, 72.0F, 24.0F,
+           Color(16.0F, 54.0F, 42.0F, 128.0F));
+  drawRect(cx - 26.0F, cy + 10.0F, 52.0F, 14.0F,
+           Color(22.0F, 72.0F, 56.0F, 128.0F));
+
+  // Outer hood / shadowy head contour
+  drawRect(cx - 22.0F, cy - 28.0F, 44.0F, 40.0F,
+           Color(26.0F, 86.0F, 68.0F, 128.0F));
+  drawRect(cx - 18.0F, cy - 32.0F, 36.0F, 6.0F,
+           Color(32.0F, 102.0F, 80.0F, 128.0F));
+
+  // Deep shadow obscuring the face (anonymous informant aesthetic)
+  drawRect(cx - 16.0F, cy - 22.0F, 32.0F, 28.0F,
+           Color(6.0F, 18.0F, 14.0F, 128.0F));
+
+  // Subtle glinting encrypted eyes / visor slits in the shadow
+  drawRect(cx - 11.0F, cy - 12.0F, 8.0F, 3.0F,
+           Color(90.0F, 245.0F, 185.0F, 128.0F));
+  drawRect(cx + 3.0F, cy - 12.0F, 8.0F, 3.0F,
+           Color(90.0F, 245.0F, 185.0F, 128.0F));
+
+  // Nose bridge & lower jaw shadow highlight
+  drawRect(cx - 1.0F, cy - 9.0F, 2.0F, 7.0F,
+           Color(22.0F, 75.0F, 58.0F, 128.0F));
+
+  // Animated voice waveform / mouth transmission bar while text is printing
+  if (speaking && (static_cast<int>(animTick * 4.0F) % 2 == 0)) {
+    drawRect(cx - 7.0F, cy + 1.0F, 14.0F, 3.0F,
+             Color(70.0F, 230.0F, 165.0F, 128.0F));
+  } else {
+    drawRect(cx - 5.0F, cy + 2.0F, 10.0F, 1.0F,
+             Color(28.0F, 95.0F, 72.0F, 128.0F));
+  }
+
+  // CRT Codec Scanlines across portrait
+  for (int sl = 0; sl < 9; sl++) {
+    drawRect(x + 4.0F, y + 8.0F + static_cast<float>(sl) * 10.0F, 90.0F, 1.0F,
+             Color(0.0F, 10.0F, 8.0F, 55.0F));
+  }
+
+  // Rolling interference bar inside portrait
+  const float glitchY =
+      y + 6.0F + std::fmod(animTick * 9.0F, 84.0F);
+  drawRect(x + 4.0F, glitchY, 90.0F, 2.0F,
+           Color(90.0F, 255.0F, 190.0F, 36.0F));
+
+  // Bottom label inside portrait frame: "UNKNOWN"
+  font.drawText("UNKNOWN", static_cast<int>(x + 16.0F),
+                static_cast<int>(y + 96.0F),
+                Color(80.0F, 240.0F, 175.0F, 128.0F), 0.9F);
+}
+
+void DroidCamposGame::renderRadioPopup() {
+  // Main Metal Gear-style Radio / Codec Popup Window
+  const float px = 18.0F;
+  const float py = 266.0F;
+  const float pw = 476.0F;
+  const float ph = 136.0F;
+
+  drawPanel(px, py, pw, ph, Color(6.0F, 16.0F, 14.0F, 116.0F),
+            Color(45.0F, 215.0F, 150.0F, 122.0F));
+
+  // Header strip (PTT / Frequency 140.85)
+  drawRect(px + 8.0F, py + 6.0F, 356.0F, 18.0F,
+           Color(12.0F, 38.0F, 30.0F, 120.0F));
+  font.drawText("PTT // FREQ 140.85   [ENCRYPTED CODEC]",
+                static_cast<int>(px + 14.0F), static_cast<int>(py + 8.0F),
+                Color(90.0F, 245.0F, 180.0F, 128.0F), 0.95F);
+
+  // Animated signal strength bars
+  for (int b = 0; b < 5; b++) {
+    const float bh = 3.0F + static_cast<float>(b) * 2.5F;
+    const float bx = px + 328.0F + static_cast<float>(b) * 6.0F;
+    const float by = py + 20.0F - bh;
+    drawRect(bx, by, 4.0F, bh, Color(80.0F, 245.0F, 175.0F, 128.0F));
+  }
+
+  // Typewriter text area on the left (x = 28..370)
+  char partialBuf[256];
+  int copyLen = radioVisibleChars;
+  if (copyLen > static_cast<int>(sizeof(partialBuf)) - 1) {
+    copyLen = static_cast<int>(sizeof(partialBuf)) - 1;
+  }
+  std::memcpy(partialBuf, kRadioTestMessage, static_cast<size_t>(copyLen));
+  partialBuf[copyLen] = '\0';
+
+  font.drawText(partialBuf, static_cast<int>(px + 14.0F),
+                static_cast<int>(py + 32.0F),
+                Color(205.0F, 255.0F, 225.0F, 128.0F), 1.0F);
+
+  const int totalLen = static_cast<int>(std::strlen(kRadioTestMessage));
+  const bool stillTyping = (radioVisibleChars < totalLen);
+
+  // Blinking prompt to dismiss radio with 'X'
+  const float pulse = (std::sin(animTick * 4.5F) + 1.0F) * 0.5F;
+  drawRect(px + 10.0F, py + 110.0F, 354.0F, 18.0F,
+           Color(10.0F, 32.0F, 26.0F, 110.0F));
+  font.drawText(
+      "[ PRESS 'X' TO CLOSE RADIO TRANSMISSION ]", static_cast<int>(px + 22.0F),
+      static_cast<int>(py + 112.0F),
+      Color(120.0F + pulse * 135.0F, 245.0F, 175.0F, 128.0F), 0.95F);
+
+  // Fixed Anonymous Portrait on the right corner of the radio popup
+  renderAnonymousCodecPortrait(px + 368.0F, py + 11.0F, stillTyping);
 }
 
 void DroidCamposGame::renderFpsHud() {
@@ -476,9 +789,15 @@ void DroidCamposGame::renderFpsHud() {
   // Bottom Controls Bar
   drawPanel(12.0F, 412.0F, 488.0F, 24.0F, Color(8.0F, 12.0F, 18.0F, 92.0F),
             Color(80.0F, 100.0F, 120.0F, 85.0F));
-  font.drawText(
-      "L-STICK/DPAD: WALK   R-STICK/BTNS: LOOK   L1/R1: RUN   SELECT: MENU", 20,
-      417, Color(190.0F, 215.0F, 230.0F, 128.0F), 1.0F);
+  if (radioPopupActive) {
+    font.drawText(
+        "X: CLOSE RADIO   L-STICK/DPAD: WALK   R-STICK: LOOK   SELECT: MENU",
+        20, 417, Color(140.0F, 245.0F, 190.0F, 128.0F), 0.95F);
+  } else {
+    font.drawText(
+        "L-STICK/DPAD: WALK   R-STICK/BTNS: LOOK   L2: RADIO   SELECT: MENU",
+        20, 417, Color(190.0F, 215.0F, 230.0F, 128.0F), 0.95F);
+  }
 }
 
 void DroidCamposGame::drawRect(float x, float y, float w, float h,
@@ -669,7 +988,7 @@ void DroidCamposGame::renderMainMenu() {
     }
   }
 
-  font.drawText("3D ENGINE: ETIP LOADED", 30, 346,
+  font.drawText("3D ENGINE: ETIP + PISTOL", 30, 346,
                 Color(90.0F, 190.0F, 140.0F, 128.0F));
   font.drawText("BUILD: PS2-TYRA-v0.0.1", 30, 366,
                 Color(120.0F, 140.0F, 160.0F, 128.0F));

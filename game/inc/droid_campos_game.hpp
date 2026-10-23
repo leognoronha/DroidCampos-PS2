@@ -25,10 +25,14 @@ class DroidCamposGame : public Tyra::Game {
  private:
   void loadResources();
   void loadScenario3D();
+  void loadMist3D();
+  void loadPistol3D();
   void resetPlayerToSpawn();
 
   void handleInput();
   void updateFpsMovement();
+  void updatePistolTransform();
+  void updateRadioTransmission();
   void resolveWorldCollisions(float& x, float& z) const;
   void updateCameraVectors();
   void updateAnimations();
@@ -44,6 +48,8 @@ class DroidCamposGame : public Tyra::Game {
   void renderSettingsScreen();
   void renderGameplayFps();
   void renderFpsHud();
+  void renderRadioPopup();
+  void renderAnonymousCodecPortrait(float x, float y, bool speaking);
 
   void drawRect(float x, float y, float w, float h, const Tyra::Color& color);
   void drawPanel(float x, float y, float w, float h,
@@ -55,13 +61,21 @@ class DroidCamposGame : public Tyra::Game {
   Tyra::Sprite bgSprite;
   Tyra::Sprite uiRectSprite;
 
-  // 3D Scenario & Pipeline (ETIP Industrial Level)
+  // 3D Scenario, Blender 3D Mist & Sci-Fi Pistol Viewmodel
   Tyra::StaticPipeline stapip;
   std::unique_ptr<Tyra::StaticMesh> scenarioMesh;
   Tyra::StaPipOptions scenarioOptions;
   bool scenarioLoaded;
 
-  // First-Person (FPS) Player & Camera State
+  std::unique_ptr<Tyra::StaticMesh> mistMesh;
+  Tyra::StaPipOptions mistOptions;
+  bool mistLoaded;
+
+  std::unique_ptr<Tyra::StaticMesh> pistolMesh;
+  Tyra::StaPipOptions pistolOptions;
+  bool pistolLoaded;
+
+  // First-Person (FPS) Player, Head-Bob & Weapon Sway State
   Tyra::Vec4 playerPos;
   Tyra::Vec4 cameraPos;
   Tyra::Vec4 cameraLookAt;
@@ -70,6 +84,16 @@ class DroidCamposGame : public Tyra::Game {
   float cameraPitch;  // radians (vertical look: up/down)
   float moveSpeed;
   float lookSensitivity;
+
+  float walkBobPhase;
+  float walkBobAmount;
+  float weaponSwayX;
+  float weaponSwayY;
+
+  // Metal Gear-style Radio / Codec Transmission Popup State
+  bool radioPopupActive;
+  int radioVisibleChars;
+  float radioTypeTimer;
 
   MenuScreen currentScreen;
   int mainSelectedIndex;
