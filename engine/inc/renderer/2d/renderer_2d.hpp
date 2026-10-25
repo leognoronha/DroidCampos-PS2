@@ -23,6 +23,8 @@ class Renderer2D {
   void init(RendererCore* rendererCore);
   void render(const Sprite* sprite);
   void render(const Sprite& sprite);
+  // Consecutive sprites sharing a texture are submitted together, in order.
+  void renderBatch(const Sprite* sprites, u32 count);
 
  private:
   RendererCore* core;

@@ -20,15 +20,26 @@ void Renderer2D::init(RendererCore* t_rendererCore) { core = t_rendererCore; }
 void Renderer2D::render(const Sprite* sprite) { render(*sprite); }
 
 void Renderer2D::render(const Sprite& sprite) {
-  auto* texture = core->texture.repository.getBySpriteId(sprite.id);
+  renderBatch(&sprite, 1);
+}
 
-  TYRA_ASSERT(
-      texture, "Texture for sprite with id: ", sprite.id,
-      "Was not found in texture repository! Did you forget to add texture?");
-
-  auto texBuffers = core->texture.useTexture(texture);
-  core->texture.updateClutBuffer(texBuffers.clut);
-  core->renderer2D.render(sprite, texBuffers, texture);
+void Renderer2D::renderBatch(const Sprite* sprites, const u32 count) {
+  u32 start = 0;
+  while (start < count) {
+    auto* texture = core->texture.repository.getBySpriteId(sprites[start].id);
+    TYRA_ASSERT(texture, "Texture for sprite was not found in repository");
+    u32 end = start + 1;
+    while (end < count) {
+      auto* next = core->texture.repository.getBySpriteId(sprites[end].id);
+      TYRA_ASSERT(next, "Texture for sprite was not found in repository");
+      if (next != texture) break;
+      ++end;
+    }
+    auto texBuffers = core->texture.useTexture(texture);
+    core->texture.updateClutBuffer(texBuffers.clut);
+    core->renderer2D.renderBatch(sprites + start, end - start, texBuffers, texture);
+    start = end;
+  }
 }
 
 }  // namespace Tyra

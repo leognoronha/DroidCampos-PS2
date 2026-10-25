@@ -11,6 +11,7 @@
 #pragma once
 
 #include <vector>
+#include "math/m4x4.hpp"
 #include "debug/debug.hpp"
 #include "./stapip_qbuffer.hpp"
 #include "renderer/renderer_settings.hpp"
@@ -19,17 +20,16 @@
 namespace Tyra {
 
 /**
- * @brief This class requires VU1 buffer with max buffsize/3 vertices.
- * It will clip triangles and fill the buffer.
- *
- * To be honest clipping algorithm should be moved to VU1 and "AsIs" VU1 program
- * should be renamed to "Clip" - I don't want to do it now, too much time.
+ * @brief Clips an input package into reusable CPU scratch storage. Output must
+ * be copied into triangle-aligned VU1-sized batches before submission.
  */
 class StaPipClipper {
  public:
   StaPipClipper();
   ~StaPipClipper();
   void clip(StaPipQBuffer* buffer);
+  u32 getVertexCount() const { return clippedVertices.size(); }
+  void fillBuffer(StaPipQBuffer* buffer, u32 offset, u32 count);
   void init(const RendererSettings& settings);
   void setMaxVertCount(const u32& count);
   void setMVP(M4x4* mvp);
@@ -42,10 +42,9 @@ class StaPipClipper {
   Vec4 inputVerts[3];
   PlanesClipVertexPtrs inputTriangle[3];
   PlanesClipVertex clippedTriangle[9];
+  std::vector<PlanesClipVertex> clippedVertices;
 
   void perspectiveDivide(std::vector<PlanesClipVertex>* vertices);
-  void moveDataToBuffer(const std::vector<PlanesClipVertex>& vertices,
-                        StaPipQBuffer* buffer);
 };
 
 }  // namespace Tyra

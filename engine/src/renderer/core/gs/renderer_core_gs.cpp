@@ -99,12 +99,15 @@ void RendererCoreGS::enableZTests() {
 }
 
 void RendererCoreGS::setZBufferWriteEnabled(bool enabled) {
+  // enableZTests also uses this packet and may still be in flight.
+  dma_channel_wait(DMA_CHANNEL_GIF, 0);
   zBuffer.mask = enabled ? 0 : 1;
   // Update the actual GS register; changing the CPU-side field alone does not
   // change depth writes for transparent geometry already submitted via VU1.
   packet2_reset(zTestPacket, false);
   packet2_update(zTestPacket, draw_zbuffer(zTestPacket->base, 0, &zBuffer));
-  packet2_update(zTestPacket, draw_finish(zTestPacket->next));
+  // The caller's align2D owns the FINISH fence after this state packet. Do not
+  // emit a second FINISH here: a late duplicate could satisfy a later fence.
   dma_channel_wait(DMA_CHANNEL_GIF, 0);
   dma_channel_send_packet2(zTestPacket, DMA_CHANNEL_GIF, true);
   dma_channel_wait(DMA_CHANNEL_GIF, 0);

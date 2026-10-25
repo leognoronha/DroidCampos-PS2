@@ -138,10 +138,12 @@ void StaPipCore::render(StaPipBag* bag) {
     mvp = rendererCore->renderer3D.getViewProj() * *bag->info->model;
   }
 
+  RendererCoreTextureBuffers textureBuffers{};
   RendererCoreTextureBuffers* texBuffers = nullptr;
   if (bag->texture) {
     auto temp = rendererCore->texture.useTexture(bag->texture->texture);
-    texBuffers = new RendererCoreTextureBuffers{temp.id, temp.core, temp.clut};
+    textureBuffers = {temp.id, temp.core, temp.clut};
+    texBuffers = &textureBuffers;
   }
 
   qbufferRenderer.clearLastProgramName();
@@ -171,7 +173,7 @@ void StaPipCore::render(StaPipBag* bag) {
 
   if (checkYesFrustumInClipYes || checkYesFrustumInClipNo || checkNoClipNo) {
     u16 packagesCount = 0;
-    auto* biggerPkgs = packager.create(&packagesCount, bag, maxVertCount);
+    auto* biggerPkgs = packager.create(&packagesCount, bag, maxVertCount, &packageStorage);
     Verbose("Material - in frustum. Pkgs: ", packagesCount,
             " size: ", static_cast<int>(biggerPkgs[0].size));
     for (u16 i = 0; i < packagesCount; i++) {
@@ -180,24 +182,20 @@ void StaPipCore::render(StaPipBag* bag) {
       buffer->fillByPointer(biggerPkgs[i]);
       qbufferRenderer.cull(buffer);
     }
-    delete[] biggerPkgs;
   } else if (checkYesFrustumPartialClipYes || checkYesFrustumPartialClipNo) {
     u16 packagesCount = 0;
     auto doClip = checkYesFrustumPartialClipYes;
     if (!doClip || bag->count >= maxVertCount * 2) {
-      auto packages = packager.create(&packagesCount, bag, maxVertCount);
+      auto packages = packager.create(&packagesCount, bag, maxVertCount, &packageStorage);
       Verbose("Material - partial. Packages: ", packagesCount);
       renderPkgs(packages, doClip, packagesCount);
-      delete[] packages;
     } else {
-      auto subpkgs = packager.create(&packagesCount, bag, maxVertCount / 3);
+      auto subpkgs = packager.create(&packagesCount, bag, maxVertCount / 3, &packageStorage);
       Verbose("Material - partial. Subpackages: ", packagesCount);
       renderSubpkgs(subpkgs, packagesCount);
-      delete[] subpkgs;
     }
   }
 
-  if (texBuffers) delete texBuffers;
 
   qbufferRenderer.flushBuffers();
 
@@ -218,19 +216,20 @@ void StaPipCore::renderPkgs(StaPipBagPackage* packages, const bool& doClip,
     } else if (doSubpkgs) {
       u16 subpkgsSize = 0;
       auto packages1By3 =
-          packager.create(&subpkgsSize, packages[i], maxVertCount / 3);
+          packager.create(&subpkgsSize, packages[i], maxVertCount / 3, &subpackageStorage);
       Verbose(i, " - partial package. Created subpkgs: ", subpkgsSize);
 
       renderSubpkgs(packages1By3, subpkgsSize);
-      delete[] packages1By3;
     }
     Verbose(i, " - package skipped (outside)");
   }
 }
 
 void StaPipCore::renderSubpkgs(StaPipBagPackage* subpkgs, u16 count) {
-  std::vector<u16> doneIndexes;
-  std::vector<u16> loadedIndexes;
+  doneIndexes.clear();
+  loadedIndexes.clear();
+  doneIndexes.reserve(count);
+  loadedIndexes.reserve(3);
 
   // Check if some subpkgs are full in frustum
   for (u16 i = 0; i < count; i++) {

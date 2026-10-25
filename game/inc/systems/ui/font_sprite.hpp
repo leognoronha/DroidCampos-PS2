@@ -2,6 +2,8 @@
 
 #include <tyra>
 #include <array>
+#include <cstdint>
+#include <vector>
 #include <string>
 
 #ifndef FONT_CHAR_SIZE
@@ -23,10 +25,12 @@ class Font {
  private:
   const static int chars[FONT_CHAR_SIZE];
   const static int charWidths[FONT_CHAR_SIZE];
+  static const std::array<std::int16_t, 256> charLookup;
 
   Tyra::Renderer2D* renderer2D;
   Tyra::Sprite allFont;
   std::array<Tyra::Sprite, FONT_CHAR_SIZE> font;
+  std::vector<Tyra::Sprite> glyphBatch;
 };
 
 namespace Systems {

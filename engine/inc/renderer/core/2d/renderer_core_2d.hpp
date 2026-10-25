@@ -30,6 +30,10 @@ class RendererCore2D {
 
   void render(const Sprite& sprite,
               const RendererCoreTextureBuffers& texBuffers, Texture* texture);
+  void renderBatch(const Sprite* sprites, u32 count,
+                   const RendererCoreTextureBuffers& texBuffers, Texture* texture);
+  static constexpr u32 MaxSpritesPerBatch = 32;
+  static constexpr u32 PacketQuadwords = 16 * (MaxSpritesPerBatch + 1);
 
   void setTextureMappingType(
       const PipelineTextureMappingType textureMappingType);
@@ -37,6 +41,7 @@ class RendererCore2D {
  private:
   void setPrim();
   void setLod();
+  void appendSprite(packet2_t* packet, const Sprite& sprite, Texture* texture);
 
   prim_t prim;
   lod_t lod;

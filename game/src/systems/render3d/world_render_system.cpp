@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <string>
 #include "core/interior_layout.hpp"
+#include "systems/render3d/spatial_order.hpp"
 
 namespace DroidCampos {
 namespace Systems {
@@ -71,6 +72,7 @@ void WorldRenderSystem::loadScenario3D(Engine* engine) {
   scenarioOptions_.textureMappingType = TyraNearest;
   scenarioOptions_.transformationType = TyraMVP;
 
+  prepareOpaqueMesh(scenarioMesh_.get(), repo, stapip_);
   scenarioLoaded_ = true;
   TYRA_LOG("ETIP 3D Scenario loaded successfully!");
 }
@@ -229,6 +231,22 @@ void WorldRenderSystem::updateCardReaderLight(Core::WorldState& state,
   }
 }
 
+void WorldRenderSystem::renderTransparentPass(Engine* engine, StaticMesh* mesh,
+                                              const StaPipOptions& options) {
+  if (!stapip_.isVisible(mesh)) return;
+  auto& core = engine->renderer.core;
+  const bool previousWriteEnabled = core.gs.zBuffer.mask == 0;
+  // Drain PATH1 before updating ZBUF on PATH3. Drain PATH3 before sending
+  // subsequent PATH1 geometry, so neither pass can overtake the state change.
+  core.sync.align3D();
+  core.gs.setZBufferWriteEnabled(false);
+  core.sync.align2D();
+  stapip_.render(mesh, options);
+  core.sync.align3D();
+  core.gs.setZBufferWriteEnabled(previousWriteEnabled);
+  core.sync.align2D();
+}
+
 void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
                                      Core::WorldState& state,
                                      Events::EventBus& bus,
@@ -281,19 +299,11 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
     }
 
     if (mistLoaded_ && mistMesh_ != nullptr) {
-      engine->renderer.core.gs.zBuffer.mask = 1;
-      stapip_.render(mistMesh_.get(), mistOptions_);
-      engine->renderer.core.gs.zBuffer.mask = 0;
+      renderTransparentPass(engine, mistMesh_.get(), mistOptions_);
     }
 
     if (capsuleGlassMesh_) {
-      // Glass uses depth testing, but cannot hide other glass surfaces by
-      // writing depth. Opaque room/capsule geometry has already been drawn.
-      engine->renderer.core.sync.align3D();
-      engine->renderer.core.gs.setZBufferWriteEnabled(false);
-      stapip_.render(capsuleGlassMesh_.get(), capsuleGlassOptions_);
-      engine->renderer.core.sync.align3D();
-      engine->renderer.core.gs.setZBufferWriteEnabled(true);
+      renderTransparentPass(engine, capsuleGlassMesh_.get(), capsuleGlassOptions_);
     }
 
     if (pistolLoaded_ && pistolMesh_ != nullptr) {
@@ -405,6 +415,8 @@ void WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
     } else tex = repo.getByTextureId(it->second);
     tex->addLink(mat->id);
   }
+  if (std::string(Core::kInsideParts[step]) != "capsula_vidro")
+    prepareOpaqueMesh(mesh.get(), repo, stapip_);
   if (std::string(Core::kInsideParts[step]) == "capsula_vidro") capsuleGlassMesh_ = std::move(mesh);
   else if (step == Core::kInsidePartCount - 1) doorMesh_ = std::move(mesh);
   else interiorMeshes_.push_back(std::move(mesh));

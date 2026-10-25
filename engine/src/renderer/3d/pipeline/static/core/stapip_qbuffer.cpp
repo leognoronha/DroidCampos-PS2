@@ -9,6 +9,8 @@
 */
 
 #include "renderer/3d/pipeline/static/core/stapip_qbuffer.hpp"
+#include "renderer/3d/pipeline/static/core/bag/stapip_bag.hpp"
+#include "renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_package.hpp"
 #include <sstream>
 #include <iomanip>
 
@@ -16,10 +18,8 @@ namespace Tyra {
 
 StaPipQBuffer::StaPipQBuffer() {
   size = 0;
-  _isDynamicallyAllocated = false;
-  _stAllocated = false;
-  _colorAllocated = false;
-  _normalAllocated = false;
+  maxVertCount = 0;
+  bag = nullptr;
 
   vertices = nullptr;
   colors = nullptr;
@@ -27,7 +27,7 @@ StaPipQBuffer::StaPipQBuffer() {
   normals = nullptr;
 }
 
-StaPipQBuffer::~StaPipQBuffer() { deallocateDynamicData(); }
+StaPipQBuffer::~StaPipQBuffer() {}
 
 void StaPipQBuffer::setMaxVertCount(const u32& count) { maxVertCount = count; }
 
@@ -35,7 +35,6 @@ void StaPipQBuffer::fillByPointer(const StaPipBagPackage& pkg) {
   TYRA_ASSERT(pkg.size <= maxVertCount, "VU1 buffer supports only ",
               maxVertCount, " verts. Provided: ", pkg.size);
 
-  deallocateDynamicData();
 
   // Too bad, but in reality const is not violated.
   // This class needs refactor
@@ -57,7 +56,6 @@ void StaPipQBuffer::fillByCopyMax(const StaPipBagPackage& pkg1,
   TYRA_ASSERT(pkg3.size <= maxVertCount / 3,
               "Wrong package size (3). Provided: ", pkg3.size);
 
-  deallocateDynamicData();
   size = pkg1.size + pkg2.size + pkg3.size;
   allocateDynamicData(size, pkg1.bag);
 
@@ -106,7 +104,6 @@ void StaPipQBuffer::fillByCopy1By2(const StaPipBagPackage& pkg1,
   TYRA_ASSERT(pkg2.size <= maxVertCount / 3,
               "Wrong package size (2). Provided: ", pkg2.size);
 
-  deallocateDynamicData();
   size = pkg1.size + pkg2.size;
   allocateDynamicData(size, pkg1.bag);
 
@@ -139,7 +136,6 @@ void StaPipQBuffer::fillByCopy1By3(const StaPipBagPackage& pkg) {
   TYRA_ASSERT(pkg.size <= maxVertCount / 3,
               "Wrong package size (1). Provided: ", pkg.size);
 
-  deallocateDynamicData();
   size = pkg.size;
   allocateDynamicData(size, pkg.bag);
 
@@ -158,63 +154,29 @@ void StaPipQBuffer::fillByCopy1By3(const StaPipBagPackage& pkg) {
 }
 
 void StaPipQBuffer::reallocateManually(const u16& t_size) {
-  deallocateDynamicData();
   allocateDynamicData(t_size, bag);
   size = t_size;
 }
 
-void StaPipQBuffer::deallocateDynamicData() {
-  if (!_isDynamicallyAllocated) return;
-
-  delete[] vertices;
-
-  if (_stAllocated) {
-    delete[] sts;
-    _stAllocated = false;
-  }
-
-  if (_colorAllocated) {
-    delete[] colors;
-    _colorAllocated = false;
-  }
-
-  if (_normalAllocated) {
-    delete[] normals;
-    _normalAllocated = false;
-  }
-
-  _isDynamicallyAllocated = false;
-}
-
-/**
- * When we not receive maxVertCount vertices, we must align it by ourself.
- * Too bad - not efficient.
- */
+// Owned storage survives pointer-only packages and attribute changes. Vec4's
+// alignment is retained by its allocator, just as with the previous new[].
 void StaPipQBuffer::allocateDynamicData(u16 size, StaPipBag* bag) {
-  TYRA_ASSERT(size <= maxVertCount, "Wrong size. Max buffer size in VU1 is ",
-              maxVertCount, ". Provided: ", size);
-  TYRA_ASSERT(!_isDynamicallyAllocated, "Buffer is already allocated");
-
-  if (size == 0) return;
-
-  vertices = new Vec4[size];
-
-  if (bag->texture != nullptr) {
-    sts = new Vec4[size];
-    _stAllocated = true;
+  TYRA_ASSERT(size <= maxVertCount, "Buffer exceeds VU1 capacity");
+  if (vertexStorage.size() < size) vertexStorage.resize(size);
+  vertices = vertexStorage.data();
+  sts = colors = normals = nullptr;
+  if (bag->texture) {
+    if (stStorage.size() < size) stStorage.resize(size);
+    sts = stStorage.data();
   }
-
-  if (bag->color->many != nullptr) {
-    colors = new Vec4[size];
-    _colorAllocated = true;
+  if (bag->color->many) {
+    if (colorStorage.size() < size) colorStorage.resize(size);
+    colors = colorStorage.data();
   }
-
-  if (bag->lighting != nullptr) {
-    normals = new Vec4[size];
-    _normalAllocated = true;
+  if (bag->lighting) {
+    if (normalStorage.size() < size) normalStorage.resize(size);
+    normals = normalStorage.data();
   }
-
-  _isDynamicallyAllocated = true;
 }
 
 bool StaPipQBuffer::any() const { return size > 0; }

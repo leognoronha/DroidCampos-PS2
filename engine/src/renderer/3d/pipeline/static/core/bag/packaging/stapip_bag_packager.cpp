@@ -12,10 +12,12 @@
 #include <math.h>
 #include "debug/debug.hpp"
 #include "renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_packager.hpp"
+#include "renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_packages_bbox.hpp"
+#include "renderer/core/3d/renderer_3d_frustum_planes.hpp"
 
 namespace Tyra {
 
-StaPipBagPackager::StaPipBagPackager() {}
+StaPipBagPackager::StaPipBagPackager() : maxVertCount(0), frustumPlanes(nullptr), renderBBox(nullptr) {}
 
 StaPipBagPackager::~StaPipBagPackager() {}
 
@@ -29,14 +31,16 @@ void StaPipBagPackager::init(Renderer3DFrustumPlanes* t_frustumPlanes) {
  * @param size Max maxVertCount verts (VU1 buffer size)
  */
 StaPipBagPackage* StaPipBagPackager::create(u16* o_size, StaPipBag* data,
-                                            u16 size) {
+                                            u16 size, std::vector<StaPipBagPackage>* storage) {
   TYRA_ASSERT(size <= maxVertCount, "StaPipBagPackage can have max ",
               maxVertCount, " verts. Provided \"", size, "\"");
 
   *o_size = ceil(data->count / static_cast<float>(size));
-  StaPipBagPackage* result = new StaPipBagPackage[*o_size];
+  if (storage) storage->resize(*o_size);
+  auto* result = storage ? storage->data() : new StaPipBagPackage[*o_size];
 
   for (u16 i = 0; i < *o_size; i++) {
+    result[i] = StaPipBagPackage();
     result[i].bag = data;
     result[i].vertices = &data->vertices[i * size];
 
@@ -69,14 +73,16 @@ StaPipBagPackage* StaPipBagPackager::create(u16* o_size, StaPipBag* data,
  */
 StaPipBagPackage* StaPipBagPackager::create(u16* o_count,
                                             const StaPipBagPackage& pkg,
-                                            u16 size) {
+                                            u16 size, std::vector<StaPipBagPackage>* storage) {
   TYRA_ASSERT(size <= maxVertCount, "StaPipBagPackage can have max ",
               maxVertCount, " verts. Provided \"", size, "\"");
 
   *o_count = ceil(pkg.size / static_cast<float>(size));
-  auto* result = new StaPipBagPackage[*o_count];
+  if (storage) storage->resize(*o_count);
+  auto* result = storage ? storage->data() : new StaPipBagPackage[*o_count];
 
   for (u16 i = 0; i < *o_count; i++) {
+    result[i] = StaPipBagPackage();
     result[i].bag = pkg.bag;
     result[i].vertices = &pkg.vertices[i * size];
 

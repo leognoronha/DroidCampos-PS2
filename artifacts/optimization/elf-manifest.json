@@ -1,0 +1,27 @@
+[
+  {
+    "file": "buffers-step2.elf",
+    "bytes": 2470704,
+    "sha256": "23d010bd4306307f0d24d649d5e78189b5a871e20c43029d3e9ab39b613343b3"
+  },
+  {
+    "file": "clipping-step1.elf",
+    "bytes": 2468912,
+    "sha256": "58922a032fdce4ca6c40b18f8706d278fe07288f6d05bd81426bb9ab056d4612"
+  },
+  {
+    "file": "hud-step5.elf",
+    "bytes": 2492320,
+    "sha256": "beea1a45fbd91f477e5d312223f7b4664ca6d795c70047205b89e77546d14fe4"
+  },
+  {
+    "file": "spatial-step3.elf",
+    "bytes": 2487360,
+    "sha256": "66df1ba6a3b7d95d2f3d6d7052f94286d5613765930d80f6e44b5e0e535ea121"
+  },
+  {
+    "file": "transparency-step4.elf",
+    "bytes": 2487904,
+    "sha256": "002345cb3352047d172d1623165ac6305ef19223e1974820b1d30ebfd81ce05a"
+  }
+]

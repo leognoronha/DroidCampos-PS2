@@ -1,0 +1,422 @@
+[    0,0356] Program Path: C:\Users\leogn\OneDrive\Documents\pcsx2-v2.3.362-windows-x64-Qt\pcsx2-qt.exe
+[    0,0357] AppRoot Directory: C:\Users\leogn\OneDrive\Documents\pcsx2-v2.3.362-windows-x64-Qt
+[    0,0358] Resources Directory: C:\Users\leogn\OneDrive\Documents\pcsx2-v2.3.362-windows-x64-Qt\resources
+[    0,0362] DataRoot Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2
+[    0,0364] Loading config from C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\inis\PCSX2.ini.
+[    0,0368] Loading secrets from C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\inis\secrets.ini.
+[    0,0396] BIOS Directory: C:/Users/leogn/OneDrive/Documents/PCSX2/bios
+[    0,0397] Snapshots Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\snaps
+[    0,0397] Savestates Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\sstates
+[    0,0397] MemoryCards Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\memcards
+[    0,0397] Logs Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\logs
+[    0,0397] Cheats Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\cheats
+[    0,0397] Patches Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\patches
+[    0,0397] Covers Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\covers
+[    0,0397] Game Settings Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\gamesettings
+[    0,0397] Resources Directory: C:\Users\leogn\OneDrive\Documents\pcsx2-v2.3.362-windows-x64-Qt\resources
+[    0,0397] User Resources Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\resources
+[    0,0397] Cache Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\cache
+[    0,0397] Textures Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\textures
+[    0,0397] Input Profile Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\inputprofiles
+[    0,0397] Video Dumping Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\videos
+[    0,0398] Debugger Layouts Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\inis\debuggerlayouts
+[    0,0398] Debugger Settings Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\inis\debuggersettings
+[    0,0476] Loaded translation file for language pt-BR
+[    0,0535] PCSX2 v2.9.81
+[    0,0536] Savestate version: 0x9a590000
+[    0,0537] 
+[    0,0538] 
+[    0,0538] Host Machine Init:
+[    0,0539]   Operating System = Microsoft Windows 10+
+[    0,0540]   Available RAM    = 8898 MB (8.69 GB)
+[    0,0541]   Physical RAM     = 20259 MB (19.78 GB)
+[    0,0542] 
+[    0,0542]   Processor        = Intel 11th Gen Core i5-1135G7
+[    0,0543]   Core Count       = 4 cores
+[    0,0544]   Thread Count     = 8 threads
+[    0,0544]   Cluster Count    = 1 clusters
+[    0,0563]   Power Profile    = 'Acer'
+[    0,0564]   Power States (min/max)
+[    0,0565]     AC             = 0% / 100%
+[    0,0566]     Battery        = 0% / 100%
+[    0,0567] 
+[    0,0568] CPU Extensions Detected:
+[    0,0569]   AVX AVX2 AVX512F
+[    0,0570] 
+[    0,0570] Graphics Adapters Detected:
+[    0,7069]   GPU              = NVIDIA GeForce MX350
+[    0,7070]   Driver Version   = 32.0.15.8228
+[    0,7070] 
+[    0,7075]   GPU              = Intel(R) Iris(R) Xe Graphics
+[    0,7077]   Driver Version   = 30.0.101.1404
+[    0,7078] 
+[    0,7091]   GPU              = Microsoft Basic Render Driver
+[    0,7092]   Driver Version   = 10.0.26100.9711
+[    0,7092] 
+[    0,7094] Allocating host memory for virtual systems...
+[    0,7113]   EE Main Memory                   @ 0x000001DBA2750000 -> 0x000001DBAB650000 [143mb]
+[    0,7113]   IOP Main Memory                  @ 0x000001DBAB650000 -> 0x000001DBB3750000 [129mb]
+[    0,7114]   VU0/1 On-Chip Memory             @ 0x000001DBB3750000 -> 0x000001DBB3850000 [1mb]
+[    0,7114]   VTLB Virtual Map                 @ 0x000001DBB3850000 -> 0x000001DBB4050000 [8mb]
+[    0,7115]   VTLB Address Map                 @ 0x000001DBB4050000 -> 0x000001DBB4450000 [4mb]
+[    0,7115]   R5900 Recompiler Cache           @ 0x000001DBB4450000 -> 0x000001DBB8450000 [64mb]
+[    0,7116]   R3000A Recompiler Cache          @ 0x000001DBB8450000 -> 0x000001DBBA450000 [32mb]
+[    0,7116]   Micro VU0 Recompiler Cache       @ 0x000001DBBB450000 -> 0x000001DBBF450000 [64mb]
+[    0,7117]   Micro VU1 Recompiler Cache       @ 0x000001DBBF450000 -> 0x000001DBC3450000 [64mb]
+[    0,7117]   VIF0 Unpack Recompiler Cache     @ 0x000001DBBA450000 -> 0x000001DBBAC50000 [8mb]
+[    0,7118]   VIF1 Unpack Recompiler Cache     @ 0x000001DBBAC50000 -> 0x000001DBBB450000 [8mb]
+[    0,7119]   VIF Unpack Recompiler Cache      @ 0x000001DBC3450000 -> 0x000001DBC3550000 [1mb]
+[    0,7119]   GS Software Renderer             @ 0x000001DBC3550000 -> 0x000001DBC7550000 [64mb]
+[    0,7129] Fastmem area: 000001DBC7550000 - 000001DCC754FFFF
+[    0,7138] Generating SSE-optimized unpacking functions for VIF interpreters...
+[    0,7139] Unpack function generation complete.  Generated function statistics:
+[    0,7140]   Reserved buffer    : 1048576 bytes @ 0x000001DBC3450000
+[    0,7140]   x86 code generated : 7422 bytes
+[    0,7141] 
+[    0,7147] SDLInputSource: Using Controller DB from resources.
+[    0,8623] SDLInputSource: 887 gamepad mappings are loaded.
+[    0,9888] Surface refresh rate: 60.00785 Hz
+[    1,0337] Enumerated 0 devices
+[    1,0345] Loading BIOS...
+[    1,0447] BIOS Found: USA     v02.00(14/06/2004)  Console 20040614-100909
+[    1,0490] BIOS rom1 module not found, skipping...
+[    1,0492] BIOS rom2 module not found, skipping...
+[    1,0565] Mechacon version: 0x00020603
+[    1,0566] Opening CDVD...
+[    1,0761] Initializing Elf: 2492320 bytes
+[    1,0767] Disc changed to .
+[    1,0768]   Name: droid_campos [?]
+[    1,0770]   Serial: droid_campos
+[    1,0771]   Version: 
+[    1,0772]   CRC: A0BFD6B6
+[    1,0779] No game settings found (tried 'C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\gamesettings\A0BFD6B6.ini')
+[    1,0780] Applying settings...
+[    1,0798] [Unsafe Settings] A API dos Gráficos não está definida em Automático. Isto pode causar problemas de performance e problemas gráficos.
+[    1,0799] ⍞ O modo de fixação da VU não está definido como padrão, isto pode quebrar alguns jogos.
+[    1,0800] ⍞ A RAM estendida está ativada. A compatibilidade com alguns jogos pode ser afetada.
+[    1,0800] [Unsafe Settings]
+[    1,0801] OSD [unsafe_settings_warning]:  A API dos Gráficos não está definida em Automático. Isto pode causar problemas de performance e problemas gráficos.
+[    1,0801] ⍞ O modo de fixação da VU não está definido como padrão, isto pode quebrar alguns jogos.
+[    1,0801] ⍞ A RAM estendida está ativada. A compatibilidade com alguns jogos pode ser afetada.
+[    1,0802]  Os patches de compatibilidade não estão ativados. A compatibilidade com alguns jogos pode ser afetada.
+[    1,0803] GameDB: Has not been initialized yet, initializing...
+[    1,1422] GameDB: 12841 games on record (loaded in 61,77ms)
+[    1,1785] Reopening memory cards...
+[    1,1787] (FileMcd) Creating new 8MB memory card: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\memcards\Mcd001.ps2
+[    1,2033] McdSlot 0 [File]: Mcd001.ps2 [8 MB, UNFORMATTED]
+[    1,2035] (FileMcd) Creating new 8MB memory card: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\memcards\Mcd002.ps2
+[    1,2420] McdSlot 1 [File]: Mcd002.ps2 [8 MB, UNFORMATTED]
+[    1,2434] HLE Host: Set 'host:' root path to: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\run-integrated
+[    1,2438] EE/iR5900 Recompiler Reset
+[    1,3613] iR3000A Recompiler reset.
+[    1,3852] mVU Reset
+[    1,3854] mVU Reset
+[    1,3940] Resetting host memory for virtual systems...
+[    2,7651] Time Zone Offset: GMT+00:00
+[    2,7653] Time Zone Location: London
+[    2,7654] DST: Winter Time
+[    2,7654] Time Format: 24-Hour
+[    2,7655] Date Format: YYYY/MM/DD
+[    2,7655] System Time Basis: Operating System Time
+[    2,7656] Resulting System Time: 2026-10-25 22:57:32
+[    2,7656] Close virtual disk tray
+[    2,7656] Media already loaded (fast boot)
+[    2,7657] Opening GS...
+[    2,7667] D3D: Found adapter 'NVIDIA GeForce MX350'
+[    3,2654] D3D11: Adapter: NVIDIA GeForce MX350
+[    3,2656] acquireRenderWindow() recreate=true fullscreen=false render_to_main=false surfaceless=false
+[    3,2704] Surface refresh rate: 60.00785 Hz
+[    3,2774] D3D11: Creating a 960x720 flip-discard windowed swap chain
+[    3,3786] D3D11: Swap chain buffer size: 960x720
+[    3,3814] D3D11: DXTn Texture Compression: Supported
+[    3,3815] D3D11: BC6/7 Texture Compression: Supported
+[    3,3817] D3D11: Conservative Depth: Supported
+[    3,3818] D3D11: Depth Testing and Sampling: Supported
+[    3,3819] D3D11: RGBA16 UNORM Hardware Blending: Supported
+[    3,3819] D3D11: Rasterizer Ordered Views: Supported
+[    4,6769] D3D11 Graphics Driver Info:
+[    4,6773] Unknown Feature Level
+[    4,6774] VID: 0x10DE PID: 0x1C94
+[    4,6775] NVIDIA GeForce MX350
+[    4,6775] Driver Version: 32.0.15.8228
+[    4,6811] Opening SPU2...
+[    4,6822] Creating Cubeb audio stream, sample rate = 48000, expansion = Disabled, buffer = 50, latency = 20, stretching enabled, driver = , device = 
+[    4,7001] cubeb_wasapi.cpp:2019:default device period: 100000, minimum device period: 30000
+[    4,7003] cubeb_wasapi.cpp:2034:Minimum latency in frames: 480
+[    4,7004] Minimum latency: 10 ms (480 audio frames)
+[    4,7006] Allocated buffer of 38400 frames for buffer of 50 ms [expansion Disabled (block size 128), stretch enabled, target size 2432].
+[    4,7008] cubeb_wasapi.cpp:2724:(000001DBA10B4160) Setup render: device=0000000000000000
+[    4,7052] cubeb_wasapi.cpp:2440:Setup requested=[f=2 r=48000 c=2 l=3] mix=[f=2 r=48000 c=2 l=3]
+[    4,7326] cubeb_wasapi.cpp:2538:Buffer size is: 1056 for render
+[    4,7327] 
+[    4,7340] cubeb_wasapi.cpp:2791:Target sample rate: 48000
+[    4,7341] cubeb_resampler_internal.h:553:Input and output sample-rate match, target rate of 48000Hz
+[    4,7342] cubeb_wasapi.cpp:2999:Follow the system default input or/and output devices
+[    4,7346] cubeb_wasapi.cpp:3027:Stream init successful (000001DBA10B4160)
+[    4,7350] Initializing Pad...
+[    4,7351] cubeb_wasapi.cpp:1552:MMCSS render thread promoted (task index 1876)
+[    4,7351] Initializing SIO2...
+[    4,7352] Initializing SIO0...
+[    4,7353] Opening DEV9...
+[    4,7354] DEV9: DEV9init
+[    4,7355] DEV9: DEV9init2
+[    4,7356] DEV9: DEV9init3
+[    4,7395] DEV9: DEV9init ok
+[    4,7396] DEV9: DEV9open
+[    4,7396] Opening USB...
+[    4,7397] Opening FW...
+[    4,7399] Frame rate: 59.94, target speed: 1, target frame rate: 59.94, ticks per frame: 166833
+[    4,7526] VM subsystems initialized in 3718,13 ms
+[    4,7805] # Initialize memory (rev:3.70, ctm:197Mhz, cpuclk:147Mhz detected)
+[    5,3955] R3000 Debugger: Branch to 0x890 (SYSMEM). Clearing modules.
+[    5,3983] RegisterLibraryEntries: excepman version 1.01
+[    5,3994] RegisterLibraryEntries:  intrman version 1.02
+[    5,3997] RegisterLibraryEntries:   ssbusc version 1.01
+[    5,4003] RegisterLibraryEntries:  dmacman version 1.02
+[    5,4009] RegisterLibraryEntries:  timrman version 1.01
+[    5,4012] RegisterLibraryEntries:  sysclib version 1.01
+[    5,4014] RegisterLibraryEntries:    stdio version 1.01
+[    5,4016] RegisterLibraryEntries:  heaplib version 1.01
+[    5,4020] FW: read mem 0x1f80847c: 0x10000001
+[    5,4021] FW: write mem 0x1f808414: 0x417f0000
+[    5,4022] FW: read mem 0x1f808400: 0xffc00001
+[    5,4022] FW: write mem 0x1f80844c: 0xffffffff
+[    5,4022] FW: write mem 0x1f808420: 0xffffffff
+[    5,4023] FW: write mem 0x1f808428: 0xffffffff
+[    5,4023] FW: write mem 0x1f808430: 0xffffffff
+[    5,4030] RegisterLibraryEntries:   thbase version 1.01
+[    5,4032] RegisterLibraryEntries:  thevent version 1.01
+[    5,4034] RegisterLibraryEntries:  thsemap version 1.01
+[    5,4035] RegisterLibraryEntries:  thmsgbx version 1.01
+[    5,4036] RegisterLibraryEntries:  thfpool version 1.01
+[    5,4037] RegisterLibraryEntries:  thvpool version 1.01
+[    5,4045] RegisterLibraryEntries:   vblank version 1.01
+[    5,4050] RegisterLibraryEntries:    ioman version 1.02
+[    5,4058] RegisterLibraryEntries:  modload version 1.01
+[    5,4062] RegisterLibraryEntries:   romdrv version 2.01
+[    5,4065] RegisterLibraryEntries:    stdio version 1.02
+[    5,4070] RegisterLibraryEntries:   sifman version 1.01
+[    5,4074] 
+[    5,4075] PlayStation 2 ======== Hard reset boot
+[    5,4078]  ROMGEN=2004-0614, IOP info (CPUID=1f, CACH_CONFIG=0, 8MB, IOP mode)
+[    5,4080]  <20040614-100909,ROMconf,PS20200AC20040614.bin:11696>
+[    5,4148] # Total accessable memory size: 32 MB (B:2:8:0) (370:2:7c30)
+[    5,4160] # TLB spad=0 kernel=1:12 default=13:30 extended=31:38
+[    8,6355] # Initialize Start.
+[    8,6364] # Initialize GS ...
+[    8,6366] # Initialize INTC ...
+[    8,6367] # Initialize TIMER ...
+[    8,6370] # Initialize DMAC ...
+[    8,6373] # Initialize VU1 ...
+[    8,6382] # Initialize VIF1 ...
+[    8,6384] # Initialize GIF ...
+[    8,6385] # Initialize VU0 ...
+[    8,6388] # Initialize VIF0 ...
+[    8,6390] # Initialize IPU ...
+[    8,6393] # Initialize FPU ...
+[    8,6394] # Initialize User Memory ...
+[    8,7003] # Initialize Scratch Pad ...
+[    8,7006] # Initialize Done.
+[    8,7016] 
+[    8,7016] EE DECI2 Manager version 0.06 Feb  6 2003 08:38:48
+[    8,7017]   CPUID=2e20, BoardID=0, ROMGEN=2004-0614, 32M
+[    8,7017] 
+[    8,7019] RegisterLibraryEntries:   sifcmd version 1.01
+[    8,7039] Initializing Elf: 2492320 bytes
+[    8,7053] ELF Loading: host:droid_campos.elf, Game CRC = A0BFD6B6, EntryPoint = 0x00100000
+[   16,7400] RegisterLibraryEntries:  cdvdman version 1.01
+[   16,7555] RegisterLibraryEntries:  cdvdfsv version 1.01
+[   16,7603] RegisterLibraryEntries:  secrman version 1.03
+[   16,7611] RegisterLibraryEntries:   eesync version 1.01
+[   16,7616] 
+[   16,7617] IOP Realtime Kernel Ver.0.9.1
+[   16,7619]     Copyright 1999 (C) Sony Computer Entertainment Inc. 
+[   16,7648] Reboot service module.(99/11/10)
+[   16,7681] cdvd driver module version 0.1.1 (C)SCEI
+[   16,7691] Load File service.(99/11/05)
+[   16,7695] Multi Threaded Fileio module.(99/11/15) 
+[   16,7697] iop heap service (99/11/03)
+[   16,7857] loadelf: fname host:droid_campos.elf secname all
+[   16,7983] loadelf version 3.30
+[   16,7996] Input ELF format filename = host:droid_campos.elf
+[   16,8035] 1 00100000 0021e6d8 ..................................
+[   16,8037] Loaded, host:droid_campos.elf
+[   16,8038] start address 0x100000
+[   16,8040] gp address 00000000
+[   16,8051] # Restart Without Memory Clear.
+[   16,8064] # Initialize GS ...
+[   16,8066] # Initialize INTC ...
+[   16,8067] # Initialize TIMER ...
+[   16,8067] # Initialize DMAC ...
+[   16,8068] # Initialize VU1 ...
+[   16,8073] # Initialize VIF1 ...
+[   16,8074] # Initialize GIF ...
+[   16,8074] # Initialize VU0 ...
+[   16,8075] # Initialize VIF0 ...
+[   16,8076] # Initialize IPU ...
+[   16,8077] # Initialize FPU ...
+[   16,8079] # Initialize Scratch Pad ...
+[   16,8080] # Restart Without Memory Clear Done.
+[   16,8082] ELF host:droid_campos.elf with entry point at 0x00100000 is executing.
+[   16,8087] ELF changed, active CRC A0BFD6B6 (host:droid_campos.elf)
+[   16,8111] Applying core settings...
+[   16,8116] ⍞ O modo de fixação da VU não está definido como padrão, isto pode quebrar alguns jogos.
+[   16,8117] ⍞ A RAM estendida está ativada. A compatibilidade com alguns jogos pode ser afetada.
+[   16,8118] [Unsafe Settings]
+[   16,8119] OSD [unsafe_settings_warning]: ⍞ O modo de fixação da VU não está definido como padrão, isto pode quebrar alguns jogos.
+[   16,8120] ⍞ A RAM estendida está ativada. A compatibilidade com alguns jogos pode ser afetada.
+[   16,8120]  Os patches de compatibilidade não estão ativados. A compatibilidade com alguns jogos pode ser afetada.
+[   16,8120] Updating CPU configuration...
+[   16,8121] iR3000A Recompiler reset.
+[   16,8207] mVU Reset
+[   16,8210] mVU Reset
+[   16,9530] iR3000A Recompiler reset.
+[   16,9583] mVU Reset
+[   16,9584] mVU Reset
+[   16,9755] EE/iR5900 Recompiler Reset
+[   17,0291] read/write allocate memory 4000
+[   17,0293] open name rom0:ROMVER flag 1 data 41378
+[   17,0297] open fd = 2
+[   17,0333] BIOS: Successfully found the instruction pattern. Assuming the thread list is here: 8001a640
+[   17,0348] Get Reboot Request From EE
+[   17,0359] R3000 Debugger: Branch to 0x890 (SYSMEM). Clearing modules.
+[   17,0385] RegisterLibraryEntries: excepman version 1.01
+[   17,0401] RegisterLibraryEntries:  intrman version 1.02
+[   17,0405] RegisterLibraryEntries:   ssbusc version 1.01
+[   17,0414] RegisterLibraryEntries:  dmacman version 1.02
+[   17,0426] RegisterLibraryEntries:  timrman version 1.01
+[   17,0438] RegisterLibraryEntries:  sysclib version 1.01
+[   17,0447] RegisterLibraryEntries:    stdio version 1.01
+[   17,0451] RegisterLibraryEntries:  heaplib version 1.01
+[   17,0472] RegisterLibraryEntries:   thbase version 1.01
+[   17,0474] RegisterLibraryEntries:  thevent version 1.01
+[   17,0475] RegisterLibraryEntries:  thsemap version 1.01
+[   17,0476] RegisterLibraryEntries:  thmsgbx version 1.01
+[   17,0478] RegisterLibraryEntries:  thfpool version 1.01
+[   17,0479] RegisterLibraryEntries:  thvpool version 1.01
+[   17,0488] RegisterLibraryEntries:   vblank version 1.01
+[   17,0493] RegisterLibraryEntries:    ioman version 1.02
+[   17,0503] RegisterLibraryEntries:  modload version 1.01
+[   17,0507] RegisterLibraryEntries:   romdrv version 2.01
+[   17,0514] RegisterLibraryEntries:    stdio version 1.02
+[   17,0521] RegisterLibraryEntries:   sifman version 1.01
+[   17,0526] 
+[   17,0527] PlayStation 2 ======== Soft reboot
+[   17,0537] RegisterLibraryEntries:   sifcmd version 1.01
+[   17,0579] RegisterLibraryEntries:  cdvdman version 1.01
+[   17,0594] RegisterLibraryEntries:  cdvdfsv version 1.01
+[   17,0608] RegisterLibraryEntries:  secrman version 1.03
+[   17,0610] RegisterLibraryEntries:   eesync version 1.01
+[   17,0638] 
+[   17,0639] IOP Realtime Kernel Ver.0.9.1
+[   17,0640]     Copyright 1999 (C) Sony Computer Entertainment Inc. 
+[   17,0644] Reboot service module.(99/11/10)
+[   17,0663] [EE] Skipping timeout loop at 0x001DDC78 -> 0x001DDC98
+[   17,0664] cdvd driver module version 0.1.1 (C)SCEI
+[   17,0671] Load File service.(99/11/05)
+[   17,0672] Multi Threaded Fileio module.(99/11/15) 
+[   17,0673] iop heap service (99/11/03)
+[   17,0857] read/write allocate memory 4000
+[   17,0860] LOG: IRX: Loading iomanX...
+[   17,0981] RegisterLibraryEntries:   iomanx version 1.01
+[   17,0990] LOG: IRX: iomanX loaded!
+[   17,0997] LOG: IRX: Loading fileXio...
+[   17,1007] IOX/File_Manager_Rpc: fileXio: fileXio RPC Server v1.00
+[   17,1008] Copyright (c) 2003 adresd
+[   17,1014] LOG: IRX: fileXio_irx loaded!
+[   17,1017] LOG: IRX: Loading sio2man...
+[   17,1021] RegisterLibraryEntries:  sio2man version 1.02
+[   17,1030] LOG: IRX: Sio2man loaded!
+[   17,1032] LOG: IRX: Loading padman...
+[   17,1037] RegisterLibraryEntries:   padman version 1.02
+[   17,1139] Pad Driver for OSD
+[   17,1143] LOG: IRX: Padman loaded!
+[   17,1148] LOG: IRX: Loading libsd...
+[   17,1155] FREESD v1.01
+[   17,1156] RegisterLibraryEntries:    libsd version 1.04
+[   17,1160] LOG: IRX: Libsd loaded!
+[   17,1162] LOG: IRX: Loading audsrv...
+[   17,1171] audsrv: greetings from version 0.93 !
+[   17,1172] RegisterLibraryEntries:   audsrv version 1.04
+[   17,1173] audsrv_adpcm_init()
+[   17,1175] audsrv: rpc server thread 0x71e51f started
+[   17,1176] audsrv: creating rpc server
+[   17,1178] LOG: IRX: Audsrv loaded!
+[   17,1184] LOG: Path3 initialized
+[   17,1190] open name rom0:ROMVER flag 1 data 41378
+[   17,1193] open fd = 2
+[   17,1196] UpdateVSyncRate: Mode Changed to NTSC.
+[   17,1197] Frame rate: 59.829998, target speed: 1, target frame rate: 59.829998, ticks per frame: 167140
+[   17,1197] Set GS CRTC configuration. NTSC 640x448 @ 59.940 (59.82) Interlaced (FIELD)
+[   17,1199] UpdateVSyncRate: Mode Changed to NTSC.
+[   17,1200] Frame rate: 59.94, target speed: 1, target frame rate: 59.94, ticks per frame: 166833
+[   17,1204] LOG: Framebuffers, zBuffer set and allocated!
+[   17,1209] LOG: Drawing environment initialized!
+[   17,1212] LOG: Renderer core initialized!
+[   17,1214] LOG: Renderer texture initialized!
+[   17,1217] LOG: Clut set!
+[   17,1220] LOG: Frustum planes initialized!
+[   17,1225] LOG: RendererCore3D initialized!
+[   17,2142] 
+[   17,2144] -----------------------------------------
+[   17,2145]         _____        ____   ___
+[   17,2146]           |     /   ____| |___|
+[   17,2148]           |     |   |     |   |
+[   17,2149] -----------------------------------------
+[   17,2153] Copyright 2022
+[   17,2155] Repository: https://github.com/h4570/tyra
+[   17,2156] Licensed under Apache License 2.0
+[   17,2166] Version: 2.2.0
+[   17,2167] -----------------------------------------
+[   17,2168] 
+[   17,3087] audsrv: freq 48000 bits 16 channels 2 ringbuf_sz 20480 feed_size 2048 shift 2
+[   17,3089] starting play thread
+[   17,3091] audsrv: playing thread 0x71cc21 started
+[   17,3092] audsrv: kickstarted
+[   17,3098] LOG: Creating audio semaphore
+[   17,3101] LOG: AudioSong semaphore created
+[   17,3105] audsrv: callback threshold: 4096
+[   17,3108] audsrv: freq 22050 bits 16 channels 2 ringbuf_sz 9400 feed_size 940 shift 2
+[   17,3111] audsrv_adpcm_init()
+[   17,3115] LOG: Audio initialized!
+[   17,3119] [EE] Skipping timeout loop at 0x00110FC8 -> 0x00110FE8
+[   17,3308] [EE] Skipping timeout loop at 0x00111028 -> 0x00111048
+[   17,3505] LOG: Initializing pad
+[   17,3510] LOG: Pad state changed
+[   17,3512] Curent pad(0,0) status: EXECCMD
+[   17,5475] Pad: DS2 Config Finished - P1/S1 - AL: Off - AB: Usable - VS: Disabled - VL: Disabled - RB: D (0x00000000)
+[   17,5816] LOG: Pad is ready!
+[   17,5825] LOG: Enabling dual shock functions.
+[   17,5828] LOG: Pad state changed
+[   17,5829] Curent pad(0,0) status: EXECCMD
+[   17,6478] Pad: DS2 Config Finished - P1/S1 - AL: On - AB: Locked - VS: Disabled - VL: Disabled - RB: D (0x00000000)
+[   17,8479] Pad: DS2 Config Finished - P1/S1 - AL: On - AB: Locked - VS: Disabled - VL: Disabled - RB: D (0x00000000)
+[   17,8816] LOG: Pad is ready!
+[   17,8826] LOG: Pad has pressure sensitive buttons? 1
+[   17,8830] LOG: Pad state changed
+[   17,8833] Curent pad(0,0) status: EXECCMD
+[   18,1481] Pad: DS2 Config Finished - P1/S1 - AL: On - AB: Locked - VS: Disabled - VL: Disabled - RB: D+A+P (0x0003FFFF)
+[   18,3484] Pad: DS2 Config Finished - P1/S1 - AL: On - AB: Locked - VS: Disabled - VL: Disabled - RB: D+A+P (0x0003FFFF)
+[   18,3828] LOG: Pad is ready!
+[   18,3832] LOG: # of actuators: 2
+[   18,3837] LOG: padSetActAlign: 1
+[   18,3840] LOG: Pad state changed
+[   18,3841] Curent pad(0,0) status: EXECCMD
+[   18,4489] Pad: DS2 Config Finished - P1/S1 - AL: On - AB: Locked - VS: Normal - VL: Normal - RB: D+A+P (0x0003FFFF)
+[   18,4654] LOG: Pad is ready!
+[   18,4656] LOG: Pad initialized!
+[   18,4680] open name host:earthbound-Font.png flag 1 data 41378
+[   18,4832] open fd = 256
+[   18,4976] open name host:bg_cyber.png flag 1 data 41378
+[   18,5152] open fd = 256
+[   18,5343] open name host:ui_white.png flag 1 data 41378
+[   18,5485] open fd = 256
+[   18,5514] LOG: StaPipQBufferRenderer initialized
+[   18,5577] open name host:pistol/pistol_scifi.obj flag 1 data 41378
+[   18,5820] open fd = 256
+[   18,5856] open name host:pistol/pistol_scifi.mtl flag 1 data 41378
+[   18,6028] open fd = 257
+[   18,6348] open name host:pistol/ps2_tex_pistola.png flag 1 data 41378
+[   18,6489] open fd = 256
+[   18,6589] LOG: Sci-Fi Low-Poly Pistol loaded successfully!
+[   18,6641] LOG: DroidCampos-PS2 GameApp initialized (Modular ECS-Lite + PS2 Stages Ready)!

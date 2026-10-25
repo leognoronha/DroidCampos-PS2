@@ -20,10 +20,20 @@ const int Font::charWidths[FONT_CHAR_SIZE]{
     4, 1, 2, 4, 1, 7, 4, 4, 4, 4, 3, 4, 3, 4, 5, 7, 4, 4, 4, 2, 5, 2, 6, 0,
 };
 
+const std::array<std::int16_t, 256> Font::charLookup = [] {
+  std::array<std::int16_t, 256> lookup;
+  lookup.fill(-1);
+  for (int i = 0; i < FONT_CHAR_SIZE; ++i)
+    if (chars[i] >= 0 && chars[i] < 256 && lookup[chars[i]] == -1)
+      lookup[chars[i]] = i;
+  return lookup;
+}();
+
 Font::Font() : renderer2D(nullptr) {}
 
 void Font::load(TextureRepository& repository, Renderer2D* renderer) {
   renderer2D = renderer;
+  glyphBatch.reserve(32);
 
   float height = 16.0F;
   float width = 16.0F;
@@ -64,6 +74,7 @@ void Font::drawText(const char* text, const int& x, const int& y, Color color,
 void Font::drawText(const std::string& text, const int& x, const int& y,
                     Color color, float scale) {
   int sizeText = static_cast<int>(text.size());
+  glyphBatch.clear();
 
   float offsetY = 0.0F;
   float offsetX = 0.0F;
@@ -81,13 +92,7 @@ void Font::drawText(const std::string& text, const int& x, const int& y,
       continue;
     }
 
-    int foundIdx = -1;
-    for (int j = 0; j < FONT_CHAR_SIZE; j++) {
-      if (ch == chars[j]) {
-        foundIdx = j;
-        break;
-      }
-    }
+    const int foundIdx = charLookup[static_cast<unsigned char>(ch)];
 
     if (foundIdx != -1) {
       Sprite fontSpr = font[foundIdx];
@@ -95,12 +100,17 @@ void Font::drawText(const std::string& text, const int& x, const int& y,
       fontSpr.scale = scale;
       fontSpr.position = Vec2(static_cast<float>(x) + offsetX,
                               static_cast<float>(y) + offsetY);
-      renderer2D->render(fontSpr);
+      glyphBatch.push_back(fontSpr);
+      if (glyphBatch.size() == 32) {
+        renderer2D->renderBatch(glyphBatch.data(), glyphBatch.size());
+        glyphBatch.clear();
+      }
       offsetX += static_cast<float>(charWidths[foundIdx] + 2) * scale;
     } else {
       offsetX += 4.0F * scale;
     }
   }
+  if (!glyphBatch.empty()) renderer2D->renderBatch(glyphBatch.data(), glyphBatch.size());
 }
 
 }  // namespace DroidCampos

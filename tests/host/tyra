@@ -36,7 +36,8 @@ struct M4x4 {
   void identity(){position={};} void translate(Vec4 p){position=p;}
   void rotateX(float){} void rotateY(float){} void rotateZ(float){}
 };
-struct MeshMaterial {u32 id;std::string name;std::optional<std::string> textureName;Color ambient;};
+struct MeshMaterialFrame {u32 count=0;Vec4 *vertices=nullptr,*textureCoords=nullptr,*normals=nullptr;Color* colors=nullptr;};
+struct MeshMaterial {u32 id;std::string name;std::optional<std::string> textureName;Color ambient;std::vector<MeshMaterialFrame*> frames;bool lightmapFlag=false;};
 struct MeshBuilderData {std::vector<MeshMaterial> materials;};
 struct StaticMesh {
   std::vector<MeshMaterial*> materials;M4x4 translation,rotation,scale;
@@ -58,12 +59,14 @@ struct ObjLoader {
     assert(!b->materials.empty());return b;
   }
 };
-struct Texture {u32 id;std::vector<u32> links;void addLink(u32 x){links.push_back(x);}};
+struct TextureData {int width=0,height=0,bpp=32;unsigned char* data=nullptr;};
+struct Texture {u32 id;TextureData* core=nullptr;std::vector<u32> links;void addLink(u32 x){links.push_back(x);}};
 struct TextureRepository {
   std::map<u32,std::unique_ptr<Texture>> textures;u32 next=1;
   Texture* add(const std::string&){auto t=std::make_unique<Texture>();t->id=next++;auto* p=t.get();textures[p->id]=std::move(t);return p;}
   void addByMesh(StaticMesh* m,const std::string& root,const char*){for(auto* mat:m->materials)if(mat->textureName)add(root+*mat->textureName)->addLink(mat->id);}
   Texture* getByTextureId(u32 id){return textures.at(id).get();}
+  Texture* getByMeshMaterialId(u32 id){for(auto& t:textures)for(auto link:t.second->links)if(link==id)return t.second.get();return nullptr;}
   void free(u32 id){assert(textures.erase(id)==1);}
   void freeByMesh(StaticMesh* m){for(auto* mat:m->materials)for(auto it=textures.begin();it!=textures.end();){
     bool found=false;for(auto link:it->second->links)if(link==mat->id)found=true;
@@ -77,14 +80,17 @@ struct StaPipOptions {
   bool fullClipChecks=false,blendingEnabled=false;
 };
 struct RendererCore {
-  struct {struct {int mask=0;}zBuffer;void setZBufferWriteEnabled(bool enabled){zBuffer.mask=enabled?0:1;}}gs;
-  struct {void align3D(){}}sync;
+  inline static std::vector<std::string> renderEvents;
+  struct {struct {int mask=0;}zBuffer;void setZBufferWriteEnabled(bool enabled){zBuffer.mask=enabled?0:1;renderEvents.push_back(enabled?"Zon":"Zoff");}}gs;
+  struct {void align3D(){renderEvents.push_back("P1");}void align2D(){renderEvents.push_back("P3");}}sync;
 };
 struct StaticPipeline {
-  struct {void clearGeometryCache(){}}core;
+  struct {void clearGeometryCache(){}u32 getMaxVertCountByParams(bool,bool,bool){return 54;}}core;
   inline static std::vector<Vec4> draws;
+  inline static bool visible=true;
   void setRenderer(RendererCore*){}
-  void render(StaticMesh* m,StaPipOptions&){draws.push_back(m->translation.position);}
+  bool isVisible(const StaticMesh*) const {return visible;}
+  void render(StaticMesh* m,const StaPipOptions&){draws.push_back(m->translation.position);RendererCore::renderEvents.push_back("draw");}
 };
 struct Renderer {
   RendererCore core;TextureRepository repo;

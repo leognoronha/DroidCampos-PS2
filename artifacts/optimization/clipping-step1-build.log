@@ -1,0 +1,379 @@
+cd ../engine && make
+make[1]: Entering directory '/tmp/droid-optimization-check/engine'
+Makefile:26: warning: overriding recipe for target 'libtyra.a'
+../Makefile.base:76: warning: ignoring old recipe for target 'libtyra.a'
+cp: cannot stat 'res/*': No such file or directory
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/physics/ray.o src/physics/ray.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/models/color.o src/renderer/models/color.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/renderer.o src/renderer/renderer.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/renderer_3d_utility.o src/renderer/3d/renderer_3d_utility.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/bbox/bbox.o src/renderer/3d/bbox/bbox.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/static_pipeline.o src/renderer/3d/pipeline/static/static_pipeline.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/stapip_bag_bboxes_cacher.o src/renderer/3d/pipeline/static/core/stapip_bag_bboxes_cacher.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/stapip_qbuffer_renderer.o src/renderer/3d/pipeline/static/core/stapip_qbuffer_renderer.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/stapip_core.o src/renderer/3d/pipeline/static/core/stapip_core.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/stapip_clipper.o src/renderer/3d/pipeline/static/core/stapip_clipper.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/stapip_qbuffer.o src/renderer/3d/pipeline/static/core/stapip_qbuffer.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/stapip_vu1_program.o src/renderer/3d/pipeline/static/core/stapip_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_packager.o src/renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_packager.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_package.o src/renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_package.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_packages_bbox.o src/renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_packages_bbox.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/bag/stapip_lighting_bag.o src/renderer/3d/pipeline/static/core/bag/stapip_lighting_bag.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/bag/stapip_bag.o src/renderer/3d/pipeline/static/core/bag/stapip_bag.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/bag/stapip_color_bag.o src/renderer/3d/pipeline/static/core/bag/stapip_color_bag.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/bag/stapip_texture_bag.o src/renderer/3d/pipeline/static/core/bag/stapip_texture_bag.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/stapip_programs_repository.o src/renderer/3d/pipeline/static/core/stapip_programs_repository.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_td_vu1_program.o src/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_td_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_tc_vu1_program.o src/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_tc_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_d_vu1_program.o src/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_d_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_c_vu1_program.o src/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_c_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_tc_vu1_program.o src/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_tc_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_td_vu1_program.o src/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_td_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_c_vu1_program.o src/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_c_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_d_vu1_program.o src/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_d_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/dynamic_pipeline.o src/renderer/3d/pipeline/dynamic/dynamic_pipeline.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/dynpip_renderer.o src/renderer/3d/pipeline/dynamic/core/dynpip_renderer.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/dynpip_core.o src/renderer/3d/pipeline/dynamic/core/dynpip_core.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/dynpip_programs_repository.o src/renderer/3d/pipeline/dynamic/core/dynpip_programs_repository.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/dynpip_vu1_program.o src/renderer/3d/pipeline/dynamic/core/dynpip_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/bag/dynpip_texture_bag.o src/renderer/3d/pipeline/dynamic/core/bag/dynpip_texture_bag.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/bag/dynpip_lighting_bag.o src/renderer/3d/pipeline/dynamic/core/bag/dynpip_lighting_bag.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/bag/dynpip_bag.o src/renderer/3d/pipeline/dynamic/core/bag/dynpip_bag.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/bag/dynpip_color_bag.o src/renderer/3d/pipeline/dynamic/core/bag/dynpip_color_bag.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_tc_vu1_program.o src/renderer/3d/pipeline/dynamic/core/programs/dynpip_tc_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_td_vu1_program.o src/renderer/3d/pipeline/dynamic/core/programs/dynpip_td_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_d_vu1_program.o src/renderer/3d/pipeline/dynamic/core/programs/dynpip_d_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_c_vu1_program.o src/renderer/3d/pipeline/dynamic/core/programs/dynpip_c_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/shared/bag/pipeline_dir_lights_bag.o src/renderer/3d/pipeline/shared/bag/pipeline_dir_lights_bag.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/minecraft/data/mcpip_multi_tex_block_data.o src/renderer/3d/pipeline/minecraft/data/mcpip_multi_tex_block_data.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/minecraft/data/mcpip_block_data.o src/renderer/3d/pipeline/minecraft/data/mcpip_block_data.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/minecraft/data/mcpip_single_tex_block_data.o src/renderer/3d/pipeline/minecraft/data/mcpip_single_tex_block_data.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/minecraft/minecraft_pipeline.o src/renderer/3d/pipeline/minecraft/minecraft_pipeline.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_clip.o src/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_clip.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_as_is_vu1_program.o src/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_as_is_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/minecraft/programs/mcpip_programs_manager.o src/renderer/3d/pipeline/minecraft/programs/mcpip_programs_manager.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/minecraft/programs/mcpip_programs_repository.o src/renderer/3d/pipeline/minecraft/programs/mcpip_programs_repository.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/minecraft/programs/mcpip_program.o src/renderer/3d/pipeline/minecraft/programs/mcpip_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull.o src/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull_vu1_program.o src/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull_vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/mesh/mesh_material_frame.o src/renderer/3d/mesh/mesh_material_frame.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/mesh/static/static_mesh.o src/renderer/3d/mesh/static/static_mesh.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/mesh/dynamic/dynamic_mesh.o src/renderer/3d/mesh/dynamic/dynamic_mesh.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/mesh/dynamic/dynamic_mesh_animation.o src/renderer/3d/mesh/dynamic/dynamic_mesh_animation.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/mesh/mesh.o src/renderer/3d/mesh/mesh.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/mesh/mesh_material.o src/renderer/3d/mesh/mesh_material.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/mesh/mesh_frame.o src/renderer/3d/mesh/mesh_frame.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/3d/renderer_3d.o src/renderer/3d/renderer_3d.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/paths/path3/path3.o src/renderer/core/paths/path3/path3.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/paths/path1/path1.o src/renderer/core/paths/path1/path1.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/paths/path1/vu1_program.o src/renderer/core/paths/path1/vu1_program.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/texture/texture_repository.o src/renderer/core/texture/texture_repository.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/texture/models/texture.o src/renderer/core/texture/models/texture.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/texture/renderer_core_texture_sender.o src/renderer/core/texture/renderer_core_texture_sender.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/texture/renderer_core_texture.o src/renderer/core/texture/renderer_core_texture.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/texture/texture_data.o src/renderer/core/texture/texture_data.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/renderer_core_sync.o src/renderer/core/renderer_core_sync.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/3d/renderer_3d_frustum_planes.o src/renderer/core/3d/renderer_3d_frustum_planes.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/3d/bbox/render_bbox.o src/renderer/core/3d/bbox/render_bbox.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/3d/bbox/core_bbox.o src/renderer/core/3d/bbox/core_bbox.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/3d/clipper/planes_clip_algorithm.o src/renderer/core/3d/clipper/planes_clip_algorithm.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/3d/renderer_core_3d.o src/renderer/core/3d/renderer_core_3d.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/3d/camera_info_3d.o src/renderer/core/3d/camera_info_3d.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/gs/renderer_core_gs.o src/renderer/core/gs/renderer_core_gs.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/gs/renderer_core_gs_vram.o src/renderer/core/gs/renderer_core_gs_vram.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/2d/renderer_core_2d.o src/renderer/core/2d/renderer_core_2d.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/2d/sprite/sprite.o src/renderer/core/2d/sprite/sprite.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/core/renderer_core.o src/renderer/core/renderer_core.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/2d/renderer_2d.o src/renderer/2d/renderer_2d.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/renderer/renderer_settings.o src/renderer/renderer_settings.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/debug/debug.o src/debug/debug.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/audio/audio_adpcm.o src/audio/audio_adpcm.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/audio/audio_song.o src/audio/audio_song.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/audio/audio.o src/audio/audio.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/pad/pad.o src/pad/pad.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/math/plane.o src/math/plane.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/math/vec2.o src/math/vec2.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/math/m4x4.o src/math/m4x4.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/math/vec4.o src/math/vec4.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/math/math.o src/math/math.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/thread/threading.o src/thread/threading.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/loaders/texture/base/texture_builder_data.o src/loaders/texture/base/texture_builder_data.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/loaders/texture/base/texture_loader_selector.o src/loaders/texture/base/texture_loader_selector.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/loaders/texture/base/texture_loader.o src/loaders/texture/base/texture_loader.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/loaders/texture/png_loader.o src/loaders/texture/png_loader.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/loaders/3d/md2_loader/md2_loader.o src/loaders/3d/md2_loader/md2_loader.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/loaders/3d/builder/mesh_builder_material_data.o src/loaders/3d/builder/mesh_builder_material_data.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/loaders/3d/builder/mesh_builder_material_frame_data.o src/loaders/3d/builder/mesh_builder_material_frame_data.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/loaders/3d/builder/mesh_builder_data.o src/loaders/3d/builder/mesh_builder_data.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/loaders/3d/obj_loader/obj_loader.o src/loaders/3d/obj_loader/obj_loader.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/irx/irx_loader.o src/irx/irx_loader.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/file/file_utils.o src/file/file_utils.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/time/timer.o src/time/timer.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/engine.o src/engine.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/info/banner.o src/info/banner.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/info/info.o src/info/info.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/info/banner_data.o src/info/banner_data.cpp
+vclpp src/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_td_vu1.vclpp obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_td_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_td_vu1.o.vcl > obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_td_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_td_vu1_o_vcl_11
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_td_vu1_o_vcl_4  14/14
+INFO: Opt::Linear            begin  18/18
+WARN: time out..
+WARN:  WARNING: failed to vuta via vertexLoop
+INFO: Opt::Linear       vertexLoop  70/60
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_td_vu1_o_vcl_7  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_td_vu1_o_vcl_8  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_td_vu1_o_vcl_9  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_td_vu1.o.vsm -o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_td_vu1.o
+vclpp src/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_c_vu1.vclpp obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_c_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_c_vu1.o.vcl > obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_c_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_c_vu1_o_vcl_19
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_c_vu1_o_vcl_4  5/5
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_c_vu1_o_vcl_11  3/4
+INFO: Opt::Linear       multiColor  3/4
+INFO: Opt::Linear            begin  7/7
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_c_vu1_o_vcl_6  2/2
+INFO: Opt::Linear setDestAddrMultiColor  1/1
+INFO: Opt::Linear      setDestAddr  8/8
+INFO: Opt::Linear       vertexLoop  2/2
+INFO: Opt::Linear       processing  26/21
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_c_vu1_o_vcl_15  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_c_vu1_o_vcl_16  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_c_vu1_o_vcl_17  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_c_vu1.o.vsm -o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_c_vu1.o
+vclpp src/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_tc_vu1.vclpp obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_tc_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_tc_vu1.o.vcl > obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_tc_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_tc_vu1_o_vcl_19
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_tc_vu1_o_vcl_4  6/6
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_tc_vu1_o_vcl_11  3/4
+INFO: Opt::Linear       multiColor  3/4
+INFO: Opt::Linear            begin  8/8
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_tc_vu1_o_vcl_6  2/2
+INFO: Opt::Linear setDestAddrMultiColor  1/1
+INFO: Opt::Linear      setDestAddr  10/10
+INFO: Opt::Linear       vertexLoop  2/2
+INFO: Opt::Linear       processing  31/31
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_tc_vu1_o_vcl_15  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_tc_vu1_o_vcl_16  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_tc_vu1_o_vcl_17  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_tc_vu1.o.vsm -o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_tc_vu1.o
+vclpp src/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_d_vu1.vclpp obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_d_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_d_vu1.o.vcl > obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_d_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_d_vu1_o_vcl_11
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_d_vu1_o_vcl_4  13/13
+INFO: Opt::Linear            begin  15/15
+INFO: Opt::Linear       vertexLoop  67/57
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_d_vu1_o_vcl_7  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_d_vu1_o_vcl_8  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_as_is_stapip_as_is_d_vu1_o_vcl_9  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_d_vu1.o.vsm -o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_d_vu1.o
+vclpp src/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_d_vu1.vclpp obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_d_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_d_vu1.o.vcl > obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_d_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_d_vu1_o_vcl_11
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_d_vu1_o_vcl_4  18/18
+INFO: Opt::Linear            begin  15/15
+INFO: Opt::Linear       vertexLoop  85/75
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_d_vu1_o_vcl_7  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_d_vu1_o_vcl_8  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_d_vu1_o_vcl_9  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_d_vu1.o.vsm -o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_d_vu1.o
+vclpp src/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_tc_vu1.vclpp obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_tc_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_tc_vu1.o.vcl > obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_tc_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_tc_vu1_o_vcl_19
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_tc_vu1_o_vcl_4  11/11
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_tc_vu1_o_vcl_11  3/4
+INFO: Opt::Linear       multiColor  3/4
+INFO: Opt::Linear            begin  8/8
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_tc_vu1_o_vcl_6  2/2
+INFO: Opt::Linear setDestAddrMultiColor  1/1
+INFO: Opt::Linear      setDestAddr  10/10
+INFO: Opt::Linear       vertexLoop  2/2
+INFO: Opt::Linear       processing  50/39
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_tc_vu1_o_vcl_15  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_tc_vu1_o_vcl_16  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_tc_vu1_o_vcl_17  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_tc_vu1.o.vsm -o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_tc_vu1.o
+vclpp src/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_td_vu1.vclpp obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_td_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_td_vu1.o.vcl > obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_td_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_td_vu1_o_vcl_11
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_td_vu1_o_vcl_4  19/19
+INFO: Opt::Linear            begin  18/18
+INFO: Opt::Linear       vertexLoop  88/78
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_td_vu1_o_vcl_7  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_td_vu1_o_vcl_8  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_td_vu1_o_vcl_9  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_td_vu1.o.vsm -o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_td_vu1.o
+vclpp src/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_c_vu1.vclpp obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_c_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_c_vu1.o.vcl > obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_c_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_c_vu1_o_vcl_19
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_c_vu1_o_vcl_4  10/10
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_c_vu1_o_vcl_11  3/4
+INFO: Opt::Linear       multiColor  3/4
+INFO: Opt::Linear            begin  7/7
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_c_vu1_o_vcl_6  2/2
+INFO: Opt::Linear setDestAddrMultiColor  1/1
+INFO: Opt::Linear      setDestAddr  8/8
+INFO: Opt::Linear       vertexLoop  2/2
+INFO: Opt::Linear       processing  46/36
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_c_vu1_o_vcl_15  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_c_vu1_o_vcl_16  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_static_core_programs_cull_stapip_cull_c_vu1_o_vcl_17  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_c_vu1.o.vsm -o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_c_vu1.o
+vclpp src/renderer/3d/pipeline/dynamic/core/programs/dynpip_c_vu1.vclpp obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_c_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_c_vu1.o.vcl > obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_c_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_c_vu1_o_vcl_11
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO2: REMOVE INST:   ---> [***{ilw.x}***] {singleColorEnabled},{8(vi00)} 
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_c_vu1_o_vcl_4  13/13
+INFO: Opt::Linear            begin  16/16
+INFO: Opt::Linear       vertexLoop  60/44
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_c_vu1_o_vcl_7  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_c_vu1_o_vcl_8  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_c_vu1_o_vcl_9  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_c_vu1.o.vsm -o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_c_vu1.o
+vclpp src/renderer/3d/pipeline/dynamic/core/programs/dynpip_tc_vu1.vclpp obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_tc_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_tc_vu1.o.vcl > obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_tc_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_tc_vu1_o_vcl_11
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO2: REMOVE INST:   ---> [***{ilw.x}***] {singleColorEnabled},{8(vi00)} 
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_tc_vu1_o_vcl_4  13/13
+INFO: Opt::Linear            begin  20/20
+INFO: Opt::Linear       vertexLoop  67/48
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_tc_vu1_o_vcl_7  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_tc_vu1_o_vcl_8  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_tc_vu1_o_vcl_9  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_tc_vu1.o.vsm -o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_tc_vu1.o
+vclpp src/renderer/3d/pipeline/dynamic/core/programs/dynpip_d_vu1.vclpp obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_d_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_d_vu1.o.vcl > obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_d_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_d_vu1_o_vcl_11
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_d_vu1_o_vcl_4  8/8
+INFO: Opt::Linear            begin  18/18
+WARN: time out..
+WARN:  WARNING: failed to normal via vertexLoop
+INFO: Opt::Linear       vertexLoop  108/93
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_d_vu1_o_vcl_7  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_d_vu1_o_vcl_8  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_d_vu1_o_vcl_9  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_d_vu1.o.vsm -o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_d_vu1.o
+vclpp src/renderer/3d/pipeline/dynamic/core/programs/dynpip_td_vu1.vclpp obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_td_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_td_vu1.o.vcl > obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_td_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_td_vu1_o_vcl_11
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_td_vu1_o_vcl_4  9/9
+INFO: Opt::Linear            begin  22/22
+WARN: time out..
+WARN:  WARNING: failed to another via vertexLoop
+INFO: Opt::Linear       vertexLoop  134/105
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_td_vu1_o_vcl_7  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_td_vu1_o_vcl_8  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_dynamic_core_programs_dynpip_td_vu1_o_vcl_9  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_td_vu1.o.vsm -o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_td_vu1.o
+vclpp src/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_as_is_vu1.vclpp obj/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_as_is_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_as_is_vu1.o.vcl > obj/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_as_is_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_minecraft_programs_as_is_mcpip_as_is_vu1_o_vcl_11
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO2: PRUNE FIELD: [XYZW->XYZ]    ---> [***{lq}***] {scale},{0(buffer)} 
+INFO: Opt::Linear            begin  18/18
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_minecraft_programs_as_is_mcpip_as_is_vu1_o_vcl_4  2/4
+INFO: Opt::Linear       vertexLoop  30/23
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_minecraft_programs_as_is_mcpip_as_is_vu1_o_vcl_7  1/1
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_minecraft_programs_as_is_mcpip_as_is_vu1_o_vcl_8  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_minecraft_programs_as_is_mcpip_as_is_vu1_o_vcl_9  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_as_is_vu1.o.vsm -o obj/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_as_is_vu1.o
+vclpp src/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull_vu1.vclpp obj/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull_vu1.o.vcl
+vcl obj/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull_vu1.o.vcl > obj/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull_vu1.o.vsm
+INFO: OS_Init(Linux)
+INFO: prune inaccessible stream __v_obj_renderer_3d_pipeline_minecraft_programs_cull_mcpip_cull_vu1_o_vcl_17
+INFO: REMOVE INST: operand -1 modbits ffffffff..
+INFO: Opt::Linear       blocksLoop  23/19
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_minecraft_programs_cull_mcpip_cull_vu1_o_vcl_4  3/4
+INFO: Opt::Linear            begin  10/10
+INFO: Opt::Linear get_dest_addr_first  3/3
+INFO: Opt::Linear get_dest_addr_second  2/2
+INFO: Opt::Linear get_dest_addr_finish  13/13
+INFO: Opt::Linear       vertexLoop  45/33
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_minecraft_programs_cull_mcpip_cull_vu1_o_vcl_13  4/4
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_minecraft_programs_cull_mcpip_cull_vu1_o_vcl_14  2/0
+INFO: Opt::Linear __v_obj_renderer_3d_pipeline_minecraft_programs_cull_mcpip_cull_vu1_o_vcl_15  2/2
+INFO: OS_End(Linux)
+dvp-as obj/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull_vu1.o.vsm -o obj/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull_vu1.o
+vclpp src/renderer/core/paths/path1/draw_finish.vclpp obj/renderer/core/paths/path1/draw_finish.o.vcl
+vcl obj/renderer/core/paths/path1/draw_finish.o.vcl > obj/renderer/core/paths/path1/draw_finish.o.vsm
+INFO: OS_Init(Linux)
+INFO: Opt::Linear __v_obj_renderer_core_paths_path1_draw_finish_o_vcl_4  3/3
+INFO: skip target emit. .coz it's no longer visible
+INFO: OS_End(Linux)
+dvp-as obj/renderer/core/paths/path1/draw_finish.o.vsm -o obj/renderer/core/paths/path1/draw_finish.o
+/usr/local/ps2dev/ps2sdk/bin/bin2s $PS2SDK/iop/irx/libsd.irx obj/irx/libsd.o.s libsd_irx
+mips64r5900el-ps2-elf-as -O3 obj/irx/libsd.o.s -o obj/irx/libsd.o
+/usr/local/ps2dev/ps2sdk/bin/bin2s $PS2SDK/iop/irx/bdm.irx obj/irx/bdm.o.s bdm_irx
+mips64r5900el-ps2-elf-as -O3 obj/irx/bdm.o.s -o obj/irx/bdm.o
+/usr/local/ps2dev/ps2sdk/bin/bin2s $PS2SDK/iop/irx/iomanX.irx obj/irx/iomanX.o.s iomanX_irx
+mips64r5900el-ps2-elf-as -O3 obj/irx/iomanX.o.s -o obj/irx/iomanX.o
+/usr/local/ps2dev/ps2sdk/bin/bin2s $PS2SDK/iop/irx/fileXio.irx obj/irx/fileXio.o.s fileXio_irx
+mips64r5900el-ps2-elf-as -O3 obj/irx/fileXio.o.s -o obj/irx/fileXio.o
+/usr/local/ps2dev/ps2sdk/bin/bin2s $PS2SDK/iop/irx/padman.irx obj/irx/padman.o.s padman_irx
+mips64r5900el-ps2-elf-as -O3 obj/irx/padman.o.s -o obj/irx/padman.o
+/usr/local/ps2dev/ps2sdk/bin/bin2s $PS2SDK/iop/irx/audsrv.irx obj/irx/audsrv.o.s audsrv_irx
+mips64r5900el-ps2-elf-as -O3 obj/irx/audsrv.o.s -o obj/irx/audsrv.o
+/usr/local/ps2dev/ps2sdk/bin/bin2s $PS2SDK/iop/irx/usbd.irx obj/irx/usbd.o.s usbd_irx
+mips64r5900el-ps2-elf-as -O3 obj/irx/usbd.o.s -o obj/irx/usbd.o
+/usr/local/ps2dev/ps2sdk/bin/bin2s $PS2SDK/iop/irx/sio2man.irx obj/irx/sio2man.o.s sio2man_irx
+mips64r5900el-ps2-elf-as -O3 obj/irx/sio2man.o.s -o obj/irx/sio2man.o
+/usr/local/ps2dev/ps2sdk/bin/bin2s $PS2SDK/iop/irx/usbmass_bd.irx obj/irx/usbmass_bd.o.s usbmass_bd_irx
+mips64r5900el-ps2-elf-as -O3 obj/irx/usbmass_bd.o.s -o obj/irx/usbmass_bd.o
+/usr/local/ps2dev/ps2sdk/bin/bin2s $PS2SDK/iop/irx/bdmfs_fatfs.irx obj/irx/bdmfs_fatfs.o.s bdmfs_fatfs_irx
+mips64r5900el-ps2-elf-as -O3 obj/irx/bdmfs_fatfs.o.s -o obj/irx/bdmfs_fatfs.o
+mips64r5900el-ps2-elf-ar rcs bin/libtyra.a obj/physics/ray.o obj/renderer/models/color.o obj/renderer/renderer.o obj/renderer/3d/renderer_3d_utility.o obj/renderer/3d/bbox/bbox.o obj/renderer/3d/pipeline/static/static_pipeline.o obj/renderer/3d/pipeline/static/core/stapip_bag_bboxes_cacher.o obj/renderer/3d/pipeline/static/core/stapip_qbuffer_renderer.o obj/renderer/3d/pipeline/static/core/stapip_core.o obj/renderer/3d/pipeline/static/core/stapip_clipper.o obj/renderer/3d/pipeline/static/core/stapip_qbuffer.o obj/renderer/3d/pipeline/static/core/stapip_vu1_program.o obj/renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_packager.o obj/renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_package.o obj/renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_packages_bbox.o obj/renderer/3d/pipeline/static/core/bag/stapip_lighting_bag.o obj/renderer/3d/pipeline/static/core/bag/stapip_bag.o obj/renderer/3d/pipeline/static/core/bag/stapip_color_bag.o obj/renderer/3d/pipeline/static/core/bag/stapip_texture_bag.o obj/renderer/3d/pipeline/static/core/stapip_programs_repository.o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_td_vu1_program.o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_tc_vu1_program.o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_d_vu1_program.o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_c_vu1_program.o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_tc_vu1_program.o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_td_vu1_program.o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_c_vu1_program.o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_d_vu1_program.o obj/renderer/3d/pipeline/dynamic/dynamic_pipeline.o obj/renderer/3d/pipeline/dynamic/core/dynpip_renderer.o obj/renderer/3d/pipeline/dynamic/core/dynpip_core.o obj/renderer/3d/pipeline/dynamic/core/dynpip_programs_repository.o obj/renderer/3d/pipeline/dynamic/core/dynpip_vu1_program.o obj/renderer/3d/pipeline/dynamic/core/bag/dynpip_texture_bag.o obj/renderer/3d/pipeline/dynamic/core/bag/dynpip_lighting_bag.o obj/renderer/3d/pipeline/dynamic/core/bag/dynpip_bag.o obj/renderer/3d/pipeline/dynamic/core/bag/dynpip_color_bag.o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_tc_vu1_program.o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_td_vu1_program.o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_d_vu1_program.o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_c_vu1_program.o obj/renderer/3d/pipeline/shared/bag/pipeline_dir_lights_bag.o obj/renderer/3d/pipeline/minecraft/data/mcpip_multi_tex_block_data.o obj/renderer/3d/pipeline/minecraft/data/mcpip_block_data.o obj/renderer/3d/pipeline/minecraft/data/mcpip_single_tex_block_data.o obj/renderer/3d/pipeline/minecraft/minecraft_pipeline.o obj/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_clip.o obj/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_as_is_vu1_program.o obj/renderer/3d/pipeline/minecraft/programs/mcpip_programs_manager.o obj/renderer/3d/pipeline/minecraft/programs/mcpip_programs_repository.o obj/renderer/3d/pipeline/minecraft/programs/mcpip_program.o obj/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull.o obj/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull_vu1_program.o obj/renderer/3d/mesh/mesh_material_frame.o obj/renderer/3d/mesh/static/static_mesh.o obj/renderer/3d/mesh/dynamic/dynamic_mesh.o obj/renderer/3d/mesh/dynamic/dynamic_mesh_animation.o obj/renderer/3d/mesh/mesh.o obj/renderer/3d/mesh/mesh_material.o obj/renderer/3d/mesh/mesh_frame.o obj/renderer/3d/renderer_3d.o obj/renderer/core/paths/path3/path3.o obj/renderer/core/paths/path1/path1.o obj/renderer/core/paths/path1/vu1_program.o obj/renderer/core/texture/texture_repository.o obj/renderer/core/texture/models/texture.o obj/renderer/core/texture/renderer_core_texture_sender.o obj/renderer/core/texture/renderer_core_texture.o obj/renderer/core/texture/texture_data.o obj/renderer/core/renderer_core_sync.o obj/renderer/core/3d/renderer_3d_frustum_planes.o obj/renderer/core/3d/bbox/render_bbox.o obj/renderer/core/3d/bbox/core_bbox.o obj/renderer/core/3d/clipper/planes_clip_algorithm.o obj/renderer/core/3d/renderer_core_3d.o obj/renderer/core/3d/camera_info_3d.o obj/renderer/core/gs/renderer_core_gs.o obj/renderer/core/gs/renderer_core_gs_vram.o obj/renderer/core/2d/renderer_core_2d.o obj/renderer/core/2d/sprite/sprite.o obj/renderer/core/renderer_core.o obj/renderer/2d/renderer_2d.o obj/renderer/renderer_settings.o obj/debug/debug.o obj/audio/audio_adpcm.o obj/audio/audio_song.o obj/audio/audio.o obj/pad/pad.o obj/math/plane.o obj/math/vec2.o obj/math/m4x4.o obj/math/vec4.o obj/math/math.o obj/thread/threading.o obj/loaders/texture/base/texture_builder_data.o obj/loaders/texture/base/texture_loader_selector.o obj/loaders/texture/base/texture_loader.o obj/loaders/texture/png_loader.o obj/loaders/3d/md2_loader/md2_loader.o obj/loaders/3d/builder/mesh_builder_material_data.o obj/loaders/3d/builder/mesh_builder_material_frame_data.o obj/loaders/3d/builder/mesh_builder_data.o obj/loaders/3d/obj_loader/obj_loader.o obj/irx/irx_loader.o obj/file/file_utils.o obj/time/timer.o obj/engine.o obj/info/banner.o obj/info/info.o obj/info/banner_data.o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_td_vu1.o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_c_vu1.o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_tc_vu1.o obj/renderer/3d/pipeline/static/core/programs/as_is/stapip_as_is_d_vu1.o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_d_vu1.o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_tc_vu1.o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_td_vu1.o obj/renderer/3d/pipeline/static/core/programs/cull/stapip_cull_c_vu1.o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_c_vu1.o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_tc_vu1.o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_d_vu1.o obj/renderer/3d/pipeline/dynamic/core/programs/dynpip_td_vu1.o obj/renderer/3d/pipeline/minecraft/programs/as_is/mcpip_as_is_vu1.o obj/renderer/3d/pipeline/minecraft/programs/cull/mcpip_cull_vu1.o obj/renderer/core/paths/path1/draw_finish.o   obj/irx/libsd.o obj/irx/bdm.o obj/irx/iomanX.o obj/irx/fileXio.o obj/irx/padman.o obj/irx/audsrv.o obj/irx/usbd.o obj/irx/sio2man.o obj/irx/usbmass_bd.o obj/irx/bdmfs_fatfs.o
+make[1]: Leaving directory '/tmp/droid-optimization-check/engine'
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/core/game_app.o src/core/game_app.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/events/event_bus.o src/events/event_bus.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/main.o src/main.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/hardware/ps2_scratchpad.o src/hardware/ps2_scratchpad.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/hardware/ps2_task_scheduler.o src/hardware/ps2_task_scheduler.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/systems/physics/collision_system.o src/systems/physics/collision_system.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/systems/player/player_controller_system.o src/systems/player/player_controller_system.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/systems/ui/ui_context_drawer.o src/systems/ui/ui_context_drawer.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/systems/ui/font_sprite.o src/systems/ui/font_sprite.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/systems/ui/menu_system.o src/systems/ui/menu_system.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/systems/ui/hud_system.o src/systems/ui/hud_system.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/systems/input/input_system.o src/systems/input/input_system.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/systems/narrative/radio_codec_system.o src/systems/narrative/radio_codec_system.cpp
+mips64r5900el-ps2-elf-g++  -D_EE -Wall -O3 -Iinc -I../engine/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ps2sdk/ports/include -c -o obj/systems/render3d/world_render_system.o src/systems/render3d/world_render_system.cpp
+mips64r5900el-ps2-elf-g++ -T/usr/local/ps2dev/ps2sdk/ee/startup/linkfile -o bin/droid_campos.elf obj/core/game_app.o obj/events/event_bus.o obj/main.o obj/hardware/ps2_scratchpad.o obj/hardware/ps2_task_scheduler.o obj/systems/physics/collision_system.o obj/systems/player/player_controller_system.o obj/systems/ui/ui_context_drawer.o obj/systems/ui/font_sprite.o obj/systems/ui/menu_system.o obj/systems/ui/hud_system.o obj/systems/input/input_system.o obj/systems/narrative/radio_codec_system.o obj/systems/render3d/world_render_system.o -L/usr/local/ps2dev/ps2sdk/ee/lib -L/usr/local/ps2dev/ps2sdk/ports/lib -O3 -Wl,-zmax-page-size=128 -L../engine/bin -ltyra -lstdc++ -ldma -lpacket2 -lgraph -ldraw -lmath3d -lpng -ldebug -lz -lpad -laudsrv -lpatches -lcdvd
+mips64r5900el-ps2-elf-strip --strip-all bin/droid_campos.elf

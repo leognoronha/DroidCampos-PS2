@@ -1,0 +1,108 @@
+[    0,0323] Program Path: C:\Users\leogn\OneDrive\Documents\pcsx2-v2.3.362-windows-x64-Qt\pcsx2-qt.exe
+[    0,0324] AppRoot Directory: C:\Users\leogn\OneDrive\Documents\pcsx2-v2.3.362-windows-x64-Qt
+[    0,0326] Resources Directory: C:\Users\leogn\OneDrive\Documents\pcsx2-v2.3.362-windows-x64-Qt\resources
+[    0,0336] DataRoot Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2
+[    0,0345] Loading config from C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\inis\PCSX2.ini.
+[    0,0354] Processor count: 4 cores, 8 processors, 1 clusters
+[    0,0361] Ordered processor list: 0, 2, 4, 6
+[    0,0361] CPU cores count: 4
+[    0,0361]   Enabling MTVU.
+[    0,0361]   Setting Extra Software Rendering Threads to 3.
+[    0,0363] (MapController) Map Pad1/Up to 'Keyboard/Up'
+[    0,0363] (MapController) Map Pad1/Right to 'Keyboard/Right'
+[    0,0363] (MapController) Map Pad1/Down to 'Keyboard/Down'
+[    0,0363] (MapController) Map Pad1/Left to 'Keyboard/Left'
+[    0,0363] (MapController) Map Pad1/Triangle to 'Keyboard/I'
+[    0,0363] (MapController) Map Pad1/Circle to 'Keyboard/L'
+[    0,0363] (MapController) Map Pad1/Cross to 'Keyboard/K'
+[    0,0363] (MapController) Map Pad1/Square to 'Keyboard/J'
+[    0,0363] (MapController) Map Pad1/Select to 'Keyboard/Backspace'
+[    0,0364] (MapController) Map Pad1/Start to 'Keyboard/Return'
+[    0,0364] (MapController) Map Pad1/L1 to 'Keyboard/Q'
+[    0,0364] (MapController) Map Pad1/L2 to 'Keyboard/1'
+[    0,0364] (MapController) Map Pad1/R1 to 'Keyboard/E'
+[    0,0364] (MapController) Map Pad1/R2 to 'Keyboard/3'
+[    0,0364] (MapController) Map Pad1/L3 to 'Keyboard/2'
+[    0,0364] (MapController) Map Pad1/R3 to 'Keyboard/4'
+[    0,0364] (MapController) Map Pad1/LUp to 'Keyboard/W'
+[    0,0364] (MapController) Map Pad1/LRight to 'Keyboard/D'
+[    0,0364] (MapController) Map Pad1/LDown to 'Keyboard/S'
+[    0,0364] (MapController) Map Pad1/LLeft to 'Keyboard/A'
+[    0,0364] (MapController) Map Pad1/RUp to 'Keyboard/T'
+[    0,0364] (MapController) Map Pad1/RRight to 'Keyboard/H'
+[    0,0364] (MapController) Map Pad1/RDown to 'Keyboard/G'
+[    0,0364] (MapController) Map Pad1/RLeft to 'Keyboard/F'
+[    0,0413] Loading secrets from C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\inis\secrets.ini.
+[    0,0484] BIOS Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\bios
+[    0,0484] Snapshots Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\snaps
+[    0,0484] Savestates Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\sstates
+[    0,0484] MemoryCards Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\memcards
+[    0,0484] Logs Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\logs
+[    0,0485] Cheats Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\cheats
+[    0,0485] Patches Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\patches
+[    0,0485] Covers Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\covers
+[    0,0485] Game Settings Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\gamesettings
+[    0,0485] Resources Directory: C:\Users\leogn\OneDrive\Documents\pcsx2-v2.3.362-windows-x64-Qt\resources
+[    0,0485] User Resources Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\resources
+[    0,0485] Cache Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\cache
+[    0,0485] Textures Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\textures
+[    0,0486] Input Profile Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\inputprofiles
+[    0,0486] Video Dumping Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\videos
+[    0,0486] Debugger Layouts Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\inis\debuggerlayouts
+[    0,0486] Debugger Settings Directory: C:\Users\leogn\OneDrive\Documents\DroidCampos-PS2\artifacts\optimization\pcsx2-validation\PCSX2\inis\debuggersettings
+[    0,0879] Loaded translation file for language pt-BR
+[    0,1420] PCSX2 v2.9.81
+[    0,1420] Savestate version: 0x9a590000
+[    0,1420] 
+[    0,1420] 
+[    0,1420] Host Machine Init:
+[    0,1421]   Operating System = Microsoft Windows 10+
+[    0,1421]   Available RAM    = 8914 MB (8.71 GB)
+[    0,1421]   Physical RAM     = 20259 MB (19.78 GB)
+[    0,1422] 
+[    0,1422]   Processor        = Intel 11th Gen Core i5-1135G7
+[    0,1422]   Core Count       = 4 cores
+[    0,1422]   Thread Count     = 8 threads
+[    0,1422]   Cluster Count    = 1 clusters
+[    0,1453]   Power Profile    = 'Acer'
+[    0,1453]   Power States (min/max)
+[    0,1453]     AC             = 0% / 100%
+[    0,1453]     Battery        = 0% / 100%
+[    0,1453] 
+[    0,1453] CPU Extensions Detected:
+[    0,1453]   AVX AVX2 AVX512F
+[    0,1453] 
+[    0,1453] Graphics Adapters Detected:
+[    0,8002]   GPU              = NVIDIA GeForce MX350
+[    0,8002]   Driver Version   = 32.0.15.8228
+[    0,8002] 
+[    0,8012]   GPU              = Intel(R) Iris(R) Xe Graphics
+[    0,8012]   Driver Version   = 30.0.101.1404
+[    0,8012] 
+[    0,8020]   GPU              = Microsoft Basic Render Driver
+[    0,8020]   Driver Version   = 10.0.26100.9711
+[    0,8020] 
+[    0,8021] Allocating host memory for virtual systems...
+[    0,8041]   EE Main Memory                   @ 0x0000019CC6820000 -> 0x0000019CCF720000 [143mb]
+[    0,8042]   IOP Main Memory                  @ 0x0000019CCF720000 -> 0x0000019CD7820000 [129mb]
+[    0,8042]   VU0/1 On-Chip Memory             @ 0x0000019CD7820000 -> 0x0000019CD7920000 [1mb]
+[    0,8042]   VTLB Virtual Map                 @ 0x0000019CD7920000 -> 0x0000019CD8120000 [8mb]
+[    0,8042]   VTLB Address Map                 @ 0x0000019CD8120000 -> 0x0000019CD8520000 [4mb]
+[    0,8042]   R5900 Recompiler Cache           @ 0x0000019CD8520000 -> 0x0000019CDC520000 [64mb]
+[    0,8042]   R3000A Recompiler Cache          @ 0x0000019CDC520000 -> 0x0000019CDE520000 [32mb]
+[    0,8042]   Micro VU0 Recompiler Cache       @ 0x0000019CDF520000 -> 0x0000019CE3520000 [64mb]
+[    0,8042]   Micro VU1 Recompiler Cache       @ 0x0000019CE3520000 -> 0x0000019CE7520000 [64mb]
+[    0,8042]   VIF0 Unpack Recompiler Cache     @ 0x0000019CDE520000 -> 0x0000019CDED20000 [8mb]
+[    0,8042]   VIF1 Unpack Recompiler Cache     @ 0x0000019CDED20000 -> 0x0000019CDF520000 [8mb]
+[    0,8042]   VIF Unpack Recompiler Cache      @ 0x0000019CE7520000 -> 0x0000019CE7620000 [1mb]
+[    0,8042]   GS Software Renderer             @ 0x0000019CE7620000 -> 0x0000019CEB620000 [64mb]
+[    0,8057] Fastmem area: 0000019CEB620000 - 0000019DEB61FFFF
+[    0,8072] Generating SSE-optimized unpacking functions for VIF interpreters...
+[    0,8073] Unpack function generation complete.  Generated function statistics:
+[    0,8073]   Reserved buffer    : 1048576 bytes @ 0x0000019CE7520000
+[    0,8073]   x86 code generated : 7422 bytes
+[    0,8073] 
+[    0,8088] SDLInputSource: Using Controller DB from resources.
+[    0,9996] SDLInputSource: 887 gamepad mappings are loaded.
+[    1,0013] Missing top level window, cannot add DInput devices.
+[    1,0013] (InputManager) Source 'DInput' failed to initialize.

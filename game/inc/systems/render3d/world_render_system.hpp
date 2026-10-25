@@ -30,6 +30,8 @@ class WorldRenderSystem final : public Core::ISubsystem {
   void loadScenario3D(Tyra::Engine* engine);
   void loadMist3D(Tyra::Engine* engine);
   void loadPistol3D(Tyra::Engine* engine);
+  void renderTransparentPass(Tyra::Engine* engine, Tyra::StaticMesh* mesh,
+                             const Tyra::StaPipOptions& options);
   void updatePistolViewmodelTransform(const Core::WorldState& state);
   void updateAbandonedSignFlicker(const Core::WorldState& state);
   void updateCardReaderLight(Core::WorldState& state, Events::EventBus& bus);

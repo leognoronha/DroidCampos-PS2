@@ -1,0 +1,29 @@
+#pragma once
+#include <cassert>
+#include <string>
+#include <vector>
+using u32=unsigned;
+namespace Tyra {
+struct Vec2 {float x=0,y=0;Vec2()=default;Vec2(float a,float b):x(a),y(b){}};
+struct Color {float r=0,g=0,b=0,a=128;};
+enum {MODE_REPEAT};
+struct Sprite {
+  inline static u32 next=1;
+  u32 id=next++;int mode=MODE_REPEAT;Vec2 size,offset,position;Color color;
+  float scale=1;bool flipHorizontal=false,flipVertical=false;
+};
+struct Texture {void addLink(u32){}};
+struct TextureRepository {
+  Texture texture;Texture* add(const std::string&){return &texture;}
+  void freeBySprite(const Sprite&){}
+};
+struct FileUtils {static std::string fromCwd(const std::string& s){return s;}};
+struct Renderer2D {
+  std::vector<Sprite> draws;std::vector<unsigned> batches;
+  void render(const Sprite& sprite){draws.push_back(sprite);batches.push_back(1);}
+  void renderBatch(const Sprite* sprites,u32 count) {
+    assert(count>0&&count<=32);batches.push_back(count);
+    draws.insert(draws.end(),sprites,sprites+count);
+  }
+};
+}

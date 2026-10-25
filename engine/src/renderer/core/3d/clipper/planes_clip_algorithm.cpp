@@ -40,6 +40,26 @@ u8 PlanesClipAlgorithm::clip(PlanesClipVertex* o_vertices,
     if (settings.lerpTexCoords) o_vertices[i].st = *i_vertices[i].st;
   }
 
+  // Use exactly the same inclusive boundaries as the reference clipper.
+  // A shared outside bit rejects the triangle; no bits accepts it unchanged.
+  // Mixed triangles retain the six-plane interpolation path below.
+  u8 outsideAny = 0;
+  u8 outsideAll = 0x3f;
+  for (int i = 0; i < 3; ++i) {
+    const auto& v = o_vertices[i];
+    u8 code = 0;
+    if (!isInside(1, v.position.x, v.position.w, halfWidth)) code |= 1;
+    if (!isInside(1, v.position.x, v.position.w, -halfWidth)) code |= 2;
+    if (!isInside(2, v.position.y, v.position.w, halfHeight)) code |= 4;
+    if (!isInside(2, v.position.y, v.position.w, -halfHeight)) code |= 8;
+    if (!isInside(3, getValueByPlane(v, 3), v.position.w, near)) code |= 16;
+    if (!isInside(4, getValueByPlane(v, 4), v.position.w, far)) code |= 32;
+    outsideAny |= code;
+    outsideAll &= code;
+  }
+  if (outsideAll) return 0;
+  if (!outsideAny) return 3;
+
   u8 tempVerticesSize = 0;
   u8 outputSize = 0;
 
