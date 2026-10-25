@@ -37,7 +37,11 @@ int main(){
     engine.pad.clicked={};poll();assert(s.scene.doors[d].targetOpen); // No toggle on held button.
   }
   float x=0,z=-1; for(int i=0;i<50;i++){z+=.1F;resolve(x,z);} assert(z<=-.59F);
-  x=0;z=-20;for(int i=0;i<80;i++){z-=.1F;resolve(x,z);} assert(z>-22);
+  x=0;z=-20;for(int i=0;i<80;i++){z-=.1F;resolve(x,z);} assert(z<-27.5F);
+  // The terminal room is freely traversable; only the left-wall console blocks.
+  for(int i=0;i<80;i++){x+=.1F;resolve(x,z);} assert(x>4.4F && x<4.53F);
+  for(int i=0;i<120;i++){x-=.1F;resolve(x,z);} assert(x>-3.11F && x<-3.0F);
+  x=0;z=-28;for(int i=0;i<80;i++){z-=.1F;resolve(x,z);} assert(z<-31.4F && z>=-31.53F);
   x=0;z=-12;for(int i=0;i<50;i++){x+=.11F;resolve(x,z);} assert(x<1.1F);
   s.menu.currentScreen=Core::ScreenState::Loading;s.scene.error=nullptr;
   engine.pad.clicked.Square=true;engine.pad.pressed.DpadUp=true;poll();assert(bus.size()==0 && s.inputCmd.moveForward==0);

@@ -16,7 +16,7 @@ int main(int argc,char** argv){
   for(int cycle=0;cycle<3;cycle++){
     render.loadSceneStep(&engine,Core::SceneId::Exterior,0);render.loadSceneStep(&engine,Core::SceneId::Exterior,1);
     assert(repo.getTexturesCount()>1);render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
-    for(int step=0;step<9;step++)render.loadSceneStep(&engine,Core::SceneId::Interior,step);
+    for(int step=0;step<Core::kInsidePartCount;step++)render.loadSceneStep(&engine,Core::SceneId::Interior,step);
     assert(repo.getTexturesCount()==9); // 8 shared scene PNGs + persistent pistol.
     s.scene.active=Core::SceneId::Interior;s.resetPlayerToSpawn();s.menu.currentScreen=Core::ScreenState::GameplayFps;
     for(int i=0;i<4;i++){
@@ -28,7 +28,7 @@ int main(int argc,char** argv){
       assert(s.scene.doors[i].openAmount<1);
     }
     Tyra::StaticPipeline::draws.clear();render.executeStage(Core::HardwareStage::Stage2_Vu1GsRender3D,&engine,s,bus,spr);
-    assert(Tyra::StaticPipeline::draws.size()==13); // 8 static parts, four panels, pistol.
+    assert(Tyra::StaticPipeline::draws.size()==14); // 9 static parts, four panels, pistol.
     render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
   }
   render.shutdown(&engine);assert(repo.getTexturesCount()==0);

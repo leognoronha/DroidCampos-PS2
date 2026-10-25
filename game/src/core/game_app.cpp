@@ -1,5 +1,6 @@
 #include "core/game_app.hpp"
 #include <cstdio>
+#include "core/interior_layout.hpp"
 
 namespace DroidCampos {
 namespace Core {
@@ -132,7 +133,7 @@ void GameApp::updateSceneTransition() {
   if (!scene.requested) return;
   scene.requested = false;
   scene.loadStep = 0;
-  scene.totalSteps = scene.target == SceneId::Interior ? 10 : 3;
+  scene.totalSteps = scene.target == SceneId::Interior ? kInsidePartCount + 1 : 3;
   scene.error = render3dSystem_.validateScene(scene.target) ? nullptr : "ASSET AUSENTE. VERIFIQUE OS ARQUIVOS.";
   state.menu.currentScreen = ScreenState::Loading;
   state.inputCmd.clear();

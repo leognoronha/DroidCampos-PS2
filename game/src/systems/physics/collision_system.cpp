@@ -76,9 +76,12 @@ void CollisionSystem::resolvePlayerCollisions(
       else if (axis == 2) z = minZ;
       else z = maxZ;
     };
-    if (x < -5.12F) x = -5.12F;
-    if (x > 5.12F) x = 5.12F;
-    if (z < -23.40F) z = -23.40F;
+    const bool inTerminalRoom = z < Core::kTerminalRoomFrontZ;
+    const float maxX = inTerminalRoom ? Core::kTerminalRoomMaxX - kPlayerRadius : 5.12F;
+    const float minX = inTerminalRoom ? Core::kTerminalRoomMinX + kPlayerRadius : -5.12F;
+    if (x < minX) x = minX;
+    if (x > maxX) x = maxX;
+    if (z < Core::kTerminalRoomBackZ + kPlayerRadius) z = Core::kTerminalRoomBackZ + kPlayerRadius;
     if (z > -0.60F) z = -0.60F;
     for (int side : {-1, 1}) {
       const float wx = side * 1.6F;
@@ -106,7 +109,10 @@ void CollisionSystem::resolvePlayerCollisions(
       const float dz = Core::kInsideDoorZ[i] - state.scene.doors[i].openAmount * Core::kDoorTravel;
       resolve(dx - .08F, dx + .08F, dz - .7F, dz + .7F);
     }
-    resolve(-1.175F, 1.175F, -23.4F, -22.02F); // Terminal and keyboard.
+    // Front wings of the terminal room leave a central opening at the corridor.
+    resolve(-5.0F, -1.7F, -24.1F, -23.9F);
+    resolve(1.7F, 5.0F, -24.1F, -23.9F);
+    resolve(-5.0F, -3.58F, -29.175F, -26.825F); // Terminal against left wall.
     return;
   }
   if (x < kPerimeterMinX) x = kPerimeterMinX;

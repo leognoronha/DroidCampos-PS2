@@ -340,6 +340,9 @@ bool WorldRenderSystem::validateScene(Core::SceneId scene) const {
 
 void WorldRenderSystem::unloadScene(Engine* engine) {
   if (!engine) return;
+  // New scene allocations may reuse the same vertex addresses. Do not keep
+  // address-keyed bounding boxes from the previously unloaded geometry.
+  stapip_.core.clearGeometryCache();
   auto& repo = engine->renderer.getTextureRepository();
   if (scenarioMesh_) repo.freeByMesh(scenarioMesh_.get());
   if (mistMesh_) repo.freeByMesh(mistMesh_.get());
@@ -378,7 +381,7 @@ void WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
     } else tex = repo.getByTextureId(it->second);
     tex->addLink(mat->id);
   }
-  if (step == 8) doorMesh_ = std::move(mesh);
+  if (step == Core::kInsidePartCount - 1) doorMesh_ = std::move(mesh);
   else interiorMeshes_.push_back(std::move(mesh));
 }
 

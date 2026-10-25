@@ -29,6 +29,8 @@ class StaPipCore {
   void init(RendererCore* t_core);
 
   void onFrameEnd();
+  // Call only after render synchronization, before destroying mesh arrays.
+  void clearGeometryCache() { cacher.clear(); }
 
   /** Render 3D via "bags" */
   void render(StaPipBag* bag);

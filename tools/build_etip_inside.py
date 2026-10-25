@@ -1,11 +1,12 @@
 """Blender generator. Only writes ETIP-inside* and res/etip_inside outputs."""
-import bpy, json, random, argparse, sys
+import bpy, json, random, argparse, sys, math
 from pathlib import Path
 from mathutils import Vector
 parser=argparse.ArgumentParser()
 repo=Path(__file__).resolve().parents[1]
 parser.add_argument('--models',type=Path,default=repo.parent/'DroidCampos-models')
 parser.add_argument('--resources',type=Path,default=repo/'game/res/etip_inside')
+parser.add_argument('--skip-previews',action='store_true')
 args=parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
 MODELS=args.models; RES=args.resources
 RES.mkdir(parents=True,exist_ok=True)
@@ -40,11 +41,28 @@ cyan=material('Luz',(.26,.78,.86),True); red=material('Emergencia',(.8,.12,.035)
 def box(name,loc,size,mat,group,part):
     bpy.ops.mesh.primitive_cube_add(size=1,location=loc); o=bpy.context.object; o.name='PS2_'+name; o.dimensions=size
     bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+    # Spatially small quads preserve clipping precision and localize packages.
+    # Interpolate the original face UVs; do not stretch/reset the texture per tile.
+    original=o.data; vertices=[]; faces=[]; face_uvs=[]
+    for polygon in original.polygons:
+        a,c1,c2,d=[original.vertices[i].co.copy() for i in polygon.vertices]
+        horizontal=c1-a; vertical=d-a
+        nx=max(1,math.ceil(horizontal.length/2.0)); ny=max(1,math.ceil(vertical.length/2.0))
+        start=len(vertices)
+        for j in range(ny+1):
+            for i in range(nx+1): vertices.append(a+horizontal*(i/nx)+vertical*(j/ny))
+        for j in range(ny):
+            for i in range(nx):
+                p=start+j*(nx+1)+i
+                faces.append((p,p+1,p+nx+2,p+nx+1))
+                face_uvs.append(((i/nx,j/ny),((i+1)/nx,j/ny),((i+1)/nx,(j+1)/ny),(i/nx,(j+1)/ny)))
+    mesh=bpy.data.meshes.new(o.name+'_Painelado'); mesh.from_pydata(vertices,[],faces); mesh.update()
+    o.data=mesh; bpy.data.meshes.remove(original)
     for c in list(o.users_collection): c.objects.unlink(o)
     groups[group].objects.link(o); o.data.materials.append(mat)
     uv=o.data.uv_layers.active or o.data.uv_layers.new()
-    for p in o.data.polygons:
-        for li,co in zip(p.loop_indices,[(0,0),(1,0),(1,1),(0,1)]): uv.data[li].uv=co
+    for p,coords in zip(o.data.polygons,face_uvs):
+        for li,co in zip(p.loop_indices,coords): uv.data[li].uv=co
     parts.setdefault(part,[]).append(o); return o
 def b(name,x,y,z,sx,sy,sz,mat,group,part): return box(name,(x,y,z),(sx,sy,sz),mat,group,part)
 for s in range(3):
@@ -57,10 +75,12 @@ for s in range(3):
         for d in (8,16):
             new=[]
             for a,z in intervals:
-                if z<=d-.7 or a>=d+.7: new.append((a,z))
+                # The side-room front supplies these wall spans. Do not place
+                # a second coplanar corridor wall behind the same textured face.
+                if z<=d-2 or a>=d+2: new.append((a,z))
                 else:
-                    if a<d-.7: new.append((a,d-.7))
-                    if z>d+.7: new.append((d+.7,z))
+                    if a<d-2: new.append((a,d-2))
+                    if z>d+2: new.append((d+2,z))
             intervals=new
         for a,z in intervals: b('Parede_%s_%s_%s'%(s,side,a),side*1.6,(a+z)/2,1.4,.2,z-a,2.8,wall,'estrutura',part)
         for d in (8,16):
@@ -70,12 +90,21 @@ for s in range(3):
         b('Baliza_%s_%s'%(s,side),side*1.475,y,.25,.035,.26,.12,red,'estrutura',part)
     b('Luminaria_'+str(s),0,y,2.77,.65,.45,.045,cyan,'estrutura',part)
 b('Entrada_Selada',0,0,1.4,3.4,.24,2.8,metal,'estrutura','corredor_1')
-b('Fundo',0,24,1.4,3.4,.24,2.8,wall,'estrutura','corredor_3')
+# Open connection to a 10 x 8 m terminal room, from Y=24 to Y=32.
+b('Sala_Final_Piso',0,28,-.1,10.4,8,.2,floor,'estrutura','sala_terminal')
+b('Sala_Final_Teto',0,28,3.5,10.4,8,.2,metal,'estrutura','sala_terminal')
+b('Sala_Final_Fundo',0,32.1,1.7,10.4,.2,3.4,wall,'estrutura','sala_terminal')
+for side in (-1,1):
+    b('Sala_Final_Lateral_'+str(side),side*5.1,28,1.7,.2,8,3.4,wall,'estrutura','sala_terminal')
+    b('Sala_Final_Entrada_'+str(side),side*3.35,24,1.7,3.3,.2,3.4,wall,'estrutura','sala_terminal')
+    b('Sala_Final_Luminaria_'+str(side),side*2.5,28,3.36,.7,.7,.05,cyan,'estrutura','sala_terminal')
+    b('Sala_Final_Baliza_'+str(side),side*4.98,30,.3,.025,.3,.14,red,'estrutura','sala_terminal')
+b('Sala_Final_Verga',0,24,3.1,3.4,.2,.6,metal,'estrutura','sala_terminal')
 door_objects=[]
 for i,(side,y) in enumerate([(-1,8),(1,8),(-1,16),(1,16)]):
     part='sala_'+str(i+1); x=side*3.65
     b('Sala_Piso_'+str(i),x,y,-.1,4.1,4,.2,floor,'salas',part)
-    b('Soleira_'+str(i),side*1.6,y,-.025,.4,1.4,.05,hazard,'portas',part)
+    b('Soleira_'+str(i),side*1.6,y,-.013,.4,1.4,.05,hazard,'portas',part)
     b('Sala_Teto_'+str(i),x,y,2.9,4.1,4,.2,metal,'salas',part)
     b('Sala_Fundo_'+str(i),side*5.7,y,1.4,.2,4,2.8,wall,'salas',part)
     for off in (-2,2): b('Sala_Lateral_%s_%s'%(i,off),x,y+off,1.4,4.1,.2,2.8,wall,'salas',part)
@@ -94,6 +123,11 @@ b('Terminal_Monitor',0,23.1,1.55,2.35,.4,1.05,metal,'terminal','terminal')
 b('Terminal_Tela',0,22.888,1.58,2.08,.02,.78,monitor,'terminal','terminal')
 b('Terminal_Teclado',0,22.23,1.01,1.75,.42,.08,metal,'terminal','terminal')
 for i in range(5): b('Terminal_LED_'+str(i),-.8+i*.15,22.21,1.06,.07,.16,.015,cyan,'terminal','terminal')
+# Rotate the complete terminal to face +X and place its back on the left wall.
+for obj in parts['terminal']:
+    old=obj.location.copy(); obj.location=(-4.45-(old.y-22.85),28+old.x,old.z)
+    obj.rotation_euler.z=math.pi/2
+bpy.context.view_layer.update()
 texpaths={}
 for objs in parts.values():
     for o in objs:
@@ -108,7 +142,9 @@ def export(name,objs,local=False):
         for tri in mesh.loop_triangles:
             m=mesh.materials[tri.material_index]; mats[m.name]=m; lines.append('usemtl '+m.name)
             for vi,li in zip(tri.vertices,tri.loops):
-                p=mesh.vertices[vi].co if local else o.matrix_world@mesh.vertices[vi].co; n=tri.normal; u=uv[li].uv
+                p=mesh.vertices[vi].co if local else o.matrix_world@mesh.vertices[vi].co
+                n=tri.normal if local else (o.matrix_world.to_3x3().inverted().transposed()@tri.normal).normalized()
+                u=uv[li].uv
                 lines.extend(['v %.6f %.6f %.6f'%(p.x,p.z,-p.y),'vt %.6f %.6f'%(u.x,u.y),'vn %.6f %.6f %.6f'%(n.x,n.z,-n.y)])
             lines.append('f '+' '.join('%d/%d/%d'%(j,j,j) for j in range(idx,idx+3))); idx+=3
     (RES/(name+'.obj')).write_text('\n'.join(lines)+'\n',encoding='utf8')
@@ -119,15 +155,23 @@ export('porta',door_objects[:1],True)
 scene.world.color=(.035,.04,.05)
 print('EXPORTS COMPLETE',flush=True)
 bpy.ops.object.camera_add(location=(0,1.8,1.7)); cam=bpy.context.object; cam.name='Camera_Inside_Spawn'; cam.rotation_euler=(Vector((0,22,1.5))-cam.location).to_track_quat('-Z','Y').to_euler(); scene.camera=cam; cam.data.lens=20
+main_camera=cam
+bpy.ops.object.camera_add(location=(3.4,25.6,1.7)); room_camera=bpy.context.object; room_camera.name='Camera_Inside_Sala_Final'
+room_camera.rotation_euler=(Vector((-3,29.4,1.5))-room_camera.location).to_track_quat('-Z','Y').to_euler(); room_camera.data.lens=18
+scene.camera=main_camera
 for y in (4,12,20):
     bpy.ops.object.light_add(type='AREA',location=(0,y,2.65)); l=bpy.context.object; l.name='Preview_Luz_'+str(y); l.data.energy=65; l.data.color=(.4,.72,.82); l.data.shape='RECTANGLE'; l.data.size=2
+for x in (-2.5,2.5):
+    bpy.ops.object.light_add(type='AREA',location=(x,28,3.24)); l=bpy.context.object; l.name='Preview_Sala_Final_'+str(x); l.data.energy=120; l.data.color=(.4,.72,.82); l.data.size=3
 scene.render.engine='CYCLES'; scene.cycles.samples=16; scene.render.resolution_x=960; scene.render.resolution_y=640; scene.render.resolution_percentage=100
 meshes=[o for o in scene.objects if o.type=='MESH']; tris=sum(len(o.data.polygons)*2 for o in meshes); assert tris<5000,tris
 print('SAVING MASTER',flush=True)
-audit={'triangles':tris,'meshes':len(meshes),'parts':{k:len(v) for k,v in parts.items()},'textures':texpaths,'coordinates':'Tyra=(Blender X, Blender Z, -Blender Y)','doors':[{'x':o.location.x,'z':-o.location.y} for o in door_objects]}
+audit={'triangles':tris,'meshes':len(meshes),'max_panel_edge_m':2.0,'terminal_room':{'width':10,'depth':8,'height':3.4,'y_start':24,'y_end':32},'parts':{k:len(v) for k,v in parts.items()},'textures':texpaths,'coordinates':'Tyra=(Blender X, Blender Z, -Blender Y)','doors':[{'x':o.location.x,'z':-o.location.y} for o in door_objects]}
 (RES/'audit.json').write_text(json.dumps(audit,indent=2),encoding='utf8')
 bpy.ops.wm.save_as_mainfile(filepath=str(MODELS/'ETIP-inside.blend'))
-scene.render.filepath=str(MODELS/'ETIP-inside-preview.png'); bpy.ops.render.render(write_still=True)
+if not args.skip_previews:
+    scene.render.filepath=str(MODELS/'ETIP-inside-preview.png'); bpy.ops.render.render(write_still=True)
+    scene.camera=room_camera; scene.render.filepath=str(MODELS/'ETIP-inside-sala-final-preview.png'); bpy.ops.render.render(write_still=True)
 print('ETIP_INSIDE_AUDIT='+json.dumps(audit))
 for name in ('estrutura','portas','salas','terminal'):
     print('SAVING MODULE '+name,flush=True)

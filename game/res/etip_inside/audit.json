@@ -1,10 +1,19 @@
 {
-  "triangles": 1800,
-  "meshes": 150,
+  "triangles": 3948,
+  "meshes": 161,
+  "max_panel_edge_m": 2.0,
+  "terminal_room": {
+    "width": 10,
+    "depth": 8,
+    "height": 3.4,
+    "y_start": 24,
+    "y_end": 32
+  },
   "parts": {
     "corredor_1": 18,
     "corredor_2": 19,
-    "corredor_3": 20,
+    "corredor_3": 19,
+    "sala_terminal": 12,
     "sala_1": 20,
     "doors": 4,
     "sala_2": 20,

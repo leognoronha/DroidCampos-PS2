@@ -13,3 +13,13 @@ g++ -std=c++17 -Wall -Wextra -Itests/host -Igame/inc tests/host/render_lifecycle
 No Windows, usar caminhos de saída `.exe` e o diretório `bin` do compilador
 no PATH. Os testes só leem os assets. O teste de render verifica ownership,
 vínculos e contagem de texturas com um repositório simulado, não pixels ou VRAM.
+
+Regressões de clipping (compilam os arquivos reais da engine com doubles apenas
+dos tipos matemáticos, settings e classificação de frustum):
+
+```sh
+g++ -std=c++17 -Wall -Wextra -Itests/host/engine_stubs -Iengine/inc tests/host/clipper_test.cpp engine/src/renderer/core/3d/clipper/planes_clip_algorithm.cpp -o /tmp/etip-clip-test
+/tmp/etip-clip-test
+g++ -std=c++17 -Wall -Wextra -Itests/host/engine_stubs tests/host/frustum_policy_test.cpp engine/src/renderer/core/3d/bbox/render_bbox.cpp -o /tmp/etip-frustum-test
+/tmp/etip-frustum-test
+```

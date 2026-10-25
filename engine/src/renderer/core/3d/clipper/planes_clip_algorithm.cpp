@@ -18,13 +18,16 @@ PlanesClipAlgorithm::PlanesClipAlgorithm() {
 
 PlanesClipAlgorithm::~PlanesClipAlgorithm() { delete[] tempVertices; }
 
-float PlanesClipAlgorithm::clipMargin = -10.0F;
+float PlanesClipAlgorithm::clipMargin = 0.0F;
 
 void PlanesClipAlgorithm::init(const RendererSettings& settings) {
   halfWidth = 0.5F;
   halfHeight = 0.5F;
-  near = settings.getNear() - (-clipMargin);
-  far = -settings.getFar();
+  (void)settings;
+  // Inputs have already been multiplied by MVP. Tyra's projection maps the
+  // near plane to z=+w and far plane to z=-w, not to world-space distances.
+  near = 0.0F;
+  far = 0.0F;
 }
 
 u8 PlanesClipAlgorithm::clip(PlanesClipVertex* o_vertices,
@@ -68,9 +71,10 @@ float PlanesClipAlgorithm::getValueByPlane(const PlanesClipVertex& v,
       return v.position.x;  // x plane
     case 2:
       return v.position.y;  // y plane
-    case 3:                 // z near
+    case 3:
+      return v.position.z - v.position.w;  // homogeneous near
     case 4:
-      return v.position.z;  // z far
+      return v.position.z + v.position.w;  // homogeneous far
     default:
       return 0;
   }
@@ -111,7 +115,7 @@ u8 PlanesClipAlgorithm::clipAgainstPlane(
     if (aIsInside != bIsInside) {
       auto p =
           (plane >= 3)
-              ? (planeLimitValue - a.position.z) / (b.position.z - a.position.z)
+              ? (planeLimitValue - apx) / (bpx - apx)
               : (-a.position.w * planeLimitValue + apx) /
                     ((b.position.w - a.position.w) * planeLimitValue -
                      (bpx - apx));
