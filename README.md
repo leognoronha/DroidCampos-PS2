@@ -3,7 +3,8 @@
 ## Interior ETIP
 
 O leitor externo agora solicita a transição com loading para o corredor interno,
-com quatro salas e portas deslizantes. Modelos, exportação, ciclo de memória e
+com quatro salas e portas deslizantes, terminal à esquerda e cápsula de contenção
+à direita da sala final de pé-direito elevado. Modelos, exportação, ciclo de memória e
 verificações estão documentados em [docs/etip-inside.md](docs/etip-inside.md).
 Build PS2 e validação no PCSX2 desta implementação ainda estão pendentes.
 

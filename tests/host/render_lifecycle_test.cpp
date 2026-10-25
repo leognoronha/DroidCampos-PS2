@@ -17,7 +17,7 @@ int main(int argc,char** argv){
     render.loadSceneStep(&engine,Core::SceneId::Exterior,0);render.loadSceneStep(&engine,Core::SceneId::Exterior,1);
     assert(repo.getTexturesCount()>1);render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
     for(int step=0;step<Core::kInsidePartCount;step++)render.loadSceneStep(&engine,Core::SceneId::Interior,step);
-    assert(repo.getTexturesCount()==9); // 8 shared scene PNGs + persistent pistol.
+    assert(repo.getTexturesCount()==11); // 10 shared scene PNGs + persistent pistol.
     s.scene.active=Core::SceneId::Interior;s.resetPlayerToSpawn();s.menu.currentScreen=Core::ScreenState::GameplayFps;
     for(int i=0;i<4;i++){
       s.scene.doors[i]={1,false};s.player.playerPos.set(Core::kInsideDoorX[i],1.7F,Core::kInsideDoorZ[i]);
@@ -28,9 +28,10 @@ int main(int argc,char** argv){
       assert(s.scene.doors[i].openAmount<1);
     }
     Tyra::StaticPipeline::draws.clear();render.executeStage(Core::HardwareStage::Stage2_Vu1GsRender3D,&engine,s,bus,spr);
-    assert(Tyra::StaticPipeline::draws.size()==14); // 9 static parts, four panels, pistol.
+    assert(Tyra::StaticPipeline::draws.size()==16); // 10 opaque parts, glass, four panels, pistol.
+    assert(engine.renderer.core.gs.zBuffer.mask==0); // Restore depth writes after glass.
     render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
   }
   render.shutdown(&engine);assert(repo.getTexturesCount()==0);
-  std::cout<<"PASS: asset preflight, 3 exterior/interior unload cycles, 8 shared textures, door occupancy reversal, 4 panel draws, persistent pistol\n";
+  std::cout<<"PASS: asset preflight, 3 unload cycles, 10 shared textures, capsule/glass, restored depth writes, doors, persistent pistol\n";
 }

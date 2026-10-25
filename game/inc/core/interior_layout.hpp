@@ -11,9 +11,14 @@ constexpr float kTerminalRoomMinX = -5.0F;
 constexpr float kTerminalRoomMaxX = 5.0F;
 constexpr float kTerminalRoomFrontZ = -24.0F;
 constexpr float kTerminalRoomBackZ = -32.0F;
-constexpr int kInsidePartCount = 10;
+constexpr float kTerminalRoomHeight = 6.25F;
+constexpr float kCapsuleMinX = 2.20F;
+constexpr float kCapsuleMaxX = 4.96F;
+constexpr float kCapsuleMinZ = -30.55F;
+constexpr float kCapsuleMaxZ = -27.45F;
+constexpr int kInsidePartCount = 12;
 constexpr const char* kInsideParts[kInsidePartCount] = {
     "corredor_1", "corredor_2", "corredor_3", "sala_1", "sala_2",
-    "sala_3", "sala_4", "sala_terminal", "terminal", "porta"};
+    "sala_3", "sala_4", "sala_terminal", "terminal", "capsula", "capsula_vidro", "porta"};
 }  // namespace Core
 }  // namespace DroidCampos

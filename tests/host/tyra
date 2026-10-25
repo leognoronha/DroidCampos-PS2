@@ -52,6 +52,7 @@ struct ObjLoader {
     while(std::getline(file,line)){
       std::istringstream in(line);std::string token,value;in>>token>>value;
       if(token=="newmtl"){MeshMaterial m{};m.id=next++;m.name=value;b->materials.push_back(m);}
+      if(token=="Kd"){float g=0,bv=0;in>>g>>bv;b->materials.back().ambient.set(std::stof(value)*128,g*128,bv*128,128);}
       if(token=="map_Kd") b->materials.back().textureName=value.substr(0,value.size()-4);
     }
     assert(!b->materials.empty());return b;
@@ -75,7 +76,10 @@ struct StaPipOptions {
   int frustumCulling=0,textureMappingType=0,transformationType=0,zTestType=0;
   bool fullClipChecks=false,blendingEnabled=false;
 };
-struct RendererCore {struct {struct {int mask=0;}zBuffer;} gs;};
+struct RendererCore {
+  struct {struct {int mask=0;}zBuffer;void setZBufferWriteEnabled(bool enabled){zBuffer.mask=enabled?0:1;}}gs;
+  struct {void align3D(){}}sync;
+};
 struct StaticPipeline {
   struct {void clearGeometryCache(){}}core;
   inline static std::vector<Vec4> draws;

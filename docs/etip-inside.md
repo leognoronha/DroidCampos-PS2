@@ -3,23 +3,31 @@
 ## Entregas e organização
 
 Os modelos ficam em `../DroidCampos-models/`: `ETIP-inside.blend` compõe o cenário;
-`ETIP-inside-{estrutura,portas,salas,terminal}.blend` contêm os módulos separados.
+`ETIP-inside-{estrutura,portas,salas,terminal,capsula}.blend` contêm os módulos separados.
 O exterior original não foi alterado. A imagem `ETIP-inside-preview.png` é uma
 prévia do Blender; a intensidade final no jogo ainda precisa de avaliação no PCSX2.
 
 O corredor mede 24 × 3 × 2,8 m. Quatro salas laterais de aproximadamente 4 × 4 m
-ficam a 8 e 16 m da entrada. O corredor termina numa sala de 10 × 8 × 3,4 m,
+ficam a 8 e 16 m da entrada. O corredor termina numa sala de 10 × 8 × 6,25 m,
 entre Y=24 e Y=32 no Blender. O terminal é visual, na parede esquerda, voltado
-para o centro. A sala permite circulação livre, exceto no volume do terminal.
+para o centro. A cápsula de 5,63 m fica junto à parede direita, centrada em
+`(3.58,29,0.012)` no Blender, com a janela voltada ao centro. Há 8 cm de folga
+da parede, 60,8 cm do teto e 12 mm do piso; nada atravessa a estrutura da sala.
+A circulação central permanece livre, com colisão no terminal e na cápsula.
 As quatro portas começam fechadas e deslizam 1,55 m para dentro da parede.
 
-`game/res/etip_inside/` contém três trechos de corredor, quatro salas, sala final, terminal e
+`game/res/etip_inside/` contém três trechos de corredor, quatro salas, sala final, terminal, cápsula opaca, vidro e
 um painel de porta em coordenadas locais. A mesma malha e as mesmas texturas são
 reutilizadas nos quatro painéis. OBJ triangulado, UVs positivas, transformação
 Blender → Tyra `(X,Z,-Y)`, PNG RGBA 8-bit, prefixos `PS2_*` preservados.
 
-Orçamento auditado: **3.948 triângulos renderizados**, oito PNGs de 64 × 64,
-128 KiB de pixels RGBA decodificados (sem metadados e buffers da engine).
+Orçamento auditado do jogo: **4.966 triângulos renderizados**, dez PNGs de 64 × 64,
+160 KiB de pixels RGBA decodificados (sem metadados e buffers da engine).
+O Blender mantém a cápsula detalhada original de 5.073 triângulos; a composição
+visível tem 9.217 triângulos. A coleção oculta `Inside_Capsula_Runtime_LOD`
+contém a versão de exportação de 822 triângulos (774 opacos + 48 de vidro).
+Ela não é desenhada junto com o modelo detalhado na prévia. O original
+`ETIP-capsule.blend` não é sobrescrito pelo gerador.
 Sombras de borda e detalhes luminosos estão nas texturas; o jogo também aplica
 tonalidade escura aos materiais não luminosos. Não depende de luzes do Blender.
 
@@ -32,6 +40,11 @@ tonalidade escura aos materiais não luminosos. Não depende de luzes do Blender
   O parser OBJ continua síncrono: o indicador pode pausar durante uma etapa.
 - UI e pistola permanecem carregadas. O interior possui um proprietário por PNG
   e múltiplos vínculos de material; descarregar libera cada textura uma vez.
+- A cápsula é carregada em duas etapas, usando o mesmo loader de cenas:
+  `capsula.obj` e `capsula_vidro.obj`. O vidro é desenhado após os sólidos, com
+  alpha e teste de profundidade, sem gravar Z. A engine agora envia a alteração
+  de máscara ao registro GS via `setZBufferWriteEnabled`, restaurando-a antes
+  de desenhar a pistola. As cores Kd dos materiais da cápsula são preservadas.
 - Spawn interno `(0,1.7,-1.8)`, olhando para `-Z`. Não há transição de retorno.
   L3/R3 reinicia na cena atual; nova partida pede o exterior novamente.
 - Quadrado alterna a porta próxima. Colisão acompanha o painel; fechar reverte
@@ -52,8 +65,13 @@ blender --background --threads 2 --python tools/build_etip_inside.py
 python tools/audit_etip_inside.py
 ```
 
-O gerador aceita `-- --models CAMINHO --resources CAMINHO` e usa a matriz externa
-como origem dos materiais de ferrugem e advertência. Regenerar sobrescreve apenas
+O gerador aceita `-- --models CAMINHO --resources CAMINHO` e `--skip-previews`, e usa a matriz externa
+como origem dos materiais de ferrugem e advertência e `ETIP-capsule.blend` como
+origem do novo asset. A versão leve usa geometria paramétrica controlada, com
+cilindros de 12 lados e suportes retos, dentro do orçamento de 5.000 triângulos.
+Sua posição e envelope são auditados para preservar as folgas; uma redução por
+colapso global foi descartada após a inspeção visual detectar deformações.
+Regenerar sobrescreve apenas
 as entregas do interior; preserve edições manuais antes de executar novamente.
 
 ## Verificação realizada e pendências

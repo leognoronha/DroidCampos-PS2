@@ -113,6 +113,8 @@ void CollisionSystem::resolvePlayerCollisions(
     resolve(-5.0F, -1.7F, -24.1F, -23.9F);
     resolve(1.7F, 5.0F, -24.1F, -23.9F);
     resolve(-5.0F, -3.58F, -29.175F, -26.825F); // Terminal against left wall.
+    resolve(Core::kCapsuleMinX, Core::kCapsuleMaxX,
+            Core::kCapsuleMinZ, Core::kCapsuleMaxZ);
     return;
   }
   if (x < kPerimeterMinX) x = kPerimeterMinX;

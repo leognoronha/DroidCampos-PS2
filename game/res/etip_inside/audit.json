@@ -1,11 +1,33 @@
 {
-  "triangles": 3948,
-  "meshes": 161,
+  "triangles": 4966,
+  "visual_triangles": 9217,
+  "meshes": 271,
+  "capsule": {
+    "center": [
+      3.58,
+      29,
+      0.012
+    ],
+    "bounds_min": [
+      2.239999771118164,
+      27.523717880249023,
+      0.012000001966953278
+    ],
+    "bounds_max": [
+      4.920000076293945,
+      30.476282119750977,
+      5.642000198364258
+    ],
+    "wall_clearance_m": 0.07999992370605469,
+    "ceiling_clearance_m": 0.6079998016357422,
+    "source_triangles": 5073,
+    "runtime_triangles": 822
+  },
   "max_panel_edge_m": 2.0,
   "terminal_room": {
     "width": 10,
     "depth": 8,
-    "height": 3.4,
+    "height": 6.25,
     "y_start": 24,
     "y_end": 32
   },
@@ -19,7 +41,9 @@
     "sala_2": 20,
     "sala_3": 20,
     "sala_4": 20,
-    "terminal": 9
+    "terminal": 9,
+    "capsula": 1,
+    "capsula_vidro": 1
   },
   "textures": {
     "PS2_Mat_Inside_Piso": "ps2_tex_inside_piso",
@@ -29,7 +53,9 @@
     "PS2_Mat_Inside_Emergencia": "ps2_tex_inside_emergencia",
     "PS2_Mat_Inside_Luz": "ps2_tex_inside_luz",
     "PS2_Mat_Advertencia": "ps2_tex_advertencia",
-    "PS2_Mat_Inside_Terminal": "ps2_tex_inside_terminal"
+    "PS2_Mat_Inside_Terminal": "ps2_tex_inside_terminal",
+    "PS2_Mat_Capsule_Pintura_Industrial": "ps2_tex_capsule_pintura_desgastada",
+    "PS2_Mat_Capsule_Vidro_Contencao": "ps2_tex_capsula_vidro"
   },
   "coordinates": "Tyra=(Blender X, Blender Z, -Blender Y)",
   "doors": [

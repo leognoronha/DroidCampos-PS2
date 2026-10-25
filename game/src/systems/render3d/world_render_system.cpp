@@ -30,6 +30,9 @@ void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
   scenarioOptions_.fullClipChecks = true;
   scenarioOptions_.textureMappingType = TyraNearest;
   scenarioOptions_.transformationType = TyraMVP;
+  capsuleGlassOptions_ = scenarioOptions_;
+  capsuleGlassOptions_.blendingEnabled = true;
+  capsuleGlassOptions_.zTestType = PipelineZTest_Standard;
   loadPistol3D(engine);
   updatePistolViewmodelTransform(state);
   updateAbandonedSignFlicker(state);
@@ -283,6 +286,16 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       engine->renderer.core.gs.zBuffer.mask = 0;
     }
 
+    if (capsuleGlassMesh_) {
+      // Glass uses depth testing, but cannot hide other glass surfaces by
+      // writing depth. Opaque room/capsule geometry has already been drawn.
+      engine->renderer.core.sync.align3D();
+      engine->renderer.core.gs.setZBufferWriteEnabled(false);
+      stapip_.render(capsuleGlassMesh_.get(), capsuleGlassOptions_);
+      engine->renderer.core.sync.align3D();
+      engine->renderer.core.gs.setZBufferWriteEnabled(true);
+    }
+
     if (pistolLoaded_ && pistolMesh_ != nullptr) {
       stapip_.render(pistolMesh_.get(), pistolOptions_);
     }
@@ -350,6 +363,7 @@ void WorldRenderSystem::unloadScene(Engine* engine) {
   // Each interior PNG is owned once, regardless of how many material links use it.
   for (const auto& entry : interiorTextures_) repo.free(entry.second);
   interiorTextures_.clear(); interiorMeshes_.clear(); doorMesh_.reset();
+  capsuleGlassMesh_.reset();
   etipLogoMat_ = etipBoardMat_ = cardReaderLightMat_ = nullptr;
   scenarioLoaded_ = mistLoaded_ = false;
 }
@@ -369,8 +383,18 @@ void WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
   for (auto* mat : mesh->materials) {
     const bool luminous = mat->name == "PS2_Mat_Inside_Luz" ||
         mat->name == "PS2_Mat_Inside_Emergencia" || mat->name == "PS2_Mat_Inside_Terminal";
-    const float tint = luminous ? 128.0F : 72.0F;
-    mat->ambient.set(tint, tint, tint, 128);
+    const bool capsuleMaterial = mat->name.find("PS2_Mat_Capsule_") == 0;
+    if (capsuleMaterial) {
+      const bool bright = mat->name.find("Verde_Energia") != std::string::npos ||
+          mat->name.find("Led_Alerta") != std::string::npos ||
+          mat->name.find("Vidro_Contencao") != std::string::npos;
+      const float intensity = bright ? 1.0F : 0.75F;
+      mat->ambient.set(mat->ambient.r * intensity, mat->ambient.g * intensity,
+                       mat->ambient.b * intensity, 128);
+    } else {
+      const float tint = luminous ? 128.0F : 72.0F;
+      mat->ambient.set(tint, tint, tint, 128);
+    }
     if (!mat->textureName.has_value()) continue;
     const std::string name = mat->textureName.value();
     auto it = interiorTextures_.find(name);
@@ -381,7 +405,8 @@ void WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
     } else tex = repo.getByTextureId(it->second);
     tex->addLink(mat->id);
   }
-  if (step == Core::kInsidePartCount - 1) doorMesh_ = std::move(mesh);
+  if (std::string(Core::kInsideParts[step]) == "capsula_vidro") capsuleGlassMesh_ = std::move(mesh);
+  else if (step == Core::kInsidePartCount - 1) doorMesh_ = std::move(mesh);
   else interiorMeshes_.push_back(std::move(mesh));
 }
 

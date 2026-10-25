@@ -98,6 +98,18 @@ void RendererCoreGS::enableZTests() {
   dma_channel_send_packet2(zTestPacket, DMA_CHANNEL_GIF, true);
 }
 
+void RendererCoreGS::setZBufferWriteEnabled(bool enabled) {
+  zBuffer.mask = enabled ? 0 : 1;
+  // Update the actual GS register; changing the CPU-side field alone does not
+  // change depth writes for transparent geometry already submitted via VU1.
+  packet2_reset(zTestPacket, false);
+  packet2_update(zTestPacket, draw_zbuffer(zTestPacket->base, 0, &zBuffer));
+  packet2_update(zTestPacket, draw_finish(zTestPacket->next));
+  dma_channel_wait(DMA_CHANNEL_GIF, 0);
+  dma_channel_send_packet2(zTestPacket, DMA_CHANNEL_GIF, true);
+  dma_channel_wait(DMA_CHANNEL_GIF, 0);
+}
+
 void RendererCoreGS::initDrawingEnvironment() {
   packet2_t* packet2 = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
   packet2_update(packet2, draw_setup_environment(packet2->base, 0, frameBuffers,

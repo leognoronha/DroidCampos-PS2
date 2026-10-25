@@ -52,6 +52,8 @@ class WorldRenderSystem final : public Core::ISubsystem {
   bool pistolLoaded_;
   std::vector<std::unique_ptr<Tyra::StaticMesh>> interiorMeshes_;
   std::unique_ptr<Tyra::StaticMesh> doorMesh_;
+  std::unique_ptr<Tyra::StaticMesh> capsuleGlassMesh_;
+  Tyra::StaPipOptions capsuleGlassOptions_;
   std::map<std::string, u32> interiorTextures_;
 };
 

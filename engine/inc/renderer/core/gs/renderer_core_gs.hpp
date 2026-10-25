@@ -29,6 +29,8 @@ class RendererCoreGS {
   void flipBuffers();
 
   void enableZTests();
+  // Caller must synchronize preceding 3D draws before changing depth writes.
+  void setZBufferWriteEnabled(bool enabled);
 
  private:
   constexpr static float gsCenter = 4096.0F;
