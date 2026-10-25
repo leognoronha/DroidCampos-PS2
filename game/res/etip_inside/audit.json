@@ -1,0 +1,44 @@
+{
+  "triangles": 1800,
+  "meshes": 150,
+  "parts": {
+    "corredor_1": 18,
+    "corredor_2": 19,
+    "corredor_3": 20,
+    "sala_1": 20,
+    "doors": 4,
+    "sala_2": 20,
+    "sala_3": 20,
+    "sala_4": 20,
+    "terminal": 9
+  },
+  "textures": {
+    "PS2_Mat_Inside_Piso": "ps2_tex_inside_piso",
+    "PS2_Mat_Inside_Metal": "ps2_tex_inside_metal",
+    "PS2_Mat_Inside_Parede": "ps2_tex_inside_parede",
+    "PS2_Mat_Metal_Ferrugem": "ps2_tex_metal_ferrugem",
+    "PS2_Mat_Inside_Emergencia": "ps2_tex_inside_emergencia",
+    "PS2_Mat_Inside_Luz": "ps2_tex_inside_luz",
+    "PS2_Mat_Advertencia": "ps2_tex_advertencia",
+    "PS2_Mat_Inside_Terminal": "ps2_tex_inside_terminal"
+  },
+  "coordinates": "Tyra=(Blender X, Blender Z, -Blender Y)",
+  "doors": [
+    {
+      "x": -1.600000023841858,
+      "z": -8.0
+    },
+    {
+      "x": 1.600000023841858,
+      "z": -8.0
+    },
+    {
+      "x": -1.600000023841858,
+      "z": -16.0
+    },
+    {
+      "x": 1.600000023841858,
+      "z": -16.0
+    }
+  ]
+}

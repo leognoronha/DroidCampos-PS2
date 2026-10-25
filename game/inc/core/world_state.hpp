@@ -18,7 +18,23 @@ enum class ScreenState : u8 {
   NewGame = 1,
   LoadGame = 2,
   Settings = 3,
-  GameplayFps = 4
+  GameplayFps = 4,
+  Loading = 5
+};
+
+enum class SceneId : u8 { Exterior, Interior };
+struct DoorState { float openAmount; bool targetOpen; };
+struct SceneState {
+  SceneId active = SceneId::Exterior;
+  SceneId target = SceneId::Exterior;
+  bool resident = false;
+  bool requested = false;
+  int accessFrames = 0;
+  int loadStep = 0;
+  int totalSteps = 0;
+  const char* error = nullptr;
+  int nearbyDoor = -1;
+  DoorState doors[4] = {};
 };
 
 struct alignas(16) PlayerKinematicsState {
@@ -90,6 +106,7 @@ struct alignas(64) WorldState {
   MenuNavigationState menu;
   AnimationFrameState anim;
   CardReaderState cardReader;
+  SceneState scene;
 
   void resetPlayerToSpawn() {
     player.playerPos.set(0.0F, kDefaultEyeHeight, 17.0F, 1.0F);
@@ -98,6 +115,12 @@ struct alignas(64) WorldState {
     player.cameraUp.set(0.0F, 1.0F, 0.0F, 0.0F);
     player.yaw = -kDefaultPi * 0.5F;
     player.pitch = 0.04F;
+    if (scene.active == SceneId::Interior) {
+      player.playerPos.set(0.0F, kDefaultEyeHeight, -1.8F, 1.0F);
+      player.cameraPos = player.playerPos;
+      player.cameraLookAt.set(0.0F, kDefaultEyeHeight, -2.8F, 1.0F);
+      player.pitch = 0.0F;
+    }
     player.walkBobPhase = 0.0F;
     player.walkBobAmount = 0.0F;
     player.weaponSwayX = 0.0F;
@@ -108,15 +131,16 @@ struct alignas(64) WorldState {
     cardReader.isPlayerNearby = false;
     cardReader.isUnlocked = false;
 
-    radio.popupActive = true;
+    radio.popupActive = scene.active == SceneId::Exterior;
     radio.visibleChars = 0;
     radio.typeTimer = 0.0F;
-    if (radio.currentMessage == nullptr) {
-      radio.currentMessage = kDefaultCodecMessage;
-    }
+    radio.currentMessage = scene.active == SceneId::Interior
+        ? "VOCE ESTA DENTRO DA ETIP.\nA ENTRADA FOI SELADA.\nEXPLORE AS SALAS LATERAIS.\nLOCALIZE O TERMINAL CENTRAL."
+        : kDefaultCodecMessage;
   }
 
   void resetToDefaults() {
+    scene = SceneState{};
     player.moveSpeed = 0.11F;
     player.lookSensitivity = 0.032F;
     radio.currentMessage = kDefaultCodecMessage;

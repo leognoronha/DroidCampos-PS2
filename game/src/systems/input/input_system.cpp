@@ -1,5 +1,6 @@
 #include "systems/input/input_system.hpp"
 #include <cmath>
+#include "core/interior_layout.hpp"
 
 namespace DroidCampos {
 namespace Systems {
@@ -26,6 +27,15 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
     state.menu.padCooldown--;
   }
 
+  if (state.menu.currentScreen == Core::ScreenState::Loading) {
+    if (state.scene.error && engine->pad.getClicked().Cross) {
+      state.scene.requested = false;
+      state.scene.accessFrames = 0;
+      state.menu.currentScreen = Core::ScreenState::MainMenu;
+    }
+    return;
+  }
+
   if (state.menu.currentScreen == Core::ScreenState::GameplayFps) {
     pollGameplayInput(engine, state, bus);
   } else {
@@ -44,6 +54,8 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   const auto& leftJoy = pad.getLeftJoyPad();
   const auto& rightJoy = pad.getRightJoyPad();
 
+  if (state.scene.accessFrames > 0) return;
+
   if (state.radio.popupActive && clicked.Cross) {
     bus.publish(
         Events::GameEvent::makeSimple(Events::EventType::RadioDismissRequested));
@@ -53,6 +65,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   if (!state.radio.popupActive && (clicked.L2 || clicked.R2)) {
     bus.publish(Events::GameEvent::makeSimple(
         Events::EventType::RadioTransmissionTriggered));
+    return;
   }
 
   if (clicked.Select) {
@@ -73,12 +86,28 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   constexpr float kInteractRadiusSq = 2.55F * 2.55F;
   const float dxReader = state.player.playerPos.x - kCardReaderX;
   const float dzReader = state.player.playerPos.z - kCardReaderZ;
-  state.cardReader.isPlayerNearby =
+  state.cardReader.isPlayerNearby = state.scene.active == Core::SceneId::Exterior &&
       ((dxReader * dxReader + dzReader * dzReader) <= kInteractRadiusSq);
 
-  if (state.cardReader.isPlayerNearby && clicked.Square) {
+  if (state.cardReader.isPlayerNearby && !state.radio.popupActive &&
+      !state.cardReader.isUnlocked && clicked.Square) {
     bus.publish(Events::GameEvent::makeSimple(
         Events::EventType::CardReaderInteracted));
+  }
+
+  state.scene.nearbyDoor = -1;
+  if (state.scene.active == Core::SceneId::Interior && !state.radio.popupActive) {
+    float nearest = 1.8F * 1.8F;
+    for (int i = 0; i < 4; ++i) {
+      const float dx = state.player.playerPos.x - Core::kInsideDoorX[i];
+      const float dz = state.player.playerPos.z - Core::kInsideDoorZ[i];
+      const float dist = dx * dx + dz * dz;
+      if (dist < nearest) { nearest = dist; state.scene.nearbyDoor = i; }
+    }
+    if (state.scene.nearbyDoor >= 0 && clicked.Square) {
+      auto& door = state.scene.doors[state.scene.nearbyDoor];
+      door.targetOpen = !door.targetOpen;
+    }
   }
 
   float lookYawDelta = 0.0F;
@@ -95,7 +124,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
     lookPitchDelta -= ry * lookSens;
   }
 
-  if (!state.cardReader.isPlayerNearby && pressed.Square) {
+  if (!state.cardReader.isPlayerNearby && state.scene.nearbyDoor < 0 && pressed.Square) {
     lookYawDelta -= lookSens * 0.85F;
   }
   if (pressed.Circle) {
@@ -184,6 +213,8 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
   } else if (state.menu.currentScreen == Core::ScreenState::NewGame) {
     if (clicked.Cross || clicked.Start) {
       state.menu.activeSaveSlot = 0;
+      state.scene.target = Core::SceneId::Exterior;
+      state.scene.requested = true;
       state.menu.currentScreen = Core::ScreenState::GameplayFps;
       bus.publish(Events::GameEvent::makeSimple(
           Events::EventType::PlayerSpawnResetRequested));
@@ -204,6 +235,8 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
     if (clicked.Cross || clicked.Start) {
       if (state.menu.loadSelectedIndex < 2) {
         state.menu.activeSaveSlot = state.menu.loadSelectedIndex + 1;
+        state.scene.target = Core::SceneId::Exterior;
+        state.scene.requested = true;
         state.menu.currentScreen = Core::ScreenState::GameplayFps;
         bus.publish(Events::GameEvent::makeSimple(
             Events::EventType::PlayerSpawnResetRequested));

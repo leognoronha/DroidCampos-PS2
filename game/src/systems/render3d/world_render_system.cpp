@@ -1,5 +1,8 @@
 #include "systems/render3d/world_render_system.hpp"
 #include <cmath>
+#include <cstdio>
+#include <string>
+#include "core/interior_layout.hpp"
 
 namespace DroidCampos {
 namespace Systems {
@@ -23,8 +26,10 @@ void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
 
   stapip_.setRenderer(&engine->renderer.core);
 
-  loadScenario3D(engine);
-  loadMist3D(engine);
+  scenarioOptions_.frustumCulling = PipelineFrustumCulling_Precise;
+  scenarioOptions_.fullClipChecks = true;
+  scenarioOptions_.textureMappingType = TyraNearest;
+  scenarioOptions_.transformationType = TyraMVP;
   loadPistol3D(engine);
   updatePistolViewmodelTransform(state);
   updateAbandonedSignFlicker(state);
@@ -232,6 +237,19 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
   }
 
   if (stage == Core::HardwareStage::Stage1_EeVu0Simulation) {
+    if (state.scene.active == Core::SceneId::Interior) {
+      for (int i = 0; i < 4; ++i) {
+        auto& door = state.scene.doors[i];
+        const float dx = std::fabs(state.player.playerPos.x - Core::kInsideDoorX[i]);
+        const float dz = std::fabs(state.player.playerPos.z - Core::kInsideDoorZ[i]);
+        // Occupied doorway: reverse closing before re-enabling its collider.
+        if (!door.targetOpen && door.openAmount > 0.0F && dx < 0.9F && dz < 1.25F)
+          door.targetOpen = true;
+        door.openAmount += door.targetOpen ? Core::kDoorSpeed : -Core::kDoorSpeed;
+        if (door.openAmount < 0.0F) door.openAmount = 0.0F;
+        if (door.openAmount > 1.0F) door.openAmount = 1.0F;
+      }
+    }
     updatePistolViewmodelTransform(state);
     updateAbandonedSignFlicker(state);
     updateCardReaderLight(state, bus);
@@ -244,6 +262,16 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
     }
 
     engine->renderer.renderer3D.usePipeline(stapip_);
+
+    for (auto& mesh : interiorMeshes_) stapip_.render(mesh.get(), scenarioOptions_);
+    if (doorMesh_) {
+      for (int i = 0; i < 4; ++i) {
+        doorMesh_->translation.identity();
+        doorMesh_->translation.translate(Vec4(Core::kInsideDoorX[i], 1.1F,
+            Core::kInsideDoorZ[i] - state.scene.doors[i].openAmount * Core::kDoorTravel, 1.0F));
+        stapip_.render(doorMesh_.get(), scenarioOptions_);
+      }
+    }
 
     if (scenarioLoaded_ && scenarioMesh_ != nullptr) {
       stapip_.render(scenarioMesh_.get(), scenarioOptions_);
@@ -262,14 +290,9 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
 }
 
 void WorldRenderSystem::shutdown(Engine* engine) {
+  unloadScene(engine);
   if (engine != nullptr) {
     auto& repo = engine->renderer.getTextureRepository();
-    if (scenarioMesh_ != nullptr) {
-      repo.freeByMesh(scenarioMesh_.get());
-    }
-    if (mistMesh_ != nullptr) {
-      repo.freeByMesh(mistMesh_.get());
-    }
     if (pistolMesh_ != nullptr) {
       repo.freeByMesh(pistolMesh_.get());
     }
@@ -284,6 +307,79 @@ void WorldRenderSystem::shutdown(Engine* engine) {
   scenarioLoaded_ = false;
   mistLoaded_ = false;
   pistolLoaded_ = false;
+}
+
+bool WorldRenderSystem::validateScene(Core::SceneId scene) const {
+  // Check OBJ, its MTL and every referenced PNG before destroying the old scene.
+  std::vector<std::string> bases;
+  if (scene == Core::SceneId::Exterior) bases = {"etip/etip_cenario", "etip/etip_nevoa"};
+  else for (const auto* part : Core::kInsideParts) bases.push_back(std::string("etip_inside/") + part);
+  for (const auto& base : bases) {
+    for (const char* ext : {".obj", ".mtl"}) {
+      FILE* f = std::fopen(FileUtils::fromCwd(base + ext).c_str(), "rb");
+      if (!f) return false;
+      std::fclose(f);
+    }
+    FILE* mtl = std::fopen(FileUtils::fromCwd(base + ".mtl").c_str(), "rb");
+    if (!mtl) return false;
+    char line[256], name[192];
+    bool valid = true;
+    while (std::fgets(line, sizeof(line), mtl)) {
+      if (std::sscanf(line, "map_Kd %191s", name) == 1) {
+        const std::string path = base.substr(0, base.find_last_of('/') + 1) + name;
+        FILE* png = std::fopen(FileUtils::fromCwd(path).c_str(), "rb");
+        if (!png) { valid = false; break; }
+        std::fclose(png);
+      }
+    }
+    std::fclose(mtl);
+    if (!valid) return false;
+  }
+  return true;
+}
+
+void WorldRenderSystem::unloadScene(Engine* engine) {
+  if (!engine) return;
+  auto& repo = engine->renderer.getTextureRepository();
+  if (scenarioMesh_) repo.freeByMesh(scenarioMesh_.get());
+  if (mistMesh_) repo.freeByMesh(mistMesh_.get());
+  scenarioMesh_.reset(); mistMesh_.reset();
+  // Each interior PNG is owned once, regardless of how many material links use it.
+  for (const auto& entry : interiorTextures_) repo.free(entry.second);
+  interiorTextures_.clear(); interiorMeshes_.clear(); doorMesh_.reset();
+  etipLogoMat_ = etipBoardMat_ = cardReaderLightMat_ = nullptr;
+  scenarioLoaded_ = mistLoaded_ = false;
+}
+
+void WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int step) {
+  if (scene == Core::SceneId::Exterior) {
+    if (step == 0) loadScenario3D(engine);
+    else loadMist3D(engine);
+    return;
+  }
+  const std::string base = std::string("etip_inside/") + Core::kInsideParts[step];
+  ObjLoaderOptions options; options.scale = 1.0F; options.flipUVs = true;
+  auto data = ObjLoader::load(FileUtils::fromCwd((base + ".obj").c_str()), options);
+  auto mesh = std::make_unique<StaticMesh>(data.get());
+  data.reset(); // Mesh owns the vertex arrays; release builder metadata now.
+  auto& repo = engine->renderer.getTextureRepository();
+  for (auto* mat : mesh->materials) {
+    const bool luminous = mat->name == "PS2_Mat_Inside_Luz" ||
+        mat->name == "PS2_Mat_Inside_Emergencia" || mat->name == "PS2_Mat_Inside_Terminal";
+    const float tint = luminous ? 128.0F : 72.0F;
+    mat->ambient.set(tint, tint, tint, 128);
+    if (!mat->textureName.has_value()) continue;
+    const std::string name = mat->textureName.value();
+    auto it = interiorTextures_.find(name);
+    Texture* tex;
+    if (it == interiorTextures_.end()) {
+      tex = repo.add(FileUtils::fromCwd(("etip_inside/" + name + ".png").c_str()));
+      interiorTextures_[name] = tex->id;
+    } else tex = repo.getByTextureId(it->second);
+    tex->addLink(mat->id);
+  }
+  if (step == 8) doorMesh_ = std::move(mesh);
+  else interiorMeshes_.push_back(std::move(mesh));
 }
 
 }  // namespace Render3D

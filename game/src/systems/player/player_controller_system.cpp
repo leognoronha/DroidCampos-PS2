@@ -150,7 +150,7 @@ void PlayerControllerSystem::updateFpsKinematics(
   float nextZ =
       state.player.playerPos.z + (fwdZ * moveForward + rightZ * moveStrafe) * step;
 
-  Physics::CollisionSystem::resolvePlayerCollisions(nextX, nextZ, scratchpad);
+  Physics::CollisionSystem::resolvePlayerCollisions(nextX, nextZ, scratchpad, state);
 
   state.player.playerPos.x = nextX;
   state.player.playerPos.y = kEyeHeight;

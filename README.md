@@ -1,5 +1,12 @@
 # DroidCampos-PS2 (v0.0.1)
 
+## Interior ETIP
+
+O leitor externo agora solicita a transição com loading para o corredor interno,
+com quatro salas e portas deslizantes. Modelos, exportação, ciclo de memória e
+verificações estão documentados em [docs/etip-inside.md](docs/etip-inside.md).
+Build PS2 e validação no PCSX2 desta implementação ainda estão pendentes.
+
 Jogo low-poly industrial desenvolvido para **PlayStation 2** utilizando a engine C++ **Tyra (PS2SDK)**.
 
 ## Estrutura do Repositório

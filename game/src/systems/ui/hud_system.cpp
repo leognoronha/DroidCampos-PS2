@@ -63,6 +63,7 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
     zoneLabel = "ZONA C // PORTAO & CONTROLE ETIP";
   }
 
+  if (state.scene.active == Core::SceneId::Interior) zoneLabel = "ETIP // INTERIOR";
   drawer_->getFont().drawText(zoneLabel, 22, 16,
                               Color(240.0F, 185.0F, 40.0F, 128.0F), 1.0F);
 
@@ -92,6 +93,12 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   }
 
   // Bottom Controls Bar
+  if (state.scene.nearbyDoor >= 0 && !state.radio.popupActive) {
+    const auto& door = state.scene.doors[state.scene.nearbyDoor];
+    drawer_->drawPanel(116, 376, 280, 26, Color(8, 16, 22, 112), Color(0, 190, 210, 128));
+    drawer_->getFont().drawText(door.targetOpen ? "[QUADRADO] FECHAR PORTA" : "[QUADRADO] ABRIR PORTA",
+                                132, 382, Color(160, 240, 240, 128));
+  }
   drawer_->drawPanel(12.0F, 412.0F, 488.0F, 24.0F,
                      Color(8.0F, 12.0F, 18.0F, 92.0F),
                      Color(80.0F, 100.0F, 120.0F, 85.0F));

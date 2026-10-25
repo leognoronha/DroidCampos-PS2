@@ -1,4 +1,5 @@
 #include "core/game_app.hpp"
+#include <cstdio>
 
 namespace DroidCampos {
 namespace Core {
@@ -65,6 +66,8 @@ void GameApp::loop() {
   scheduler_.runStage(HardwareStage::Stage1_EeVu0Simulation, engine_,
                       worldState_, eventBus_, scratchpad_);
 
+  updateSceneTransition();
+
   auto& renderer = engine_->renderer;
   renderer.core.renderer2D.setTextureMappingType(
       worldState_.menu.nearestFilter ? Tyra::TyraNearest : Tyra::TyraLinear);
@@ -98,6 +101,68 @@ void GameApp::loop() {
   }
 
   scheduler_.yieldToIopAudioThread();
+  // Loading was presented before any synchronous IO or destruction begins.
+  if (worldState_.menu.currentScreen == ScreenState::Loading && !worldState_.scene.error)
+    advanceLoading();
+}
+
+void GameApp::logSceneMemory(const char* phase) {
+  std::printf("[ETIP MEMORY] %s free=%.3f MiB textures=%lu\n", phase,
+      engine_->info.getAvailableRAM(),
+      static_cast<unsigned long>(engine_->renderer.getTextureRepository().getTexturesCount()));
+}
+
+void GameApp::updateSceneTransition() {
+  auto& state = worldState_;
+  auto& scene = state.scene;
+  if (scene.accessFrames > 0 && --scene.accessFrames == 0) {
+    scene.target = SceneId::Interior;
+    scene.requested = true;
+  }
+  u32 count = 0;
+  const auto* events = eventBus_.getFrameEvents(count);
+  for (u32 i = 0; i < count; ++i) {
+    if (events[i].type == Events::EventType::CardReaderInteracted &&
+        scene.active == SceneId::Exterior && scene.resident &&
+        scene.accessFrames == 0 && !scene.requested && !state.radio.popupActive) {
+      scene.accessFrames = 20;
+      state.inputCmd.clear();
+    }
+  }
+  if (!scene.requested) return;
+  scene.requested = false;
+  scene.loadStep = 0;
+  scene.totalSteps = scene.target == SceneId::Interior ? 10 : 3;
+  scene.error = render3dSystem_.validateScene(scene.target) ? nullptr : "ASSET AUSENTE. VERIFIQUE OS ARQUIVOS.";
+  state.menu.currentScreen = ScreenState::Loading;
+  state.inputCmd.clear();
+  state.radio.popupActive = false;
+}
+
+void GameApp::advanceLoading() {
+  auto& scene = worldState_.scene;
+  if (scene.loadStep == 0) {
+    // endFrame swaps buffers, but does not itself wait for outstanding DMA/GS.
+    engine_->renderer.core.sync.align3D();
+    engine_->renderer.core.sync.align2D();
+    logSceneMemory("before unload");
+    render3dSystem_.unloadScene(engine_);
+    scene.resident = false;
+    logSceneMemory("after unload");
+  } else if (scene.loadStep < scene.totalSteps) {
+    render3dSystem_.loadSceneStep(engine_, scene.target, scene.loadStep - 1);
+    logSceneMemory("load step");
+  } else {
+    scene.active = scene.target;
+    scene.resident = true;
+    scene.nearbyDoor = -1;
+    for (auto& door : scene.doors) door = DoorState{};
+    worldState_.resetPlayerToSpawn();
+    worldState_.menu.currentScreen = ScreenState::GameplayFps;
+    logSceneMemory("scene ready");
+    return;
+  }
+  ++scene.loadStep;
 }
 
 }  // namespace Core

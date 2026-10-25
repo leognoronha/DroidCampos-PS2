@@ -25,6 +25,9 @@ class GameApp final : public Tyra::Game {
   void loop() override;
 
  private:
+  void updateSceneTransition();
+  void advanceLoading();
+  void logSceneMemory(const char* phase);
   Tyra::Engine* engine_;
   WorldState worldState_;
   Events::EventBus eventBus_;

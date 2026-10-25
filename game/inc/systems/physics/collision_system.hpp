@@ -31,7 +31,8 @@ class CollisionSystem final : public Core::ISubsystem {
   void shutdown(Tyra::Engine* engine) override;
 
   static void resolvePlayerCollisions(float& x, float& z,
-                                      Hardware::Ps2ScratchpadArena& scratchpad);
+                                      Hardware::Ps2ScratchpadArena& scratchpad,
+                                      const Core::WorldState& state);
 };
 
 }  // namespace Physics

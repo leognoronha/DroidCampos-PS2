@@ -1,0 +1,90 @@
+#pragma once
+#include <cstdint>
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <optional>
+#include <fstream>
+#include <sstream>
+#include <cassert>
+#define TYRA_LOG(...) ((void)0)
+using u8=uint8_t; using u16=uint16_t; using u32=uint32_t; using s16=int16_t;
+namespace Tyra {
+struct Vec4 {
+  float x=0,y=0,z=0,w=0;
+  Vec4()=default;
+  Vec4(float a,float b,float c,float d=1):x(a),y(b),z(c),w(d){}
+  void set(float a,float b,float c,float d=1){x=a;y=b;z=c;w=d;}
+};
+struct Buttons {
+  bool Cross=false,Square=false,Circle=false,Triangle=false,Select=false,Start=false;
+  bool L1=false,R1=false,L2=false,R2=false,L3=false,R3=false;
+  bool DpadUp=false,DpadDown=false,DpadLeft=false,DpadRight=false;
+};
+struct Joy {u8 h=128,v=128;};
+struct Pad {
+  Buttons clicked,pressed; Joy left,right;
+  const Buttons& getClicked() const{return clicked;}
+  const Buttons& getPressed() const{return pressed;}
+  const Joy& getLeftJoyPad() const{return left;}
+  const Joy& getRightJoyPad() const{return right;}
+};
+struct Color {float r=0,g=0,b=0,a=0; void set(float x,float y,float z,float v){r=x;g=y;b=z;a=v;}};
+struct M4x4 {
+  Vec4 position;
+  void identity(){position={};} void translate(Vec4 p){position=p;}
+  void rotateX(float){} void rotateY(float){} void rotateZ(float){}
+};
+struct MeshMaterial {u32 id;std::string name;std::optional<std::string> textureName;Color ambient;};
+struct MeshBuilderData {std::vector<MeshMaterial> materials;};
+struct StaticMesh {
+  std::vector<MeshMaterial*> materials;M4x4 translation,rotation,scale;
+  explicit StaticMesh(const MeshBuilderData* b){for(auto& m:b->materials)materials.push_back(new MeshMaterial(m));}
+  ~StaticMesh(){for(auto* m:materials)delete m;}
+};
+struct ObjLoaderOptions {float scale=1;bool flipUVs=false;};
+struct FileUtils {inline static std::string root;static std::string fromCwd(const std::string& s){return root+s;}};
+struct ObjLoader {
+  static std::unique_ptr<MeshBuilderData> load(const std::string& path,const ObjLoaderOptions&){
+    static u32 next=1; auto b=std::make_unique<MeshBuilderData>();
+    std::ifstream file(path.substr(0,path.size()-4)+".mtl");std::string line;
+    while(std::getline(file,line)){
+      std::istringstream in(line);std::string token,value;in>>token>>value;
+      if(token=="newmtl"){MeshMaterial m{};m.id=next++;m.name=value;b->materials.push_back(m);}
+      if(token=="map_Kd") b->materials.back().textureName=value.substr(0,value.size()-4);
+    }
+    assert(!b->materials.empty());return b;
+  }
+};
+struct Texture {u32 id;std::vector<u32> links;void addLink(u32 x){links.push_back(x);}};
+struct TextureRepository {
+  std::map<u32,std::unique_ptr<Texture>> textures;u32 next=1;
+  Texture* add(const std::string&){auto t=std::make_unique<Texture>();t->id=next++;auto* p=t.get();textures[p->id]=std::move(t);return p;}
+  void addByMesh(StaticMesh* m,const std::string& root,const char*){for(auto* mat:m->materials)if(mat->textureName)add(root+*mat->textureName)->addLink(mat->id);}
+  Texture* getByTextureId(u32 id){return textures.at(id).get();}
+  void free(u32 id){assert(textures.erase(id)==1);}
+  void freeByMesh(StaticMesh* m){for(auto* mat:m->materials)for(auto it=textures.begin();it!=textures.end();){
+    bool found=false;for(auto link:it->second->links)if(link==mat->id)found=true;
+    if(found)it=textures.erase(it);else ++it;
+  }}
+  u32 getTexturesCount()const{return textures.size();}
+};
+enum {PipelineFrustumCulling_Precise,PipelineFrustumCulling_None,TyraNearest,TyraLinear,TyraMVP,TyraMP,PipelineZTest_Standard};
+struct StaPipOptions {
+  int frustumCulling=0,textureMappingType=0,transformationType=0,zTestType=0;
+  bool fullClipChecks=false,blendingEnabled=false;
+};
+struct RendererCore {struct {struct {int mask=0;}zBuffer;} gs;};
+struct StaticPipeline {
+  inline static std::vector<Vec4> draws;
+  void setRenderer(RendererCore*){}
+  void render(StaticMesh* m,StaPipOptions&){draws.push_back(m->translation.position);}
+};
+struct Renderer {
+  RendererCore core;TextureRepository repo;
+  struct {void usePipeline(StaticPipeline&) {}}renderer3D;
+  TextureRepository& getTextureRepository(){return repo;}
+};
+struct Engine {Pad pad;Renderer renderer;};
+}

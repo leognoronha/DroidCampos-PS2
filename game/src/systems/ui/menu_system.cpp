@@ -41,6 +41,24 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
   drawer_->renderHeader();
 
   switch (state.menu.currentScreen) {
+    case Core::ScreenState::Loading: {
+      drawer_->drawPanel(32, 144, 448, 170, Color(5, 10, 18, 128), Color(0, 190, 210, 128));
+      const bool failed = state.scene.error != nullptr;
+      drawer_->getFont().drawText(failed ? "FALHA NO CARREGAMENTO" : "CARREGANDO INSTALACAO ETIP", 52, 170,
+                                  Color(170, 235, 240, 128));
+      if (failed) {
+        drawer_->getFont().drawText(state.scene.error, 52, 210, Color(250, 140, 90, 128));
+        drawer_->getFont().drawText("X: VOLTAR AO MENU", 52, 270, Color(220, 220, 220, 128));
+      } else {
+        char progress[48];
+        std::snprintf(progress, sizeof(progress), "ETAPA %d / %d", state.scene.loadStep, state.scene.totalSteps);
+        drawer_->getFont().drawText(progress, 52, 216, Color(180, 210, 220, 128));
+        drawer_->drawRect(52, 254, 408, 12, Color(18, 26, 35, 128));
+        if (state.scene.totalSteps > 0 && state.scene.loadStep > 0)
+          drawer_->drawRect(52, 254, 408.0F * state.scene.loadStep / state.scene.totalSteps, 12, Color(0, 190, 210, 128));
+      }
+      break;
+    }
     case Core::ScreenState::MainMenu:
       renderMainMenu(state);
       drawer_->renderFooter(

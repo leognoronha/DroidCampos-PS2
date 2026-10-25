@@ -2,6 +2,7 @@
 
 #include <tyra>
 #include <memory>
+#include <map>
 #include "core/isubsystem.hpp"
 
 namespace DroidCampos {
@@ -21,6 +22,9 @@ class WorldRenderSystem final : public Core::ISubsystem {
                     Core::WorldState& state, Events::EventBus& bus,
                     Hardware::Ps2ScratchpadArena& scratchpad) override;
   void shutdown(Tyra::Engine* engine) override;
+  bool validateScene(Core::SceneId scene) const;
+  void unloadScene(Tyra::Engine* engine);
+  void loadSceneStep(Tyra::Engine* engine, Core::SceneId scene, int step);
 
  private:
   void loadScenario3D(Tyra::Engine* engine);
@@ -46,6 +50,9 @@ class WorldRenderSystem final : public Core::ISubsystem {
   std::unique_ptr<Tyra::StaticMesh> pistolMesh_;
   Tyra::StaPipOptions pistolOptions_;
   bool pistolLoaded_;
+  std::vector<std::unique_ptr<Tyra::StaticMesh>> interiorMeshes_;
+  std::unique_ptr<Tyra::StaticMesh> doorMesh_;
+  std::map<std::string, u32> interiorTextures_;
 };
 
 }  // namespace Render3D
