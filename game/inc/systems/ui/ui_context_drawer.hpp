@@ -22,7 +22,10 @@ class UiContextDrawer {
   void renderBackground(const Core::WorldState& state);
   void renderHeader();
   void renderFooter(const char* controlsHint);
-  void renderCyborgPortrait(float x, float y, float animTick);
+  void renderMenuButton(int index, bool selected);
+  void renderSync(const Core::WorldState& state);
+  void drawBlueprintPanel(float x, float y, float w, float h,
+                          const Tyra::Color& fill, const Tyra::Color& edge);
 
   Font& getFont();
 
@@ -30,6 +33,7 @@ class UiContextDrawer {
   Tyra::Engine* engine_;
   Font font_;
   Tyra::Sprite bgSprite_;
+  Tyra::Sprite menuButtons_;
   Tyra::Sprite uiRectSprite_;
   bool initialized_;
 };

@@ -1,5 +1,7 @@
 #include "systems/ui/ui_context_drawer.hpp"
 #include <cmath>
+#include <cstdio>
+#include <algorithm>
 
 namespace DroidCampos {
 namespace Systems {
@@ -19,12 +21,17 @@ void UiContextDrawer::init(Engine* engine) {
 
   font_.load(repo, &engine_->renderer.renderer2D);
 
-  bgSprite_.mode = SpriteMode::MODE_STRETCH;
+  bgSprite_.mode = SpriteMode::MODE_REPEAT;
   bgSprite_.size = Vec2(512.0F, 448.0F);
   bgSprite_.position = Vec2(0.0F, 0.0F);
   bgSprite_.color = Color(128.0F, 128.0F, 128.0F, 128.0F);
-  auto* bgTex = repo.add(FileUtils::fromCwd("bg_cyber.png"));
+  auto* bgTex = repo.add(FileUtils::fromCwd("ui_blueprint.png"));
   bgTex->addLink(bgSprite_.id);
+
+  menuButtons_.mode = SpriteMode::MODE_REPEAT;
+  menuButtons_.size = Vec2(216.0F, 56.0F);
+  menuButtons_.color = Color(128, 128, 128, 128);
+  repo.add(FileUtils::fromCwd("ui_menu_buttons.png"))->addLink(menuButtons_.id);
 
   uiRectSprite_.mode = SpriteMode::MODE_STRETCH;
   uiRectSprite_.size = Vec2(16.0F, 16.0F);
@@ -43,6 +50,7 @@ void UiContextDrawer::shutdown(Engine* engine) {
   if (targetEngine != nullptr) {
     auto& repo = targetEngine->renderer.getTextureRepository();
     repo.freeBySprite(bgSprite_);
+    repo.freeBySprite(menuButtons_);
     repo.freeBySprite(uiRectSprite_);
     font_.free(repo);
   }
@@ -76,133 +84,103 @@ void UiContextDrawer::drawPanel(float x, float y, float w, float h,
   drawRect(x + w - 8.0F, y + h - 4.0F, 8.0F, 4.0F, borderColor);
 }
 
-void UiContextDrawer::renderBackground(const Core::WorldState& state) {
-  if (engine_ == nullptr) {
-    return;
-  }
-  engine_->renderer.renderer2D.render(bgSprite_);
-
-  for (int i = 0; i < 6; i++) {
-    float lineY =
-        70.0F + static_cast<float>(i) * 60.0F + (state.anim.bgScrollOffset * 0.5F);
-    if (lineY < 410.0F) {
-      drawRect(0.0F, lineY, 512.0F, 1.0F, Color(0.0F, 80.0F, 110.0F, 28.0F));
+// Chamfered panels for menu pages. Keep drawPanel unchanged for the FPS HUD.
+void UiContextDrawer::drawBlueprintPanel(float x, float y, float w, float h,
+                                         const Color& fill, const Color& edge) {
+  const int cut = 8;
+  drawRect(x, y + cut, w, h - cut * 2, fill);
+  Sprite fills[16];
+  for (int i = 0; i < cut; ++i) {
+    for (int side = 0; side < 2; ++side) {
+      auto& sprite = fills[i * 2 + side];
+      sprite = uiRectSprite_;
+      sprite.position.set(x + cut - i, side == 0 ? y + i : y + h - i - 1);
+      sprite.size.set(w - 2 * (cut - i), 1);
+      sprite.color = fill;
     }
   }
+  if (engine_) engine_->renderer.renderer2D.renderBatch(fills, 16);
+  drawRect(x + cut, y, w - cut * 2, 1, edge);
+  drawRect(x + cut, y + h - 1, w - cut * 2, 1, edge);
+  drawRect(x, y + cut, 1, h - cut * 2, edge);
+  drawRect(x + w - 1, y + cut, 1, h - cut * 2, edge);
+  // Submit the four diagonal corners in one bounded sprite batch.
+  Sprite corners[32];
+  for (int i = 0; i < cut; ++i) {
+    const float px[4] = {x + cut - i - 1, x + w - cut + i,
+                         x + i, x + w - i - 1};
+    const float py[4] = {y + i, y + i, y + h - cut + i,
+                         y + h - cut + i};
+    for (int j = 0; j < 4; ++j) {
+      auto& sprite = corners[i * 4 + j];
+      sprite = uiRectSprite_;
+      sprite.position.set(px[j], py[j]);
+      sprite.size.set(1, 1);
+      sprite.color = edge;
+    }
+  }
+  if (engine_) engine_->renderer.renderer2D.renderBatch(corners, 32);
+}
 
-  if (state.menu.scanlinesEnabled) {
-    drawRect(0.0F, state.anim.scanlineY, 512.0F, 3.0F,
-             Color(0.0F, 200.0F, 255.0F, 24.0F));
-    drawRect(0.0F, state.anim.scanlineY + 3.0F, 512.0F, 1.0F,
-             Color(255.0F, 180.0F, 0.0F, 18.0F));
+void UiContextDrawer::renderBackground(const Core::WorldState& state) {
+  if (!engine_) return;
+  // Black clear color belongs to the menu pass. Do not cover the future 3D
+  // viewport with an opaque full-screen background sprite.
+  if (state.menu.currentScreen == Core::ScreenState::MainMenu) {
+    bgSprite_.position.set(0, 100);
+    bgSprite_.offset.set(0, 100);
+    bgSprite_.size.set(512, 294);
+    engine_->renderer.renderer2D.render(bgSprite_);
+    if (state.menu.scanlinesEnabled && state.anim.scanlineY >= 140 &&
+        state.anim.scanlineY < 374)
+      drawRect(28, state.anim.scanlineY, 212, 1, Color(99, 180, 179, 20));
   }
 }
 
 void UiContextDrawer::renderHeader() {
-  drawPanel(16.0F, 14.0F, 480.0F, 64.0F, Color(10.0F, 16.0F, 26.0F, 112.0F),
-            Color(0.0F, 190.0F, 230.0F, 120.0F));
-
-  drawRect(20.0F, 18.0F, 6.0F, 56.0F, Color(230.0F, 140.0F, 10.0F, 128.0F));
-
-  font_.drawText("DROID CAMPOS", 36, 22, Color(200.0F, 40.0F, 20.0F, 100.0F),
-                 2.0F);
-  font_.drawText("DROID CAMPOS", 34, 20, Color(0.0F, 230.0F, 255.0F, 128.0F),
-                 2.0F);
-
-  font_.drawText("AXIOM-7 HEAVY IND. // PROJECT S.I.G.M.A.", 35, 56,
-                 Color(230.0F, 165.0F, 30.0F, 128.0F), 1.0F);
-
-  font_.drawText("UNIT: DC-01", 380, 22, Color(180.0F, 220.0F, 230.0F, 128.0F),
-                 1.0F);
-  font_.drawText("SYNC: 98.4%", 380, 38, Color(60.0F, 220.0F, 120.0F, 128.0F),
-                 1.0F);
-  font_.drawText("SECTOR: ETIP-01", 356, 54,
-                 Color(160.0F, 170.0F, 185.0F, 128.0F), 1.0F);
+  if (!engine_) return;
+  bgSprite_.position.set(0, 0);
+  bgSprite_.offset.set(0, 0);
+  bgSprite_.size.set(512, 100);
+  engine_->renderer.renderer2D.render(bgSprite_);
 }
 
 void UiContextDrawer::renderFooter(const char* controlsHint) {
-  drawPanel(16.0F, 406.0F, 480.0F, 28.0F, Color(8.0F, 12.0F, 20.0F, 118.0F),
-            Color(90.0F, 110.0F, 130.0F, 100.0F));
-  font_.drawText(controlsHint, 28, 413, Color(190.0F, 215.0F, 230.0F, 128.0F),
-                 1.0F);
+  if (!engine_) return;
+  bgSprite_.position.set(0, 394);
+  bgSprite_.offset.set(0, 394);
+  bgSprite_.size.set(512, 54);
+  engine_->renderer.renderer2D.render(bgSprite_);
+  font_.drawText(controlsHint, 20, 416, Color(80, 120, 116, 128), 1.0F);
 }
 
-void UiContextDrawer::renderCyborgPortrait(float x, float y, float animTick) {
-  drawPanel(x, y, 228.0F, 304.0F, Color(12.0F, 18.0F, 28.0F, 112.0F),
-            Color(0.0F, 160.0F, 200.0F, 115.0F));
+void UiContextDrawer::renderMenuButton(int index, bool selected) {
+  if (!engine_ || index < 0 || index > 2) return;
+  menuButtons_.position.set(26, 148 + index * 70);
+  menuButtons_.offset.set(selected ? 256 : 0, index * 64);
+  engine_->renderer.renderer2D.render(menuButtons_);
+}
 
-  font_.drawText("BIOMETRIC FEED // DC-01", static_cast<int>(x + 14.0F),
-                 static_cast<int>(y + 10.0F),
-                 Color(0.0F, 210.0F, 240.0F, 128.0F));
-  drawRect(x + 10.0F, y + 28.0F, 208.0F, 1.0F,
-           Color(0.0F, 160.0F, 200.0F, 90.0F));
-
-  float cx = x + 114.0F;
-  float cy = y + 98.0F;
-  float pulse = (std::sin(animTick * 2.0F) + 1.0F) * 0.5F;
-
-  drawRect(cx - 64.0F, cy + 28.0F, 128.0F, 46.0F,
-           Color(35.0F, 45.0F, 58.0F, 128.0F));
-  drawRect(cx - 72.0F, cy + 34.0F, 22.0F, 36.0F,
-           Color(90.0F, 65.0F, 20.0F, 128.0F));
-  drawRect(cx + 50.0F, cy + 34.0F, 22.0F, 36.0F,
-           Color(90.0F, 65.0F, 20.0F, 128.0F));
-
-  drawRect(cx - 18.0F, cy + 40.0F, 36.0F, 24.0F,
-           Color(15.0F, 25.0F, 35.0F, 128.0F));
-  drawRect(cx - 12.0F, cy + 44.0F, 24.0F, 16.0F,
-           Color(0.0F, 160.0F + pulse * 80.0F, 230.0F, 128.0F));
-
-  drawRect(cx - 16.0F, cy + 14.0F, 32.0F, 16.0F,
-           Color(25.0F, 32.0F, 42.0F, 128.0F));
-  drawRect(cx - 24.0F, cy + 8.0F, 4.0F, 22.0F,
-           Color(180.0F, 50.0F, 30.0F, 128.0F));
-  drawRect(cx + 20.0F, cy + 8.0F, 4.0F, 22.0F,
-           Color(0.0F, 180.0F, 220.0F, 128.0F));
-
-  drawRect(cx - 32.0F, cy - 38.0F, 64.0F, 54.0F,
-           Color(50.0F, 62.0F, 78.0F, 128.0F));
-  drawRect(cx - 26.0F, cy - 44.0F, 52.0F, 8.0F,
-           Color(70.0F, 85.0F, 100.0F, 128.0F));
-
-  drawRect(cx - 28.0F, cy - 20.0F, 56.0F, 14.0F,
-           Color(18.0F, 10.0F, 15.0F, 128.0F));
-  drawRect(cx - 24.0F, cy - 17.0F, 48.0F, 8.0F,
-           Color(220.0F, 40.0F + pulse * 60.0F, 20.0F, 128.0F));
-  float eyeScanX = cx - 20.0F + std::sin(animTick * 3.0F) * 14.0F;
-  drawRect(eyeScanX, cy - 17.0F, 10.0F, 8.0F,
-           Color(255.0F, 230.0F, 120.0F, 128.0F));
-
-  drawRect(cx - 20.0F, cy - 2.0F, 40.0F, 14.0F,
-           Color(30.0F, 38.0F, 48.0F, 128.0F));
-  drawRect(cx - 14.0F, cy + 2.0F, 6.0F, 8.0F,
-           Color(120.0F, 140.0F, 160.0F, 128.0F));
-  drawRect(cx - 3.0F, cy + 2.0F, 6.0F, 8.0F,
-           Color(120.0F, 140.0F, 160.0F, 128.0F));
-  drawRect(cx + 8.0F, cy + 2.0F, 6.0F, 8.0F,
-           Color(120.0F, 140.0F, 160.0F, 128.0F));
-
-  drawRect(x + 10.0F, y + 180.0F, 208.0F, 1.0F,
-           Color(0.0F, 160.0F, 200.0F, 90.0F));
-
-  font_.drawText("SUBJECT: DR. V. CAMPOS", static_cast<int>(x + 14.0F),
-                 static_cast<int>(y + 188.0F),
-                 Color(240.0F, 180.0F, 40.0F, 128.0F));
-  font_.drawText("FORMER CHIEF MATHEMATICIAN", static_cast<int>(x + 14.0F),
-                 static_cast<int>(y + 206.0F),
-                 Color(180.0F, 200.0F, 215.0F, 128.0F));
-  font_.drawText("BETRAYED BY AXIOM BOARD.", static_cast<int>(x + 14.0F),
-                 static_cast<int>(y + 224.0F),
-                 Color(180.0F, 200.0F, 215.0F, 128.0F));
-  font_.drawText("REBUILT IN CHASSIS DC-01", static_cast<int>(x + 14.0F),
-                 static_cast<int>(y + 242.0F),
-                 Color(180.0F, 200.0F, 215.0F, 128.0F));
-  font_.drawText("TARGET: ETIP COMPLEX.", static_cast<int>(x + 14.0F),
-                 static_cast<int>(y + 260.0F),
-                 Color(0.0F, 220.0F, 250.0F, 128.0F));
-  font_.drawText("STATUS: VENGEANCE_ACTIVE", static_cast<int>(x + 14.0F),
-                 static_cast<int>(y + 280.0F),
-                 Color(240.0F, 70.0F, 50.0F, 128.0F));
+void UiContextDrawer::renderSync(const Core::WorldState& state) {
+  if (!engine_) return;
+  // Startup synchronization is decorative. Loading is actual scene IO progress.
+  const float ratio = state.menu.currentScreen == Core::ScreenState::Loading
+      ? (state.scene.totalSteps > 0
+          ? static_cast<float>(state.scene.loadStep) / state.scene.totalSteps : 0.0F)
+      : state.anim.animTick / 12.0F;
+  const int percent = static_cast<int>(std::max(0.0F, std::min(1.0F, ratio)) * 100);
+  char value[8];
+  std::snprintf(value, sizeof(value), "%d%%", percent);
+  font_.drawText(value, 391, 421, Color(80, 120, 116, 128), 1.0F);
+  Sprite segments[14];
+  for (int i = 0; i < 14; ++i) {
+    segments[i] = uiRectSprite_;
+    segments[i].position.set(430 + i * 4, 422);
+    segments[i].size.set(2, 8);
+    segments[i].color = (i + 1) * 100 <= percent * 14
+        ? Color(80, 120, 116, 128) : Color(12, 24, 25, 128);
+  }
+  engine_->renderer.renderer2D.renderBatch(segments, 14);
 }
 
 Font& UiContextDrawer::getFont() { return font_; }

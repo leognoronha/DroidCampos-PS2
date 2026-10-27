@@ -31,7 +31,7 @@ void GameApp::init() {
     return;
   }
 
-  engine_->renderer.setClearScreenColor(Tyra::Color(12.0F, 15.0F, 22.0F));
+  engine_->renderer.setClearScreenColor(Tyra::Color(0.0F, 0.0F, 0.0F));
   engine_->renderer.core.renderer2D.setTextureMappingType(Tyra::TyraNearest);
 
   worldState_.resetToDefaults();
@@ -91,7 +91,7 @@ void GameApp::loop() {
 
     renderer.endFrame();
   } else {
-    renderer.setClearScreenColor(Tyra::Color(12.0F, 15.0F, 22.0F));
+    renderer.setClearScreenColor(Tyra::Color(0.0F, 0.0F, 0.0F));
     renderer.beginFrame();
 
     // Stage 3: GIF Path 3 2D Menus
