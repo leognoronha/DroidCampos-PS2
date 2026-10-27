@@ -8,8 +8,9 @@
 #include <fstream>
 #include <sstream>
 #include <cassert>
+#include "audsrv.h"
 #define TYRA_LOG(...) ((void)0)
-using u8=uint8_t; using u16=uint16_t; using u32=uint32_t; using s16=int16_t;
+using u8=uint8_t; using u16=uint16_t; using u32=uint32_t; using s16=int16_t; using s8=int8_t;
 namespace Tyra {
 struct Vec4 {
   float x=0,y=0,z=0,w=0;
@@ -97,5 +98,11 @@ struct Renderer {
   struct {void usePipeline(StaticPipeline&) {}}renderer3D;
   TextureRepository& getTextureRepository(){return repo;}
 };
-struct Engine {Pad pad;Renderer renderer;};
+struct AudioAdpcm {
+  void reset(){HostAudio::loaded.clear();++HostAudio::resets;}
+  void setVolume(u8 volume,s8 channel){assert(channel>=0&&channel<24);HostAudio::volumes[channel]=volume;}
+  int tryPlay(audsrv_adpcm_t* sample){assert(HostAudio::loaded.count(sample));HostAudio::played.push_back(sample);return HostAudio::playResult;}
+};
+struct Audio {AudioAdpcm adpcm;};
+struct Engine {Pad pad;Renderer renderer;Audio audio;};
 }

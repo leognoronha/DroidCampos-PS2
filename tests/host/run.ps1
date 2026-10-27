@@ -10,6 +10,7 @@ try {
   $algorithm = 'engine/src/renderer/core/3d/clipper/planes_clip_algorithm.cpp'
   $core = 'engine/src/renderer/3d/pipeline/static/core'
   $cases = @(
+    @{Name='menu-audio'; Args=$game+@('tests/host/menu_audio_test.cpp', 'game/src/systems/audio/menu_audio_system.cpp', 'game/src/systems/input/input_system.cpp', 'game/src/events/event_bus.cpp', 'game/src/hardware/ps2_scratchpad.cpp')},
     @{Name='font'; Args=@('-Itests/host/font_stubs', '-Igame/inc', 'tests/host/font_batch_test.cpp', 'tests/host/font_reference.cpp', 'game/src/systems/ui/font_sprite.cpp')},
     @{Name='sprite-groups'; Args=@('-Itests/host/batch_stubs', 'tests/host/renderer_batch_test.cpp', 'engine/src/renderer/2d/renderer_2d.cpp')},
     @{Name='sprite-packets'; Args=@('-Itests/host/sprite_stubs', 'tests/host/sprite_packet_test.cpp', 'tests/host/renderer_core_2d_reference.cpp', 'engine/src/renderer/core/2d/renderer_core_2d.cpp')},

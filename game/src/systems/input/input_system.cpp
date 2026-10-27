@@ -28,7 +28,8 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
   }
 
   if (state.menu.currentScreen == Core::ScreenState::Loading) {
-    if (state.scene.error && engine->pad.getClicked().Cross) {
+    if (state.scene.error && (engine->pad.getClicked().Cross || engine->pad.getClicked().Circle)) {
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
       state.scene.requested = false;
       state.scene.accessFrames = 0;
       state.menu.currentScreen = Core::ScreenState::MainMenu;
@@ -172,6 +173,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
 
 void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
                                 Events::EventBus& bus) {
+  const auto previous = state.menu;
   const auto& clicked = engine->pad.getClicked();
   const auto& joy = engine->pad.getLeftJoyPad();
 
@@ -196,6 +198,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
     }
 
     if (clicked.Cross || clicked.Start) {
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
       if (state.menu.mainSelectedIndex == 0) {
         state.menu.currentScreen = Core::ScreenState::NewGame;
         bus.publish(Events::GameEvent::makeScreenTransition(
@@ -212,6 +215,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
     }
   } else if (state.menu.currentScreen == Core::ScreenState::NewGame) {
     if (clicked.Cross || clicked.Start) {
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
       state.menu.activeSaveSlot = 0;
       state.scene.target = Core::SceneId::Exterior;
       state.scene.requested = true;
@@ -221,6 +225,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
       bus.publish(Events::GameEvent::makeScreenTransition(
           static_cast<u8>(Core::ScreenState::GameplayFps)));
     } else if (clicked.Circle || clicked.Select) {
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
       state.menu.currentScreen = Core::ScreenState::MainMenu;
       bus.publish(Events::GameEvent::makeScreenTransition(
           static_cast<u8>(Core::ScreenState::MainMenu)));
@@ -234,6 +239,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
 
     if (clicked.Cross || clicked.Start) {
       if (state.menu.loadSelectedIndex < 2) {
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
         state.menu.activeSaveSlot = state.menu.loadSelectedIndex + 1;
         state.scene.target = Core::SceneId::Exterior;
         state.scene.requested = true;
@@ -244,11 +250,19 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
             static_cast<u8>(Core::ScreenState::GameplayFps)));
       }
     } else if (clicked.Circle || clicked.Select) {
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
       state.menu.currentScreen = Core::ScreenState::MainMenu;
       bus.publish(Events::GameEvent::makeScreenTransition(
           static_cast<u8>(Core::ScreenState::MainMenu)));
     }
   } else if (state.menu.currentScreen == Core::ScreenState::Settings) {
+    if (clicked.Circle || clicked.Select) {
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
+      state.menu.currentScreen = Core::ScreenState::MainMenu;
+      bus.publish(Events::GameEvent::makeScreenTransition(
+          static_cast<u8>(Core::ScreenState::MainMenu)));
+      return;
+    }
     if (upPressed) {
       state.menu.settingsSelectedIndex =
           (state.menu.settingsSelectedIndex + 3) % 4;
@@ -258,6 +272,8 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
     }
 
     if (leftPressed || rightPressed || clicked.Cross) {
+      if (clicked.Cross)
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
       const int dir = (rightPressed || clicked.Cross) ? 1 : -1;
       if (state.menu.settingsSelectedIndex == 0) {
         state.menu.bgmVolume += dir * 10;
@@ -286,12 +302,20 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
       }
     }
 
-    if (clicked.Circle || clicked.Select) {
-      state.menu.currentScreen = Core::ScreenState::MainMenu;
-      bus.publish(Events::GameEvent::makeScreenTransition(
-          static_cast<u8>(Core::ScreenState::MainMenu)));
-    }
   }
+
+  // One click per accepted selection/value change, including analog repeats.
+  // Confirm and back keep their own sounds when pressed with a direction.
+  const auto& current = state.menu;
+  const bool changed = previous.mainSelectedIndex != current.mainSelectedIndex ||
+      previous.loadSelectedIndex != current.loadSelectedIndex ||
+      previous.settingsSelectedIndex != current.settingsSelectedIndex ||
+      previous.bgmVolume != current.bgmVolume || previous.sfxVolume != current.sfxVolume ||
+      previous.scanlinesEnabled != current.scanlinesEnabled ||
+      previous.nearestFilter != current.nearestFilter;
+  if (changed && previous.currentScreen == current.currentScreen &&
+      !clicked.Cross && !clicked.Start && !clicked.Circle && !clicked.Select)
+    bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
 }
 
 }  // namespace Input

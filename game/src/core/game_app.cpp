@@ -13,6 +13,7 @@ GameApp::GameApp(Tyra::Engine* engine)
       scheduler_(),
       uiDrawer_(),
       inputSystem_(),
+      menuAudioSystem_(),
       playerSystem_(),
       render3dSystem_(),
       radioCodecSystem_(&uiDrawer_),
@@ -40,6 +41,7 @@ void GameApp::init() {
   uiDrawer_.init(engine_);
 
   scheduler_.registerSubsystem(&inputSystem_);
+  scheduler_.registerSubsystem(&menuAudioSystem_);
   scheduler_.registerSubsystem(&playerSystem_);
   scheduler_.registerSubsystem(&radioCodecSystem_);
   scheduler_.registerSubsystem(&render3dSystem_);

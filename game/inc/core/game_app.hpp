@@ -2,6 +2,7 @@
 
 #include <tyra>
 #include "core/world_state.hpp"
+#include "systems/audio/menu_audio_system.hpp"
 #include "events/event_bus.hpp"
 #include "hardware/ps2_scratchpad.hpp"
 #include "hardware/ps2_task_scheduler.hpp"
@@ -35,6 +36,7 @@ class GameApp final : public Tyra::Game {
   Hardware::Ps2TaskScheduler scheduler_;
   Systems::Ui::UiContextDrawer uiDrawer_;
   Systems::Input::InputSystem inputSystem_;
+  Systems::Audio::MenuAudioSystem menuAudioSystem_;
   Systems::Player::PlayerControllerSystem playerSystem_;
   Systems::Render3D::WorldRenderSystem render3dSystem_;
   Systems::Narrative::RadioCodecSystem radioCodecSystem_;

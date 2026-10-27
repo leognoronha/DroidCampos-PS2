@@ -56,7 +56,7 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
                                   menuInk(170, 235, 240, 128));
       if (failed) {
         drawer_->getFont().drawText(state.scene.error, 52, 210, menuInk(250, 140, 90, 128));
-        drawer_->getFont().drawText("X: VOLTAR AO MENU", 52, 270, menuInk(220, 220, 220, 128));
+        drawer_->getFont().drawText("O / X: VOLTAR AO MENU", 52, 270, menuInk(220, 220, 220, 128));
       } else {
         char progress[48];
         std::snprintf(progress, sizeof(progress), "ETAPA %d / %d", state.scene.loadStep, state.scene.totalSteps);
@@ -65,7 +65,7 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
         if (state.scene.totalSteps > 0 && state.scene.loadStep > 0)
           drawer_->drawRect(52, 254, 408.0F * state.scene.loadStep / state.scene.totalSteps, 12, menuInk(0, 190, 210, 128));
       }
-      drawer_->renderFooter(failed ? "X: RETURN TO MENU" : "LOADING ETIP...");
+      drawer_->renderFooter(failed ? "O / X: RETURN TO MENU" : "LOADING ETIP...");
       break;
     }
     case Core::ScreenState::MainMenu:
