@@ -10,6 +10,8 @@ try {
   $algorithm = 'engine/src/renderer/core/3d/clipper/planes_clip_algorithm.cpp'
   $core = 'engine/src/renderer/3d/pipeline/static/core'
   $cases = @(
+    @{Name='scene-intro'; Args=$game+@('tests/host/scene_intro_test.cpp', 'game/src/systems/ui/scene_intro_system.cpp', 'game/src/systems/ui/hud_system.cpp', 'game/src/systems/audio/menu_audio_system.cpp', 'game/src/systems/narrative/radio_codec_system.cpp', 'game/src/systems/ui/ui_context_drawer.cpp', 'game/src/systems/ui/font_sprite.cpp', 'game/src/systems/input/input_system.cpp', 'game/src/events/event_bus.cpp', 'game/src/hardware/ps2_scratchpad.cpp')},
+    @{Name='radio'; Args=$game+@('tests/host/radio_codec_test.cpp', 'game/src/systems/audio/menu_audio_system.cpp', 'game/src/systems/narrative/radio_codec_system.cpp', 'game/src/systems/ui/ui_context_drawer.cpp', 'game/src/systems/ui/font_sprite.cpp', 'game/src/systems/input/input_system.cpp', 'game/src/events/event_bus.cpp', 'game/src/hardware/ps2_scratchpad.cpp')},
     @{Name='menu-audio'; Args=$game+@('tests/host/menu_audio_test.cpp', 'game/src/systems/audio/menu_audio_system.cpp', 'game/src/systems/input/input_system.cpp', 'game/src/events/event_bus.cpp', 'game/src/hardware/ps2_scratchpad.cpp')},
     @{Name='font'; Args=@('-Itests/host/font_stubs', '-Igame/inc', 'tests/host/font_batch_test.cpp', 'tests/host/font_reference.cpp', 'game/src/systems/ui/font_sprite.cpp')},
     @{Name='sprite-groups'; Args=@('-Itests/host/batch_stubs', 'tests/host/renderer_batch_test.cpp', 'engine/src/renderer/2d/renderer_2d.cpp')},

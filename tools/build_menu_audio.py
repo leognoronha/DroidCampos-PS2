@@ -13,7 +13,9 @@ args = parser.parse_args()
 with tempfile.TemporaryDirectory(prefix='droid-menu-audio-') as scratch:
     for source, name in [('sci-fi-interface-positive.wav', 'menu_confirm'),
                          ('sci-fi-interface-backing.wav', 'menu_back'),
-                         ('interface-click.wav', 'menu_navigate')]:
+                         ('interface-click.wav', 'menu_navigate'),
+                         ('radio-alert.wav', 'radio_alert'),
+                         ('radio-confirmation.wav', 'radio_confirmation')]:
         pcm = Path(scratch) / (name + '.wav')
         encoded = Path(scratch) / (name + '.adpcm')
         subprocess.run([args.ffmpeg, '-hide_banner', '-loglevel', 'error', '-y',

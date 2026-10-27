@@ -12,6 +12,7 @@
 #include "systems/render3d/world_render_system.hpp"
 #include "systems/ui/hud_system.hpp"
 #include "systems/ui/menu_system.hpp"
+#include "systems/ui/scene_intro_system.hpp"
 #include "systems/ui/ui_context_drawer.hpp"
 
 namespace DroidCampos {
@@ -42,6 +43,7 @@ class GameApp final : public Tyra::Game {
   Systems::Narrative::RadioCodecSystem radioCodecSystem_;
   Systems::Ui::HudSystem hudSystem_;
   Systems::Ui::MenuSystem menuSystem_;
+  Systems::Ui::SceneIntroSystem sceneIntroSystem_;
 };
 
 }  // namespace Core

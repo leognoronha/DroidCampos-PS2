@@ -12,6 +12,17 @@
 #define TYRA_LOG(...) ((void)0)
 using u8=uint8_t; using u16=uint16_t; using u32=uint32_t; using s16=int16_t; using s8=int8_t;
 namespace Tyra {
+struct Timer {
+  inline static u32 ticks=0;
+  u32 last=ticks;
+  void prime(){last=ticks;}
+  u32 getTimeDelta(){return ticks-last;}
+};
+enum {ADPCM_OK=0};
+struct Vec2 {
+  float x=0,y=0;Vec2()=default;Vec2(float a,float b):x(a),y(b){}
+  void set(float a,float b){x=a;y=b;}
+};
 struct Vec4 {
   float x=0,y=0,z=0,w=0;
   Vec4()=default;
@@ -31,7 +42,7 @@ struct Pad {
   const Joy& getLeftJoyPad() const{return left;}
   const Joy& getRightJoyPad() const{return right;}
 };
-struct Color {float r=0,g=0,b=0,a=0; void set(float x,float y,float z,float v){r=x;g=y;b=z;a=v;}};
+struct Color {float r=0,g=0,b=0,a=0;Color()=default;Color(float R,float G,float B,float A=128):r(R),g(G),b(B),a(A){} void set(float x,float y,float z,float v){r=x;g=y;b=z;a=v;}};
 struct M4x4 {
   Vec4 position;
   void identity(){position={};} void translate(Vec4 p){position=p;}
@@ -60,11 +71,22 @@ struct ObjLoader {
     assert(!b->materials.empty());return b;
   }
 };
+enum SpriteMode {MODE_REPEAT,MODE_STRETCH};
+struct Sprite {
+  inline static u32 next=10000;u32 id=next++;
+  Vec2 size,offset,position;Color color;float scale=1;
+  SpriteMode mode=MODE_REPEAT;bool flipHorizontal=false,flipVertical=false;
+};
+struct Renderer2D {
+  std::vector<Sprite> draws;
+  void render(const Sprite& s){draws.push_back(s);}
+  void renderBatch(const Sprite* s,u32 n){assert(n>0&&n<=32);draws.insert(draws.end(),s,s+n);}
+};
 struct TextureData {int width=0,height=0,bpp=32;unsigned char* data=nullptr;};
-struct Texture {u32 id;TextureData* core=nullptr;std::vector<u32> links;void addLink(u32 x){links.push_back(x);}};
+struct Texture {std::string path;u32 id;TextureData* core=nullptr;std::vector<u32> links;void addLink(u32 x){links.push_back(x);}};
 struct TextureRepository {
   std::map<u32,std::unique_ptr<Texture>> textures;u32 next=1;
-  Texture* add(const std::string&){auto t=std::make_unique<Texture>();t->id=next++;auto* p=t.get();textures[p->id]=std::move(t);return p;}
+  Texture* add(const std::string& path){auto t=std::make_unique<Texture>();t->path=path;t->id=next++;auto* p=t.get();textures[p->id]=std::move(t);return p;}
   void addByMesh(StaticMesh* m,const std::string& root,const char*){for(auto* mat:m->materials)if(mat->textureName)add(root+*mat->textureName)->addLink(mat->id);}
   Texture* getByTextureId(u32 id){return textures.at(id).get();}
   Texture* getByMeshMaterialId(u32 id){for(auto& t:textures)for(auto link:t.second->links)if(link==id)return t.second.get();return nullptr;}
@@ -73,6 +95,7 @@ struct TextureRepository {
     bool found=false;for(auto link:it->second->links)if(link==mat->id)found=true;
     if(found)it=textures.erase(it);else ++it;
   }}
+  void freeBySprite(const Sprite& s){auto* t=getByMeshMaterialId(s.id);assert(t);free(t->id);}
   u32 getTexturesCount()const{return textures.size();}
 };
 enum {PipelineFrustumCulling_Precise,PipelineFrustumCulling_None,TyraNearest,TyraLinear,TyraMVP,TyraMP,PipelineZTest_Standard};
@@ -94,14 +117,14 @@ struct StaticPipeline {
   void render(StaticMesh* m,const StaPipOptions&){draws.push_back(m->translation.position);RendererCore::renderEvents.push_back("draw");}
 };
 struct Renderer {
-  RendererCore core;TextureRepository repo;
+  RendererCore core;TextureRepository repo;Renderer2D renderer2D;
   struct {void usePipeline(StaticPipeline&) {}}renderer3D;
   TextureRepository& getTextureRepository(){return repo;}
 };
 struct AudioAdpcm {
   void reset(){HostAudio::loaded.clear();++HostAudio::resets;}
   void setVolume(u8 volume,s8 channel){assert(channel>=0&&channel<24);HostAudio::volumes[channel]=volume;}
-  int tryPlay(audsrv_adpcm_t* sample){assert(HostAudio::loaded.count(sample));HostAudio::played.push_back(sample);return HostAudio::playResult;}
+  int tryPlay(audsrv_adpcm_t* sample, s8 = -1){assert(HostAudio::loaded.count(sample));HostAudio::played.push_back(sample);return HostAudio::playResult;}
 };
 struct Audio {AudioAdpcm adpcm;};
 struct Engine {Pad pad;Renderer renderer;Audio audio;};

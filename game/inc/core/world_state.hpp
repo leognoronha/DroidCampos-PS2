@@ -28,6 +28,7 @@ struct SceneState {
   SceneId active = SceneId::Exterior;
   SceneId target = SceneId::Exterior;
   bool resident = false;
+  bool presented = false;
   bool requested = false;
   int accessFrames = 0;
   int loadStep = 0;
@@ -68,7 +69,10 @@ struct alignas(16) InputCommandState {
   }
 };
 
+enum class RadioPhase : u8 { Idle, Waiting, Alert, Message };
+
 struct RadioCodecState {
+  RadioPhase phase = RadioPhase::Idle;
   bool popupActive;
   int visibleChars;
   float typeTimer;
@@ -99,6 +103,11 @@ struct CardReaderState {
   bool isUnlocked;
 };
 
+struct SceneIntroState {
+  bool active = false;
+  u32 elapsedTicks = 0;
+};
+
 struct alignas(64) WorldState {
   PlayerKinematicsState player;
   InputCommandState inputCmd;
@@ -107,6 +116,7 @@ struct alignas(64) WorldState {
   AnimationFrameState anim;
   CardReaderState cardReader;
   SceneState scene;
+  SceneIntroState intro;
 
   void resetPlayerToSpawn() {
     player.playerPos.set(0.0F, kDefaultEyeHeight, 17.0F, 1.0F);
@@ -131,7 +141,8 @@ struct alignas(64) WorldState {
     cardReader.isPlayerNearby = false;
     cardReader.isUnlocked = false;
 
-    radio.popupActive = scene.active == SceneId::Exterior;
+    radio.popupActive = true;
+    radio.phase = RadioPhase::Waiting;
     radio.visibleChars = 0;
     radio.typeTimer = 0.0F;
     radio.currentMessage = scene.active == SceneId::Interior
@@ -141,6 +152,7 @@ struct alignas(64) WorldState {
 
   void resetToDefaults() {
     scene = SceneState{};
+    intro = SceneIntroState{};
     player.moveSpeed = 0.11F;
     player.lookSensitivity = 0.032F;
     radio.currentMessage = kDefaultCodecMessage;

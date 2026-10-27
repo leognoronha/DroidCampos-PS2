@@ -29,7 +29,7 @@ void HudSystem::executeStage(Core::HardwareStage stage, Engine* engine,
 
   if (stage == Core::HardwareStage::Stage3_GifPath3Render2D) {
     if (state.menu.currentScreen == Core::ScreenState::GameplayFps &&
-        drawer_ != nullptr) {
+        !state.intro.active && drawer_ != nullptr) {
       renderFpsHud(state);
     }
   }
@@ -104,8 +104,10 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
                      Color(80.0F, 100.0F, 120.0F, 85.0F));
   if (state.radio.popupActive) {
     drawer_->getFont().drawText(
-        "X: CLOSE RADIO   L-STICK/DPAD: WALK   R-STICK: LOOK   SELECT: MENU",
-        20, 417, Color(140.0F, 245.0F, 190.0F, 128.0F), 0.95F);
+        state.radio.phase == Core::RadioPhase::Message
+            ? "X: CLOSE RADIO // SELECT: MENU"
+            : "RADIO // INCOMING TRANSMISSION...",
+        20, 417, Color(80, 120, 116, 128), 1.0F);
   } else {
     drawer_->getFont().drawText(
         "L-STICK/DPAD: WALK   R-STICK/BTNS: LOOK   L2: RADIO   SELECT: MENU",

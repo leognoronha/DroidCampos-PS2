@@ -112,7 +112,7 @@ void MenuSystem::renderNewGameScreen(const Core::WorldState& state) {
                     menuInk(54, 112, 115, 128));
 
   drawer_->getFont().drawText(
-      "YEAR 2147 - NEO-CAMPOS INDUSTRIAL WASTELAND.\n"
+      "YEAR 2066 - UTINGA INDUSTRIAL DISTRICT.\n"
       "DR. VICTOR CAMPOS, CHIEF MATHEMATICIAN AT ETIP,\n"
       "ARRIVES AT THE ABANDONED PERIMETER OF THE ETIP\n"
       "INDUSTRIAL INSTALLATION.\n\n"

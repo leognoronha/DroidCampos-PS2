@@ -38,6 +38,7 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
   }
 
   if (state.menu.currentScreen == Core::ScreenState::GameplayFps) {
+    if (state.intro.active) return;
     pollGameplayInput(engine, state, bus);
   } else {
     pollMenuInput(engine, state, bus);
@@ -58,8 +59,8 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   if (state.scene.accessFrames > 0) return;
 
   if (state.radio.popupActive && clicked.Cross) {
-    bus.publish(
-        Events::GameEvent::makeSimple(Events::EventType::RadioDismissRequested));
+    if (state.radio.phase == Core::RadioPhase::Message)
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::RadioDismissRequested));
     return;
   }
 

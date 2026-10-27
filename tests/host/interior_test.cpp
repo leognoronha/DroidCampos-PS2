@@ -22,7 +22,9 @@ int main(){
   u32 n=0; auto* ev=bus.getFrameEvents(n); assert(n==1 && ev[0].type==Events::EventType::RadioTransmissionTriggered);
   engine.pad.clicked={}; engine.pad.pressed={};
   s.scene.active=Core::SceneId::Interior; s.resetPlayerToSpawn();
-  assert(std::fabs(s.player.playerPos.z+1.8F)<.001F && !s.radio.popupActive);
+  assert(std::fabs(s.player.playerPos.z+1.8F)<.001F && s.radio.popupActive &&
+         s.radio.phase==Core::RadioPhase::Waiting);
+  s.radio.popupActive=false; // Simulate dismissal before testing door input.
   for(int d=0;d<4;d++){
     const float sign=Core::kInsideDoorX[d]<0?-1:1;
     float x=0,z=Core::kInsideDoorZ[d];
