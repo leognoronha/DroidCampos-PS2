@@ -19,7 +19,8 @@ enum class ScreenState : u8 {
   LoadGame = 2,
   Settings = 3,
   GameplayFps = 4,
-  Loading = 5
+  Loading = 5,
+  Paused = 6
 };
 
 enum class SceneId : u8 { Exterior, Interior };
@@ -35,6 +36,8 @@ struct SceneState {
   int totalSteps = 0;
   const char* error = nullptr;
   int nearbyDoor = -1;
+  bool terminalNearby = false;
+  bool terminalActive = false;
   DoorState doors[4] = {};
 };
 
@@ -51,6 +54,8 @@ struct alignas(16) PlayerKinematicsState {
   float walkBobAmount;
   float weaponSwayX;
   float weaponSwayY;
+  float verticalVelocity;
+  bool grounded;
 };
 
 struct alignas(16) InputCommandState {
@@ -59,6 +64,7 @@ struct alignas(16) InputCommandState {
   float lookYawDelta;
   float lookPitchDelta;
   bool isRunning;
+  bool jumpRequested;
 
   void clear() {
     moveForward = 0.0F;
@@ -66,6 +72,7 @@ struct alignas(16) InputCommandState {
     lookYawDelta = 0.0F;
     lookPitchDelta = 0.0F;
     isRunning = false;
+    jumpRequested = false;
   }
 };
 
@@ -90,6 +97,7 @@ struct MenuNavigationState {
   bool nearestFilter;
   int padCooldown;
   int activeSaveSlot;
+  int pauseSelectedIndex = 0;
 };
 
 struct AnimationFrameState {
@@ -131,6 +139,10 @@ struct alignas(64) WorldState {
       player.cameraLookAt.set(0.0F, kDefaultEyeHeight, -2.8F, 1.0F);
       player.pitch = 0.0F;
     }
+    player.verticalVelocity = 0.0F;
+    player.grounded = true;
+    scene.terminalNearby = false;
+    scene.terminalActive = false;
     player.walkBobPhase = 0.0F;
     player.walkBobAmount = 0.0F;
     player.weaponSwayX = 0.0F;

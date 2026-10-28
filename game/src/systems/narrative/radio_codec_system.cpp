@@ -43,6 +43,13 @@ void RadioCodecSystem::updateSimulation(Core::WorldState& state, Events::EventBu
         state.radio.phase == Core::RadioPhase::Message) {
       state.radio.popupActive = false;
       state.radio.phase = Core::RadioPhase::Idle;
+    } else if (events[i].type == Events::EventType::RadioReviewRequested) {
+      // Review the scene's retained message without restarting the call/audio.
+      state.radio.popupActive = true;
+      state.radio.phase = Core::RadioPhase::Message;
+      if (!state.radio.currentMessage) state.radio.currentMessage = Core::kDefaultCodecMessage;
+      state.radio.visibleChars = static_cast<int>(std::strlen(state.radio.currentMessage));
+      state.radio.typeTimer = 0;
     } else if (events[i].type == Events::EventType::RadioTransmissionTriggered) {
       state.radio.popupActive = true;
       state.radio.phase = Core::RadioPhase::Waiting;
@@ -117,7 +124,7 @@ void RadioCodecSystem::renderRadioPopup(const Core::WorldState& state) {
   const int visible = std::max(0, std::min(length, state.radio.visibleChars));
   drawer_->getFont().drawText(std::string(message, visible), 34, 289, cyan);
   drawer_->drawRect(28, 376, 336, 1, dim);
-  drawer_->getFont().drawText("X: CLOSE // ENCRYPTED CHANNEL", 34, 383, cyan);
+  drawer_->getFont().drawText("O: CLOSE // ENCRYPTED CHANNEL", 34, 383, cyan);
   // Short layered brackets reinforce the blueprint frame without a full grid.
   drawer_->drawRect(22, 262, 1, 116, dim);
   drawer_->drawRect(30, 398, 42, 1, dim);

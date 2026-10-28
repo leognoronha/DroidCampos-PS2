@@ -73,7 +73,7 @@ void PlayerControllerSystem::updateCameraVectors(Core::WorldState& state) {
   const float rightZ = std::cos(yaw);
 
   state.player.cameraPos.set(state.player.playerPos.x + rightX * bobLateral,
-                             kEyeHeight + bobVertical,
+                             state.player.playerPos.y + bobVertical,
                              state.player.playerPos.z + rightZ * bobLateral,
                              1.0F);
 
@@ -153,7 +153,22 @@ void PlayerControllerSystem::updateFpsKinematics(
   Physics::CollisionSystem::resolvePlayerCollisions(nextX, nextZ, scratchpad, state);
 
   state.player.playerPos.x = nextX;
-  state.player.playerPos.y = kEyeHeight;
+  // Fixed simulation ticks, matching horizontal movement. No allocations.
+  constexpr float kJumpImpulse = 0.13F;
+  constexpr float kGravity = 0.008F;
+  if (state.inputCmd.jumpRequested && state.player.grounded) {
+    state.player.verticalVelocity = kJumpImpulse;
+    state.player.grounded = false;
+  }
+  if (!state.player.grounded) {
+    state.player.playerPos.y += state.player.verticalVelocity;
+    state.player.verticalVelocity -= kGravity;
+    if (state.player.playerPos.y <= kEyeHeight) {
+      state.player.playerPos.y = kEyeHeight;
+      state.player.verticalVelocity = 0.0F;
+      state.player.grounded = true;
+    }
+  }
   state.player.playerPos.z = nextZ;
 
   updateCameraVectors(state);

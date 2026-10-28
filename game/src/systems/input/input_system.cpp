@@ -38,6 +38,12 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
   }
 
   if (state.menu.currentScreen == Core::ScreenState::GameplayFps) {
+    if (engine->pad.getClicked().Start) {
+      state.menu.currentScreen = Core::ScreenState::Paused;
+      state.menu.pauseSelectedIndex = 0;
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
+      return;
+    }
     if (state.intro.active) return;
     pollGameplayInput(engine, state, bus);
   } else {
@@ -58,15 +64,15 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
 
   if (state.scene.accessFrames > 0) return;
 
-  if (state.radio.popupActive && clicked.Cross) {
+  if (state.radio.popupActive && clicked.Circle) {
     if (state.radio.phase == Core::RadioPhase::Message)
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::RadioDismissRequested));
     return;
   }
 
-  if (!state.radio.popupActive && (clicked.L2 || clicked.R2)) {
+  if (!state.radio.popupActive && clicked.L2) {
     bus.publish(Events::GameEvent::makeSimple(
-        Events::EventType::RadioTransmissionTriggered));
+        Events::EventType::RadioReviewRequested));
     return;
   }
 
@@ -112,6 +118,15 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
     }
   }
 
+  // Reach the front of the terminal without entering its solid collider.
+  const float terminalDx = state.player.playerPos.x - (-3.58F);
+  const float terminalDz = state.player.playerPos.z - (-28.0F);
+  state.scene.terminalNearby = state.scene.active == Core::SceneId::Interior &&
+      terminalDx * terminalDx + terminalDz * terminalDz <= 1.8F * 1.8F;
+  if (!state.scene.terminalNearby) state.scene.terminalActive = false;
+  if (state.scene.terminalNearby && !state.radio.popupActive && clicked.Triangle)
+    state.scene.terminalActive = !state.scene.terminalActive;
+
   float lookYawDelta = 0.0F;
   float lookPitchDelta = 0.0F;
 
@@ -124,19 +139,6 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   }
   if (std::fabs(ry) > 0.18F) {
     lookPitchDelta -= ry * lookSens;
-  }
-
-  if (!state.cardReader.isPlayerNearby && state.scene.nearbyDoor < 0 && pressed.Square) {
-    lookYawDelta -= lookSens * 0.85F;
-  }
-  if (pressed.Circle) {
-    lookYawDelta += lookSens * 0.85F;
-  }
-  if (pressed.Triangle) {
-    lookPitchDelta += lookSens * 0.75F;
-  }
-  if (!state.radio.popupActive && pressed.Cross) {
-    lookPitchDelta -= lookSens * 0.75F;
   }
 
   float moveForward = 0.0F;
@@ -169,7 +171,8 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   state.inputCmd.moveStrafe = moveStrafe;
   state.inputCmd.lookYawDelta = lookYawDelta;
   state.inputCmd.lookPitchDelta = lookPitchDelta;
-  state.inputCmd.isRunning = (pressed.L1 || pressed.R1);
+  state.inputCmd.isRunning = pressed.L1;
+  state.inputCmd.jumpRequested = clicked.Cross;
 }
 
 void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
@@ -189,6 +192,21 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
 
   if (upPressed || downPressed || leftPressed || rightPressed) {
     state.menu.padCooldown = 12;
+  }
+
+  if (state.menu.currentScreen == Core::ScreenState::Paused) {
+    if (clicked.Start || clicked.Circle) {
+      state.menu.currentScreen = Core::ScreenState::GameplayFps;
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
+    } else if (clicked.Cross) {
+      state.menu.currentScreen = state.menu.pauseSelectedIndex == 0
+          ? Core::ScreenState::GameplayFps : Core::ScreenState::MainMenu;
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
+    } else if (upPressed || downPressed) {
+      state.menu.pauseSelectedIndex = 1 - state.menu.pauseSelectedIndex;
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
+    }
+    return;
   }
 
   if (state.menu.currentScreen == Core::ScreenState::MainMenu) {

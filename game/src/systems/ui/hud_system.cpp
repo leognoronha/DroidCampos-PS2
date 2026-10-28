@@ -92,6 +92,15 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
     }
   }
 
+  if (state.scene.terminalNearby && !state.radio.popupActive) {
+    drawer_->drawPanel(76, 344, 360, 58, Color(8, 16, 22, 112), Color(0, 190, 210, 128));
+    drawer_->getFont().drawText(state.scene.terminalActive
+        ? "TERMINAL ETIP // CONECTADO" : "[TRIANGULO] INTERAGIR TERMINAL",
+        90, 352, Color(160, 240, 240, 128));
+    if (state.scene.terminalActive)
+      drawer_->getFont().drawText("[TRIANGULO] FECHAR TERMINAL", 90, 378, Color(160, 240, 240, 128));
+  }
+
   // Bottom Controls Bar
   if (state.scene.nearbyDoor >= 0 && !state.radio.popupActive) {
     const auto& door = state.scene.doors[state.scene.nearbyDoor];
@@ -105,12 +114,12 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   if (state.radio.popupActive) {
     drawer_->getFont().drawText(
         state.radio.phase == Core::RadioPhase::Message
-            ? "X: CLOSE RADIO // SELECT: MENU"
+            ? "O: CLOSE RADIO // START: PAUSA"
             : "RADIO // INCOMING TRANSMISSION...",
         20, 417, Color(80, 120, 116, 128), 1.0F);
   } else {
     drawer_->getFont().drawText(
-        "L-STICK/DPAD: WALK   R-STICK/BTNS: LOOK   L2: RADIO   SELECT: MENU",
+        "X: PULAR  L1: CORRER  R: VISAO  L2: RADIO  START: PAUSA",
         20, 417, Color(190.0F, 215.0F, 230.0F, 128.0F), 0.95F);
   }
 }

@@ -1,4 +1,5 @@
 #include <cassert>
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include "systems/input/input_system.hpp"
@@ -19,7 +20,7 @@ int main(){
   s.radio.popupActive=false; poll(); assert(bus.size()==1);
   engine.pad.clicked={}; engine.pad.pressed.Square=true; poll(); assert(bus.size()==0);
   engine.pad.clicked.Square=true; engine.pad.clicked.L2=true; poll();
-  u32 n=0; auto* ev=bus.getFrameEvents(n); assert(n==1 && ev[0].type==Events::EventType::RadioTransmissionTriggered);
+  u32 n=0; auto* ev=bus.getFrameEvents(n); assert(n==1 && ev[0].type==Events::EventType::RadioReviewRequested);
   engine.pad.clicked={}; engine.pad.pressed={};
   s.scene.active=Core::SceneId::Interior; s.resetPlayerToSpawn();
   assert(std::fabs(s.player.playerPos.z+1.8F)<.001F && s.radio.popupActive &&
@@ -38,6 +39,55 @@ int main(){
     engine.pad.clicked.Square=true;poll();assert(s.scene.nearbyDoor==d && s.scene.doors[d].targetOpen);
     engine.pad.clicked={};poll();assert(s.scene.doors[d].targetOpen); // No toggle on held button.
   }
+  // Face buttons never rotate the camera. Jump is edge-triggered and grounded.
+  engine.pad.clicked={};engine.pad.pressed={};
+  s.resetPlayerToSpawn();s.radio.popupActive=false;
+  Systems::Player::PlayerControllerSystem player;
+  auto tick=[&](){spr.resetFrame();player.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&engine,s,bus,spr);};
+  engine.pad.clicked.Cross=true;engine.pad.pressed.Cross=true;poll();tick();
+  assert(!s.player.grounded && s.player.playerPos.y>1.7F);
+  assert(s.inputCmd.lookPitchDelta==0 && s.inputCmd.lookYawDelta==0);
+  engine.pad.clicked={};
+  float peak=s.player.playerPos.y;
+  for(int i=0;i<60;i++){poll();tick();peak=std::max(peak,s.player.playerPos.y);}
+  assert(peak>2.5F && peak<3.0F && s.player.grounded);
+  assert(std::fabs(s.player.cameraPos.y-1.7F)<.001F);
+  // Radio overlay leaves jumping available and X never dismisses the message.
+  s.radio.popupActive=true;s.radio.phase=Core::RadioPhase::Message;
+  engine.pad.clicked.Cross=true;poll();tick();
+  assert(!s.player.grounded && s.player.playerPos.y>1.7F && s.radio.popupActive);
+  assert(bus.size()==0 && s.inputCmd.jumpRequested);
+  engine.pad.clicked={};
+  for(int i=0;i<60;i++){poll();tick();}
+  assert(s.player.grounded && s.radio.popupActive);
+  engine.pad.pressed={};engine.pad.clicked.Circle=true;poll();
+  {u32 count=0;const auto* events=bus.getFrameEvents(count);assert(count==1 && events[0].type==Events::EventType::RadioDismissRequested);}
+  engine.pad.clicked={};s.radio.popupActive=false;
+  engine.pad.pressed={};engine.pad.pressed.R1=true;poll();assert(!s.inputCmd.isRunning);
+  engine.pad.pressed.L1=true;poll();assert(s.inputCmd.isRunning);
+  engine.pad.pressed={};
+  s.player.playerPos.set(-3.0F,1.7F,-28.0F);engine.pad.clicked.Triangle=true;
+  poll();assert(s.scene.terminalNearby && s.scene.terminalActive);
+  engine.pad.clicked={};poll();assert(s.scene.terminalActive);
+  engine.pad.clicked.Triangle=true;poll();assert(!s.scene.terminalActive);
+  engine.pad.clicked={};
+  // R2 is unassigned; L2 silently reviews the current scene message.
+  engine.pad.clicked.R2=true;poll();assert(bus.size()==0 && !s.inputCmd.jumpRequested);
+  engine.pad.clicked={};engine.pad.clicked.L2=true;poll();assert(bus.size()==1);
+  {u32 count=0;const auto* events=bus.getFrameEvents(count);assert(count==1 && events[0].type==Events::EventType::RadioReviewRequested);}
+  engine.pad.clicked={};engine.pad.clicked.Start=true;poll();
+  assert(s.menu.currentScreen==Core::ScreenState::Paused);
+  const float pausedY=s.player.playerPos.y;
+  engine.pad.clicked={};engine.pad.pressed.DpadUp=true;poll();tick();
+  assert(s.player.playerPos.y==pausedY && s.inputCmd.moveForward==0);
+  engine.pad.pressed={};engine.pad.clicked.Start=true;poll();
+  assert(s.menu.currentScreen==Core::ScreenState::GameplayFps);
+  engine.pad.clicked={};engine.pad.clicked.Start=true;poll();
+  engine.pad.clicked={};engine.pad.clicked.DpadDown=true;poll();
+  assert(s.menu.pauseSelectedIndex==1);
+  engine.pad.clicked={};engine.pad.clicked.Cross=true;poll();
+  assert(s.menu.currentScreen==Core::ScreenState::MainMenu);
+  s.menu.currentScreen=Core::ScreenState::GameplayFps;engine.pad.clicked={};
   float x=0,z=-1; for(int i=0;i<50;i++){z+=.1F;resolve(x,z);} assert(z<=-.59F);
   x=0;z=-20;for(int i=0;i<80;i++){z-=.1F;resolve(x,z);} assert(z<-27.5F);
   // Capsule occupies only the right wall; the wide central aisle stays free.

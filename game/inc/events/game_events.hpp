@@ -16,7 +16,8 @@ enum class EventType : u8 {
   CardReaderInteracted = 7,
   MenuConfirmRequested = 8,
   MenuBackRequested = 9,
-  MenuNavigateRequested = 10
+  MenuNavigateRequested = 10,
+  RadioReviewRequested = 11
 };
 
 struct alignas(16) GameEvent {

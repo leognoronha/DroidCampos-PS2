@@ -107,6 +107,10 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
       sample = &back_;
     else if (events[i].type == Events::EventType::MenuNavigateRequested && navigateLoaded_)
       sample = &navigate_;
+    else if (events[i].type == Events::EventType::RadioDismissRequested &&
+             state.radio.popupActive && state.radio.phase == Core::RadioPhase::Message &&
+             radioConfirmationLoaded_)
+      sample = &radioConfirmation_;
     // Free-channel playback never blocks input, even during rapid presses.
     if (sample) engine->audio.adpcm.tryPlay(sample);
   }

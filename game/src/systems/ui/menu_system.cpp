@@ -68,6 +68,15 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       drawer_->renderFooter(failed ? "O / X: RETURN TO MENU" : "LOADING ETIP...");
       break;
     }
+    case Core::ScreenState::Paused:
+      drawer_->drawBlueprintPanel(96, 144, 320, 160, menuInk(0, 0, 0), menuInk(0, 190, 210));
+      drawer_->getFont().drawText("JOGO PAUSADO", 152, 164, menuInk(159, 239, 232));
+      drawer_->getFont().drawText(state.menu.pauseSelectedIndex == 0
+          ? "> CONTINUAR" : "  CONTINUAR", 128, 214, menuInk(200, 225, 235));
+      drawer_->getFont().drawText(state.menu.pauseSelectedIndex == 1
+          ? "> MENU PRINCIPAL" : "  MENU PRINCIPAL", 128, 250, menuInk(200, 225, 235));
+      drawer_->renderFooter("D-PAD: SELECIONAR  X: CONFIRMAR  START/O: VOLTAR");
+      break;
     case Core::ScreenState::MainMenu:
       renderMainMenu(state);
       drawer_->renderFooter(
