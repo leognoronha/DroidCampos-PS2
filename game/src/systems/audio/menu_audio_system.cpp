@@ -63,6 +63,8 @@ void MenuAudioSystem::init(Tyra::Engine* engine, Core::WorldState&, Events::Even
   navigateLoaded_ = loadSample("audio/menu_navigate.adpcm", navigate_, navigateData_);
   radioAlertLoaded_ = loadSample("audio/radio_alert.adpcm", radioAlert_, radioAlertData_);
   radioConfirmationLoaded_ = loadSample("audio/radio_confirmation.adpcm", radioConfirmation_, radioConfirmationData_);
+  weaponShotLoaded_ = loadSample("audio/weapon_shot.adpcm", weaponShot_, weaponShotData_);
+  weaponReloadLoaded_ = loadSample("audio/weapon_reload.adpcm", weaponReload_, weaponReloadData_);
   if (radioAlertLoaded_) {
     // APCM stores little-endian source samples and the actual SPU2 playback pitch.
     auto read32 = [](const u8* p) -> uint32_t {
@@ -86,6 +88,24 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
                                    Hardware::Ps2ScratchpadArena&) {
   if (!engine || !initialized_) return;
   if (stage == Core::HardwareStage::Stage1_EeVu0Simulation) {
+    // Weapon events are emitted in simulation, after input and player movement.
+    if (state.menu.currentScreen == Core::ScreenState::GameplayFps &&
+        state.menu.sfxVolume > 0) {
+      u32 count = 0;
+      const auto* events = bus.getFrameEvents(count);
+      for (u32 i = 0; i < count; ++i) {
+        if (events[i].type == Events::EventType::WeaponFired &&
+            weaponShotLoaded_) {
+          // 11 voices cover the full 2.598s tail at 4 shots/sec; never
+          // wait/retry.
+          engine->audio.adpcm.tryPlay(&weaponShot_, nextWeaponChannel_);
+          nextWeaponChannel_ =
+              nextWeaponChannel_ == 20 ? 10 : nextWeaponChannel_ + 1;
+        } else if (events[i].type == Events::EventType::WeaponReloadStarted &&
+                   weaponReloadLoaded_)
+          engine->audio.adpcm.tryPlay(&weaponReload_, 21);
+      }
+    }
     updateRadio(engine, state);
     return;
   }
@@ -93,7 +113,8 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
   const int volume = std::max(0, std::min(100, state.menu.sfxVolume));
   if (volume != volume_) {
     for (int channel = 0; channel < 24; ++channel)
-      engine->audio.adpcm.setVolume(static_cast<u8>(volume), static_cast<s8>(channel));
+      engine->audio.adpcm.setVolume(static_cast<u8>(volume),
+                                    static_cast<s8>(channel));
     volume_ = volume;
   }
   if (volume == 0) return;
@@ -101,37 +122,55 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
   const auto* events = bus.getFrameEvents(count);
   for (u32 i = 0; i < count; ++i) {
     audsrv_adpcm_t* sample = nullptr;
-    if (events[i].type == Events::EventType::MenuConfirmRequested && confirmLoaded_)
+    if (events[i].type == Events::EventType::MenuConfirmRequested &&
+        confirmLoaded_)
       sample = &confirm_;
-    else if (events[i].type == Events::EventType::MenuBackRequested && backLoaded_)
+    else if (events[i].type == Events::EventType::MenuBackRequested &&
+             backLoaded_)
       sample = &back_;
-    else if (events[i].type == Events::EventType::MenuNavigateRequested && navigateLoaded_)
+    else if (events[i].type == Events::EventType::MenuNavigateRequested &&
+             navigateLoaded_)
       sample = &navigate_;
     else if (events[i].type == Events::EventType::RadioDismissRequested &&
-             state.radio.popupActive && state.radio.phase == Core::RadioPhase::Message &&
+             state.radio.popupActive &&
+             state.radio.phase == Core::RadioPhase::Message &&
              radioConfirmationLoaded_)
       sample = &radioConfirmation_;
-    // Free-channel playback never blocks input, even during rapid presses.
-    if (sample) engine->audio.adpcm.tryPlay(sample);
+    // Non-blocking playback stays within the reserved channel pools.
+    if (sample) {
+      if (events[i].type == Events::EventType::RadioDismissRequested)
+        engine->audio.adpcm.tryPlay(sample, 22);
+      else {
+        engine->audio.adpcm.tryPlay(sample, nextUiChannel_);
+        nextUiChannel_ = nextUiChannel_ == 9 ? 0 : nextUiChannel_ + 1;
+      }
+    }
   }
 }
 
-void MenuAudioSystem::updateRadio(Tyra::Engine* engine, Core::WorldState& state) {
+void MenuAudioSystem::updateRadio(Tyra::Engine* engine,
+                                  Core::WorldState& state) {
   const u32 elapsed = radioTimer_.getTimeDelta();
   radioTimer_.prime();
   auto& radio = state.radio;
-  if (!radio.popupActive) { radioTicksRemaining_ = 0; return; }
+  if (!radio.popupActive) {
+    radioTicksRemaining_ = 0;
+    return;
+  }
   if (state.menu.currentScreen != Core::ScreenState::GameplayFps) {
     // The alert can finish while a menu is open, but its confirmation and
     // message wait for gameplay to resume. Do not replay the alert on return.
     if (radio.phase == Core::RadioPhase::Alert)
-      radioTicksRemaining_ = elapsed < radioTicksRemaining_ ? radioTicksRemaining_ - elapsed : 0;
+      radioTicksRemaining_ =
+          elapsed < radioTicksRemaining_ ? radioTicksRemaining_ - elapsed : 0;
     return;
   }
   // GameplayFps alone is insufficient: input can request a scene before the
   // loader runs, and its first image may not yet have reached the screen.
-  if (!state.scene.resident || !state.scene.presented || state.scene.requested ||
-      state.scene.accessFrames > 0 || state.intro.active) return;
+  if (!state.scene.resident || !state.scene.presented ||
+      state.scene.requested || state.scene.accessFrames > 0 ||
+      state.intro.active)
+    return;
   const bool muted = state.menu.sfxVolume <= 0;
   if (radio.phase == Core::RadioPhase::Waiting) {
     if (!muted && radioAlertLoaded_ && radioAlertTicks_ > 0 &&
@@ -163,7 +202,11 @@ void MenuAudioSystem::shutdown(Tyra::Engine* engine) {
   // samples; reset its bank only at game shutdown, before releasing EE buffers.
   // reset() also stops active voices. Never call it on a menu screen transition.
   if (engine && (backLoaded_ || confirmLoaded_ || navigateLoaded_ ||
-                 radioAlertLoaded_ || radioConfirmationLoaded_)) engine->audio.adpcm.reset();
+                 radioAlertLoaded_ || radioConfirmationLoaded_ || weaponShotLoaded_ || weaponReloadLoaded_)) engine->audio.adpcm.reset();
+  freeSampleData(weaponShotData_);freeSampleData(weaponReloadData_);
+  weaponShotData_ = weaponReloadData_ = nullptr;
+  weaponShotLoaded_ = weaponReloadLoaded_ = false;
+  weaponShot_ = {};weaponReload_ = {};nextWeaponChannel_ = 10;nextUiChannel_ = 0;
   freeSampleData(radioConfirmationData_);
   freeSampleData(radioAlertData_);
   freeSampleData(navigateData_);

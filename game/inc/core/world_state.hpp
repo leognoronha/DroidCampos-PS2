@@ -65,6 +65,8 @@ struct alignas(16) InputCommandState {
   float lookPitchDelta;
   bool isRunning;
   bool jumpRequested;
+  bool fireRequested;
+  bool reloadRequested;
 
   void clear() {
     moveForward = 0.0F;
@@ -73,6 +75,8 @@ struct alignas(16) InputCommandState {
     lookPitchDelta = 0.0F;
     isRunning = false;
     jumpRequested = false;
+    fireRequested = false;
+    reloadRequested = false;
   }
 };
 
@@ -116,6 +120,25 @@ struct SceneIntroState {
   u32 elapsedTicks = 0;
 };
 
+constexpr int kMagazineSize = 8;
+constexpr u32 kShotIntervalTicks = 3907; // ceil(0.25 * 15625)
+constexpr u32 kReloadTicks = 8032; // ceil(0.514 * 15625)
+constexpr u32 kBeamTicks = 1250; // 80ms
+constexpr u32 kImpactTicks = 1563; // 100ms, rounded up
+struct WeaponState {
+  int ammo = kMagazineSize;
+  u32 cooldownTicks = 0;
+  u32 reloadTicks = 0;
+  u32 beamTicks = 0;
+  u32 impactTicks = 0;
+  bool impact = false;
+  Tyra::Vec4 beamStart, beamEnd, impactNormal;
+  void cancelTransient() {
+    cooldownTicks = reloadTicks = beamTicks = impactTicks = 0;
+    impact = false;
+  }
+};
+
 struct alignas(64) WorldState {
   PlayerKinematicsState player;
   InputCommandState inputCmd;
@@ -125,6 +148,7 @@ struct alignas(64) WorldState {
   CardReaderState cardReader;
   SceneState scene;
   SceneIntroState intro;
+  WeaponState weapon;
 
   void resetPlayerToSpawn() {
     player.playerPos.set(0.0F, kDefaultEyeHeight, 17.0F, 1.0F);
@@ -163,6 +187,7 @@ struct alignas(64) WorldState {
   }
 
   void resetToDefaults() {
+    weapon = WeaponState{};
     scene = SceneState{};
     intro = SceneIntroState{};
     player.moveSpeed = 0.11F;

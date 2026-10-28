@@ -7,6 +7,7 @@
 #include "hardware/ps2_scratchpad.hpp"
 #include "hardware/ps2_task_scheduler.hpp"
 #include "systems/input/input_system.hpp"
+#include "systems/weapon/weapon_system.hpp"
 #include "systems/narrative/radio_codec_system.hpp"
 #include "systems/player/player_controller_system.hpp"
 #include "systems/render3d/world_render_system.hpp"
@@ -40,6 +41,7 @@ class GameApp final : public Tyra::Game {
   Systems::Audio::MenuAudioSystem menuAudioSystem_;
   Systems::Player::PlayerControllerSystem playerSystem_;
   Systems::Render3D::WorldRenderSystem render3dSystem_;
+  Systems::Weapon::WeaponSystem weaponSystem_;
   Systems::Narrative::RadioCodecSystem radioCodecSystem_;
   Systems::Ui::HudSystem hudSystem_;
   Systems::Ui::MenuSystem menuSystem_;

@@ -16,6 +16,7 @@ GameApp::GameApp(Tyra::Engine* engine)
       menuAudioSystem_(),
       playerSystem_(),
       render3dSystem_(),
+      weaponSystem_(&render3dSystem_),
       radioCodecSystem_(&uiDrawer_),
       hudSystem_(&uiDrawer_),
       menuSystem_(&uiDrawer_),
@@ -43,6 +44,7 @@ void GameApp::init() {
 
   scheduler_.registerSubsystem(&inputSystem_);
   scheduler_.registerSubsystem(&playerSystem_);
+  scheduler_.registerSubsystem(&weaponSystem_);
   scheduler_.registerSubsystem(&radioCodecSystem_);
   scheduler_.registerSubsystem(&menuAudioSystem_);
   scheduler_.registerSubsystem(&render3dSystem_);
@@ -147,6 +149,7 @@ void GameApp::updateSceneTransition() {
   scene.error = render3dSystem_.validateScene(scene.target) ? nullptr : "ASSET AUSENTE. VERIFIQUE OS ARQUIVOS.";
   state.menu.currentScreen = ScreenState::Loading;
   state.inputCmd.clear();
+  state.weapon.cancelTransient();
   state.radio.popupActive = false;
   state.radio.phase = RadioPhase::Idle;
 }

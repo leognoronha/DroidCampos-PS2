@@ -6,7 +6,7 @@ do jogo sem PS2SDK; não substituem build PS2 ou testes no emulador.
 ```sh
 g++ -std=c++17 -Wall -Wextra -Itests/host -Igame/inc tests/host/interior_test.cpp game/src/systems/input/input_system.cpp game/src/systems/player/player_controller_system.cpp game/src/systems/physics/collision_system.cpp game/src/hardware/ps2_scratchpad.cpp game/src/events/event_bus.cpp -o /tmp/etip-input-test
 /tmp/etip-input-test
-g++ -std=c++17 -Wall -Wextra -Itests/host -Igame/inc tests/host/render_lifecycle_test.cpp game/src/systems/render3d/world_render_system.cpp game/src/events/event_bus.cpp game/src/hardware/ps2_scratchpad.cpp -o /tmp/etip-render-test
+g++ -std=c++17 -Wall -Wextra -Itests/host -Igame/inc tests/host/render_lifecycle_test.cpp game/src/systems/render3d/world_render_system.cpp game/src/systems/weapon/weapon_geometry.cpp game/src/events/event_bus.cpp game/src/hardware/ps2_scratchpad.cpp -o /tmp/etip-render-test
 /tmp/etip-render-test "$PWD/game/res/"
 ```
 
@@ -63,3 +63,13 @@ tested for A/A-alias/B/A texture grouping. The real core 2D renderer is compared
 against its frozen rectangle calculations, including 31/32/33-sprite boundaries.
 Packet/DMA doubles simulate deferred reads and ownership; they do not validate
 PS2SDK GIF encoding, pixels, real DMA timing or GS registers.
+
+## Arma e HUD
+
+`weapon_test.cpp` testa os sistemas reais de input, arma, radio e audio e as
+intersecoes com os OBJ reais de ambos os cenarios. O double de ObjLoader agora
+le vertices/faces e mantem sua propriedade compartilhada durante a vida dos meshes.
+`weapon_hud_test.cpp` verifica limites, oito indicadores e ausencia do painel com
+radio/terminal/introducao; um segundo argumento opcional exporta as chamadas de
+sprites para uma pasta existente, para verificacao visual.
+Os dois casos estao incluidos em `run.ps1`.

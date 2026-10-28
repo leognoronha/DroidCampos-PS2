@@ -47,3 +47,25 @@ ou comandos de missao. O pulo preserva as colisoes horizontais existentes.
 - Start: abrir/fechar pausa (Continuar ou Menu principal); O tambem retoma.
 - L2: consultar silenciosamente a mensagem do cenario atual. R2: sem comando.
 - O: fechar a mensagem com o toque de confirmacao do radio.
+
+Portas e leitor de acesso: a mensagem e o Quadrado exigem proximidade e mira
+sobre o alvo. Olhar para o corredor, chao ou teto nao seleciona portas laterais.
+Com a porta aberta, mire na abertura para fecha-la.
+
+## Tiro a laser (teste)
+
+- R1: um disparo por toque; intervalo minimo de 0,25 s.
+- O em gameplay: recarga manual de 0,514 s, quando o pente nao esta cheio.
+- Pente de 8 tiros, reserva infinita; sem recarga automatica no vazio.
+- O com radio aberto fecha a mensagem sem recarregar. R1 ainda permite atirar.
+- Pausa, menus, introducao e loading bloqueiam a arma; os temporizadores congelam.
+
+Feixe ciano de 50 m no maximo, impacto na geometria real, portas moveis e vidro.
+Nao inclui inimigos/dano. Municao preservada entre cenas; nova partida inicia em 8.
+Os WAV originais estao em `game/assets/audio`; converter com
+`python tools/build_weapon_audio.py --ffmpeg <ffmpeg> --adpenc <adpenc-do-PS2SDK>`.
+Sao 39.296 bytes adicionais de ADPCM mono 22.050 Hz. Canais 10–20: tiro;
+21: recarga; 22: radio; 0–9: interface. Falha de audio nao bloqueia disparos.
+
+Validacao: `tests/host/run.ps1`, incluindo arma, geometria e HUD. Os testes host
+nao substituem a compilacao PS2 e a verificacao de pixels/desempenho no PCSX2.

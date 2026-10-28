@@ -23,6 +23,12 @@ class MenuAudioSystem final : public Core::ISubsystem {
   audsrv_adpcm_t navigate_{};
   audsrv_adpcm_t radioAlert_{};
   audsrv_adpcm_t radioConfirmation_{};
+  audsrv_adpcm_t weaponShot_{}, weaponReload_{};
+  u8* weaponShotData_ = nullptr;
+  u8* weaponReloadData_ = nullptr;
+  bool weaponShotLoaded_ = false, weaponReloadLoaded_ = false;
+  s8 nextWeaponChannel_ = 10;
+  s8 nextUiChannel_ = 0;
   Tyra::Timer radioTimer_;
   u32 radioTicksRemaining_ = 0;
   u32 radioAlertTicks_ = 0;

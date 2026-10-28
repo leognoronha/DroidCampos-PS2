@@ -9,7 +9,7 @@ int main(int argc,char**argv) {
   Tyra::Engine engine;Events::EventBus bus;Hardware::Ps2ScratchpadArena scratch;
   Systems::Input::InputSystem input;Systems::Audio::MenuAudioSystem audio;
   audio.init(&engine,state,bus);audio.init(&engine,state,bus);
-  assert(HostAudio::loaded.size()==5&&HostAudio::resets==0);
+  assert(HostAudio::loaded.size()==7&&HostAudio::resets==0);
   auto* confirm=static_cast<audsrv_adpcm_t*>(nullptr);
   auto* back=confirm;
   auto* navigate=confirm;
@@ -83,7 +83,7 @@ int main(int argc,char**argv) {
   HostAudio::played.clear();audio.executeStage(Core::HardwareStage::Stage3_GifPath3Render2D,&engine,state,bus,scratch);assert(HostAudio::played.empty());
   audio.shutdown(&engine);audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==1);
   // A complete second lifecycle must not retain samples in SPU2.
-  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==5);
+  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==7);
   audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==2);
   // Optional asset failure must leave menus usable, without touching shared banks.
   HostAudio::failLoad=true;audio.init(&engine,state,bus);poll(Core::ScreenState::MainMenu,true,false);

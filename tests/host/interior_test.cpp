@@ -15,9 +15,18 @@ int main(){
   auto resolve=[&](float& x,float& z){spr.resetFrame(); Systems::Physics::CollisionSystem::resolvePlayerCollisions(x,z,spr,s);};
   s.menu.currentScreen=Core::ScreenState::GameplayFps;
   s.player.playerPos.set(2.48F,1.7F,3.8F);
+  auto aim=[&](float x,float y,float z){
+    s.player.yaw=std::atan2(z-s.player.playerPos.z,x-s.player.playerPos.x);
+    s.player.pitch=std::atan2(y-s.player.playerPos.y,std::hypot(x-s.player.playerPos.x,z-s.player.playerPos.z));
+    Systems::Player::PlayerControllerSystem::updateCameraVectors(s);
+  };
+  aim(2.48F,1.3F,3.25F);
   engine.pad.clicked.Square=true;
   poll(); assert(bus.size()==0); // Radio blocks entry.
   s.radio.popupActive=false; poll(); assert(bus.size()==1);
+  aim(2.48F,1.7F,10.0F);poll();assert(bus.size()==0 && !s.cardReader.isPlayerNearby);
+  aim(2.48F,4.0F,3.25F);poll();assert(bus.size()==0 && !s.cardReader.isPlayerNearby);
+  aim(2.48F,1.3F,3.25F);
   engine.pad.clicked={}; engine.pad.pressed.Square=true; poll(); assert(bus.size()==0);
   engine.pad.clicked.Square=true; engine.pad.clicked.L2=true; poll();
   u32 n=0; auto* ev=bus.getFrameEvents(n); assert(n==1 && ev[0].type==Events::EventType::RadioReviewRequested);
@@ -36,6 +45,10 @@ int main(){
     for(int step=0;step<30;step++){x+=sign*.11F;resolve(x,z);}
     assert(std::fabs(x)>2.5F); // Open aperture permits room traversal.
     s.player.playerPos.set(sign*1.0F,1.7F,Core::kInsideDoorZ[d]);
+    aim(sign*1.0F,1.7F,Core::kInsideDoorZ[d]-5.0F);
+    engine.pad.clicked.Square=true;poll();assert(s.scene.nearbyDoor==-1 && !s.scene.doors[d].targetOpen);
+    aim(sign*1.6F,4.0F,Core::kInsideDoorZ[d]);poll();assert(s.scene.nearbyDoor==-1);
+    aim(sign*1.6F,1.7F,Core::kInsideDoorZ[d]);
     engine.pad.clicked.Square=true;poll();assert(s.scene.nearbyDoor==d && s.scene.doors[d].targetOpen);
     engine.pad.clicked={};poll();assert(s.scene.doors[d].targetOpen); // No toggle on held button.
   }

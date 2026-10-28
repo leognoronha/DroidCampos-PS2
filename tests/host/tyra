@@ -8,6 +8,8 @@
 #include <fstream>
 #include <sstream>
 #include <cassert>
+#include <cmath>
+#include <algorithm>
 #include "audsrv.h"
 #define TYRA_LOG(...) ((void)0)
 using u8=uint8_t; using u16=uint16_t; using u32=uint32_t; using s16=int16_t; using s8=int8_t;
@@ -44,16 +46,27 @@ struct Pad {
 };
 struct Color {float r=0,g=0,b=0,a=0;Color()=default;Color(float R,float G,float B,float A=128):r(R),g(G),b(B),a(A){} void set(float x,float y,float z,float v){r=x;g=y;b=z;a=v;}};
 struct M4x4 {
-  Vec4 position;
-  void identity(){position={};} void translate(Vec4 p){position=p;}
-  void rotateX(float){} void rotateY(float){} void rotateZ(float){}
+  Vec4 position;float data[16];
+  M4x4(){identity();}
+  void identity(){position={};std::fill(data,data+16,0.F);data[0]=data[5]=data[10]=data[15]=1;}
+  M4x4 operator*(const M4x4& b)const{M4x4 r;for(int c=0;c<4;c++)for(int i=0;i<4;i++){
+    r.data[c*4+i]=0;for(int k=0;k<4;k++)r.data[c*4+i]+=data[k*4+i]*b.data[c*4+k];}return r;}
+  Vec4 operator*(const Vec4& v)const{return Vec4(data[0]*v.x+data[4]*v.y+data[8]*v.z+data[12]*v.w,
+    data[1]*v.x+data[5]*v.y+data[9]*v.z+data[13]*v.w,data[2]*v.x+data[6]*v.y+data[10]*v.z+data[14]*v.w,
+    data[3]*v.x+data[7]*v.y+data[11]*v.z+data[15]*v.w);}
+  void translate(Vec4 p){M4x4 t;t.data[12]=p.x;t.data[13]=p.y;t.data[14]=p.z;*this=*this*t;position=p;}
+  void scale(Vec4 v){M4x4 t;t.data[0]=v.x;t.data[5]=v.y;t.data[10]=v.z;*this=*this*t;}
+  void rotateX(float v){M4x4 t;t.data[5]=t.data[10]=std::cos(v);t.data[6]=std::sin(v);t.data[9]=-std::sin(v);*this=*this*t;}
+  void rotateY(float v){M4x4 t;t.data[0]=t.data[10]=std::cos(v);t.data[8]=std::sin(v);t.data[2]=-std::sin(v);*this=*this*t;}
+  void rotateZ(float v){M4x4 t;t.data[0]=t.data[5]=std::cos(v);t.data[1]=std::sin(v);t.data[4]=-std::sin(v);*this=*this*t;}
 };
-struct MeshMaterialFrame {u32 count=0;Vec4 *vertices=nullptr,*textureCoords=nullptr,*normals=nullptr;Color* colors=nullptr;};
+struct MeshMaterialFrame {u32 count=0;Vec4 *vertices=nullptr,*textureCoords=nullptr,*normals=nullptr;Color* colors=nullptr;std::vector<Vec4> ownedVertices;};
 struct MeshMaterial {u32 id;std::string name;std::optional<std::string> textureName;Color ambient;std::vector<MeshMaterialFrame*> frames;bool lightmapFlag=false;};
-struct MeshBuilderData {std::vector<MeshMaterial> materials;};
+struct MeshBuilderData {std::vector<MeshMaterial> materials;std::vector<std::shared_ptr<MeshMaterialFrame>> frames;};
 struct StaticMesh {
-  std::vector<MeshMaterial*> materials;M4x4 translation,rotation,scale;
-  explicit StaticMesh(const MeshBuilderData* b){for(auto& m:b->materials)materials.push_back(new MeshMaterial(m));}
+  std::vector<MeshMaterial*> materials;std::vector<std::shared_ptr<MeshMaterialFrame>> frames;M4x4 translation,rotation,scale;
+  M4x4 getModelMatrix()const{return translation*rotation*scale;}
+  explicit StaticMesh(const MeshBuilderData* b):frames(b->frames){for(auto& m:b->materials)materials.push_back(new MeshMaterial(m));}
   ~StaticMesh(){for(auto* m:materials)delete m;}
 };
 struct ObjLoaderOptions {float scale=1;bool flipUVs=false;};
@@ -68,7 +81,24 @@ struct ObjLoader {
       if(token=="Kd"){float g=0,bv=0;in>>g>>bv;b->materials.back().ambient.set(std::stof(value)*128,g*128,bv*128,128);}
       if(token=="map_Kd") b->materials.back().textureName=value.substr(0,value.size()-4);
     }
-    assert(!b->materials.empty());return b;
+    assert(!b->materials.empty());
+    std::ifstream obj(path);std::vector<Vec4> vertices;std::vector<std::vector<Vec4>> faces(b->materials.size());
+    unsigned material=0;
+    while(std::getline(obj,line)){
+      std::istringstream in(line);std::string token;in>>token;
+      if(token=="v"){float x,y,z;in>>x>>y>>z;vertices.emplace_back(x,y,z,1);}
+      else if(token=="usemtl"){std::string name;in>>name;for(unsigned i=0;i<b->materials.size();i++)if(b->materials[i].name==name)material=i;}
+      else if(token=="f"){
+        std::string value;std::vector<int> indices;while(in>>value){int index=std::stoi(value.substr(0,value.find('/')));indices.push_back(index>0?index-1:int(vertices.size())+index);}
+        for(unsigned i=1;i+1<indices.size();i++)for(unsigned j:{0U,i,i+1})faces[material].push_back(vertices.at(indices[j]));
+      }
+    }
+    for(unsigned i=0;i<b->materials.size();i++){
+      auto f=std::make_shared<MeshMaterialFrame>();f->ownedVertices=std::move(faces[i]);
+      f->count=f->ownedVertices.size();f->vertices=f->ownedVertices.data();
+      b->materials[i].frames.push_back(f.get());b->frames.push_back(std::move(f));
+    }
+    return b;
   }
 };
 enum SpriteMode {MODE_REPEAT,MODE_STRETCH};
@@ -124,7 +154,7 @@ struct Renderer {
 struct AudioAdpcm {
   void reset(){HostAudio::loaded.clear();++HostAudio::resets;}
   void setVolume(u8 volume,s8 channel){assert(channel>=0&&channel<24);HostAudio::volumes[channel]=volume;}
-  int tryPlay(audsrv_adpcm_t* sample, s8 = -1){assert(HostAudio::loaded.count(sample));HostAudio::played.push_back(sample);return HostAudio::playResult;}
+  int tryPlay(audsrv_adpcm_t* sample, s8 channel = -1){assert(HostAudio::loaded.count(sample));HostAudio::played.push_back(sample);HostAudio::channels.push_back(channel);return HostAudio::playResult;}
 };
 struct Audio {AudioAdpcm adpcm;};
 struct Engine {Pad pad;Renderer renderer;Audio audio;};

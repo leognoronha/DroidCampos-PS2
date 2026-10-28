@@ -6,6 +6,34 @@ namespace DroidCampos {
 namespace Systems {
 namespace Input {
 
+namespace {
+// Ray from the rendered reticle; slab intersection handles vertical aim too.
+bool reticleHits(const Core::WorldState& state, float minX, float minY,
+                 float minZ, float maxX, float maxY, float maxZ, float& hit) {
+  const auto& origin = state.player.cameraPos;
+  const auto& look = state.player.cameraLookAt;
+  const float origins[3] = {origin.x, origin.y, origin.z};
+  const float directions[3] = {look.x-origin.x, look.y-origin.y, look.z-origin.z};
+  const float mins[3] = {minX, minY, minZ};
+  const float maxs[3] = {maxX, maxY, maxZ};
+  float near = 0.0F, far = hit;
+  for (int axis=0; axis<3; ++axis) {
+    if (std::fabs(directions[axis]) < 0.00001F) {
+      if (origins[axis] < mins[axis] || origins[axis] > maxs[axis]) return false;
+    } else {
+      float a = (mins[axis]-origins[axis])/directions[axis];
+      float b = (maxs[axis]-origins[axis])/directions[axis];
+      if (a>b) { const float temp=a; a=b; b=temp; }
+      if (a>near) near=a;
+      if (b<far) far=b;
+      if (near>far) return false;
+    }
+  }
+  hit=near;
+  return true;
+}
+}  // namespace
+
 void InputSystem::init(Tyra::Engine* engine, Core::WorldState& state,
                        Events::EventBus& bus) {
   (void)engine;
@@ -94,8 +122,11 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   constexpr float kInteractRadiusSq = 2.55F * 2.55F;
   const float dxReader = state.player.playerPos.x - kCardReaderX;
   const float dzReader = state.player.playerPos.z - kCardReaderZ;
+  float readerHit = 2.55F;
   state.cardReader.isPlayerNearby = state.scene.active == Core::SceneId::Exterior &&
-      ((dxReader * dxReader + dzReader * dzReader) <= kInteractRadiusSq);
+      !state.radio.popupActive &&
+      ((dxReader * dxReader + dzReader * dzReader) <= kInteractRadiusSq) &&
+      reticleHits(state, 2.2665F, 1.0F, 3.0365F, 2.7027F, 1.4766F, 3.5508F, readerHit);
 
   if (state.cardReader.isPlayerNearby && !state.radio.popupActive &&
       !state.cardReader.isUnlocked && clicked.Square) {
@@ -105,12 +136,20 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
 
   state.scene.nearbyDoor = -1;
   if (state.scene.active == Core::SceneId::Interior && !state.radio.popupActive) {
-    float nearest = 1.8F * 1.8F;
+    float nearestHit = 1.8F;
     for (int i = 0; i < 4; ++i) {
       const float dx = state.player.playerPos.x - Core::kInsideDoorX[i];
       const float dz = state.player.playerPos.z - Core::kInsideDoorZ[i];
       const float dist = dx * dx + dz * dz;
-      if (dist < nearest) { nearest = dist; state.scene.nearbyDoor = i; }
+      // Keep the doorway target available when its sliding panel is open.
+      // Its bounds match the 1.4m wide, 2.2m high opening in the model.
+      float hit = nearestHit;
+      if (dist <= 1.8F * 1.8F && reticleHits(state,
+          Core::kInsideDoorX[i] - .08F, 0.0F, Core::kInsideDoorZ[i] - .7F,
+          Core::kInsideDoorX[i] + .08F, 2.2F, Core::kInsideDoorZ[i] + .7F, hit)) {
+        nearestHit = hit;
+        state.scene.nearbyDoor = i;
+      }
     }
     if (state.scene.nearbyDoor >= 0 && clicked.Square) {
       auto& door = state.scene.doors[state.scene.nearbyDoor];
@@ -173,6 +212,8 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   state.inputCmd.lookPitchDelta = lookPitchDelta;
   state.inputCmd.isRunning = pressed.L1;
   state.inputCmd.jumpRequested = clicked.Cross;
+  state.inputCmd.fireRequested = clicked.R1;
+  state.inputCmd.reloadRequested = clicked.Circle && !state.radio.popupActive;
 }
 
 void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
@@ -235,6 +276,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
   } else if (state.menu.currentScreen == Core::ScreenState::NewGame) {
     if (clicked.Cross || clicked.Start) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
+      state.weapon = Core::WeaponState{};
       state.menu.activeSaveSlot = 0;
       state.scene.target = Core::SceneId::Exterior;
       state.scene.requested = true;

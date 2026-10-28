@@ -7,6 +7,7 @@ struct audsrv_adpcm_t {int pitch=0,loop=0,channels=0;void* buffer=nullptr;int si
 namespace HostAudio {
 inline std::map<audsrv_adpcm_t*,int> loaded;
 inline std::vector<audsrv_adpcm_t*> played;
+inline std::vector<int> channels;
 inline int volumes[24] = {};
 inline int playResult=0;
 inline bool failLoad=false;
