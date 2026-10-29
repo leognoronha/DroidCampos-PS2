@@ -1,0 +1,21 @@
+{
+  "source_version": "animations-v3-fit",
+  "variants": [
+    {
+      "name": "leader",
+      "vertices": 5343,
+      "frames": 18,
+      "position_bytes": 1154088,
+      "bank_sha256": "b6156fa44dea81c851151431f34c65d20825a56467550a2e06633933783b96c3",
+      "source_blend_sha256": "156f91b3159ea71ba83fc4776f8d740814395971cfa859b4339fc0c8162b2024"
+    },
+    {
+      "name": "guard",
+      "vertices": 5337,
+      "frames": 18,
+      "position_bytes": 1152792,
+      "bank_sha256": "6228fc79be72789fdd221ec8437482e176a029ef39367643cdd0eb6b6ba551a2",
+      "source_blend_sha256": "156f91b3159ea71ba83fc4776f8d740814395971cfa859b4339fc0c8162b2024"
+    }
+  ]
+}

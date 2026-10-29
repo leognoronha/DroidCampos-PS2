@@ -23,27 +23,27 @@ int main(int argc,char** argv){
       assert(Tyra::StaticPipeline::draws.size()==unsigned(totalDraws));
       assert(engine.renderer.core.gs.zBuffer.mask==initialMask);
       const auto& events=Tyra::RendererCore::renderEvents;
-      auto p=std::find(events.begin(),events.end(),"P1");assert(p!=events.end());
+      auto p=std::find(events.begin(),events.end(),"Zoff");assert(p!=events.end());--p;
       const auto index=p-events.begin();assert(index+7<=int(events.size()));
       const std::vector<std::string> expected={"P1","Zoff","P3","draw","P1",initialMask?"Zoff":"Zon","P3"};
       assert(std::vector<std::string>(p,p+7)==expected);
-      assert(std::count(events.begin(),events.end(),"P1")==2);
+      assert(std::count(events.begin(),events.end(),"P1")== (totalDraws==18 ? 3 : 2));
       assert(std::count(events.begin(),events.end(),"P3")==2);
     }
     Tyra::StaticPipeline::visible=false;Tyra::RendererCore::renderEvents.clear();
     Tyra::StaticPipeline::draws.clear();
     render.executeStage(Core::HardwareStage::Stage2_Vu1GsRender3D,&engine,s,bus,spr);
     assert(Tyra::StaticPipeline::draws.size()==unsigned(totalDraws-1));
-    for(const auto& event:Tyra::RendererCore::renderEvents)assert(event=="draw");
+    for(const auto& event:Tyra::RendererCore::renderEvents)assert(event=="draw" || event=="P1");
     Tyra::StaticPipeline::visible=true;engine.renderer.core.gs.zBuffer.mask=0;
   };
   for(int cycle=0;cycle<3;cycle++){
     render.loadSceneStep(&engine,Core::SceneId::Exterior,0);render.loadSceneStep(&engine,Core::SceneId::Exterior,1);
     checkPass(3); // Exterior, mist and weapon.
     assert(repo.getTexturesCount()>1);render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
-    for(int step=0;step<Core::kInsidePartCount;step++)render.loadSceneStep(&engine,Core::SceneId::Interior,step);
-    assert(repo.getTexturesCount()==11); // 10 shared scene PNGs + persistent pistol.
-    checkPass(16); // Interior, glass, doors and weapon.
+    for(int step=0;step<Core::kInsideLoadStepCount;step++)assert(render.loadSceneStep(&engine,Core::SceneId::Interior,step));
+    assert(repo.getTexturesCount()==13); // Scene, two enemies and persistent pistol.
+    checkPass(18);
     s.scene.active=Core::SceneId::Interior;s.resetPlayerToSpawn();s.menu.currentScreen=Core::ScreenState::GameplayFps;
     for(int i=0;i<4;i++){
       s.scene.doors[i]={1,false};s.player.playerPos.set(Core::kInsideDoorX[i],1.7F,Core::kInsideDoorZ[i]);
@@ -54,7 +54,7 @@ int main(int argc,char** argv){
       assert(s.scene.doors[i].openAmount<1);
     }
     Tyra::StaticPipeline::draws.clear();render.executeStage(Core::HardwareStage::Stage2_Vu1GsRender3D,&engine,s,bus,spr);
-    assert(Tyra::StaticPipeline::draws.size()==16); // 10 opaque parts, glass, four panels, pistol.
+    assert(Tyra::StaticPipeline::draws.size()==18);
     assert(engine.renderer.core.gs.zBuffer.mask==0); // Restore depth writes after glass.
     render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
   }

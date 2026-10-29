@@ -60,14 +60,17 @@ struct M4x4 {
   void rotateY(float v){M4x4 t;t.data[0]=t.data[10]=std::cos(v);t.data[8]=std::sin(v);t.data[2]=-std::sin(v);*this=*this*t;}
   void rotateZ(float v){M4x4 t;t.data[0]=t.data[5]=std::cos(v);t.data[1]=std::sin(v);t.data[4]=-std::sin(v);*this=*this*t;}
 };
-struct MeshMaterialFrame {u32 count=0;Vec4 *vertices=nullptr,*textureCoords=nullptr,*normals=nullptr;Color* colors=nullptr;std::vector<Vec4> ownedVertices;};
+struct BBox {BBox()=default;BBox(const Vec4*,u32){}};
+struct MeshFrame {BBox* bbox=new BBox;~MeshFrame(){delete bbox;}};
+struct MeshMaterialFrame {u32 count=0;Vec4 *vertices=nullptr,*textureCoords=nullptr,*normals=nullptr;Color* colors=nullptr;std::vector<Vec4> ownedVertices;BBox* bbox=new BBox;~MeshMaterialFrame(){delete bbox;}};
 struct MeshMaterial {u32 id;std::string name;std::optional<std::string> textureName;Color ambient;std::vector<MeshMaterialFrame*> frames;bool lightmapFlag=false;};
 struct MeshBuilderData {std::vector<MeshMaterial> materials;std::vector<std::shared_ptr<MeshMaterialFrame>> frames;};
 struct StaticMesh {
+  MeshFrame* frame=new MeshFrame;
   std::vector<MeshMaterial*> materials;std::vector<std::shared_ptr<MeshMaterialFrame>> frames;M4x4 translation,rotation,scale;
   M4x4 getModelMatrix()const{return translation*rotation*scale;}
   explicit StaticMesh(const MeshBuilderData* b):frames(b->frames){for(auto& m:b->materials)materials.push_back(new MeshMaterial(m));}
-  ~StaticMesh(){for(auto* m:materials)delete m;}
+  ~StaticMesh(){for(auto* m:materials)delete m;delete frame;}
 };
 struct ObjLoaderOptions {float scale=1;bool flipUVs=false;};
 struct FileUtils {inline static std::string root;static std::string fromCwd(const std::string& s){return root+s;}};
@@ -141,10 +144,11 @@ struct RendererCore {
 struct StaticPipeline {
   struct {void clearGeometryCache(){}u32 getMaxVertCountByParams(bool,bool,bool){return 54;}}core;
   inline static std::vector<Vec4> draws;
+  inline static std::vector<float> geometrySignatures;
   inline static bool visible=true;
   void setRenderer(RendererCore*){}
   bool isVisible(const StaticMesh*) const {return visible;}
-  void render(StaticMesh* m,const StaPipOptions&){draws.push_back(m->translation.position);RendererCore::renderEvents.push_back("draw");}
+  void render(StaticMesh* m,const StaPipOptions&){draws.push_back(m->translation.position);RendererCore::renderEvents.push_back("draw");float sum=0;for(auto* mat:m->materials)for(u32 i=0;i<mat->frames[0]->count;i+=17){auto& v=mat->frames[0]->vertices[i];sum+=v.x+v.y*2+v.z*3;}geometrySignatures.push_back(sum);}
 };
 struct Renderer {
   RendererCore core;TextureRepository repo;Renderer2D renderer2D;

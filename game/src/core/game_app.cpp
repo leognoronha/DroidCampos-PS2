@@ -145,7 +145,7 @@ void GameApp::updateSceneTransition() {
   scene.loadStep = 0;
   scene.presented = false;
   state.intro = SceneIntroState{};
-  scene.totalSteps = scene.target == SceneId::Interior ? kInsidePartCount + 1 : 3;
+  scene.totalSteps = scene.target == SceneId::Interior ? kInsideLoadStepCount + 1 : 3;
   scene.error = render3dSystem_.validateScene(scene.target) ? nullptr : "ASSET AUSENTE. VERIFIQUE OS ARQUIVOS.";
   state.menu.currentScreen = ScreenState::Loading;
   state.inputCmd.clear();
@@ -165,7 +165,12 @@ void GameApp::advanceLoading() {
     scene.resident = false;
     logSceneMemory("after unload");
   } else if (scene.loadStep < scene.totalSteps) {
-    render3dSystem_.loadSceneStep(engine_, scene.target, scene.loadStep - 1);
+    if (!render3dSystem_.loadSceneStep(engine_, scene.target, scene.loadStep - 1)) {
+      render3dSystem_.unloadScene(engine_);
+      scene.resident = false;
+      scene.error = "ERRO AO CARREGAR INIMIGOS. VERIFIQUE OS ARQUIVOS.";
+      return;
+    }
     logSceneMemory("load step");
   } else {
     scene.active = scene.target;

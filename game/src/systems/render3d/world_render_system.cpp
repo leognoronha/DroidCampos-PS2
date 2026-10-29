@@ -26,6 +26,7 @@ void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
   }
 
   stapip_.setRenderer(&engine->renderer.core);
+  enemyTest_.init(engine);
 
   scenarioOptions_.frustumCulling = PipelineFrustumCulling_Precise;
   scenarioOptions_.fullClipChecks = true;
@@ -370,6 +371,9 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
                                      Hardware::Ps2ScratchpadArena& scratchpad) {
   (void)scratchpad;
 
+  if (stage == Core::HardwareStage::Stage1_EeVu0Simulation)
+    enemyTest_.update(state, bus);
+
   if (state.menu.currentScreen != Core::ScreenState::GameplayFps) {
     return;
   }
@@ -419,6 +423,9 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       renderTransparentPass(engine, mistMesh_.get(), mistOptions_);
     }
 
+    enemyTest_.render(engine);
+    engine->renderer.renderer3D.usePipeline(stapip_);
+
     if (capsuleGlassMesh_) {
       renderTransparentPass(engine, capsuleGlassMesh_.get(), capsuleGlassOptions_);
     }
@@ -453,6 +460,7 @@ void WorldRenderSystem::shutdown(Engine* engine) {
 }
 
 bool WorldRenderSystem::validateScene(Core::SceneId scene) const {
+  if (scene == Core::SceneId::Interior && !Enemy::EnemyTestSystem::validateAssets()) return false;
   // Check OBJ, its MTL and every referenced PNG before destroying the old scene.
   std::vector<std::string> bases;
   if (scene == Core::SceneId::Exterior) bases = {"etip/etip_cenario", "etip/etip_nevoa"};
@@ -491,6 +499,7 @@ void WorldRenderSystem::unloadScene(Engine* engine) {
   if (scenarioMesh_) repo.freeByMesh(scenarioMesh_.get());
   if (mistMesh_) repo.freeByMesh(mistMesh_.get());
   scenarioMesh_.reset(); mistMesh_.reset();
+  enemyTest_.unload(engine);
   // Each interior PNG is owned once, regardless of how many material links use it.
   for (const auto& entry : interiorTextures_) repo.free(entry.second);
   interiorTextures_.clear(); interiorMeshes_.clear(); doorMesh_.reset();
@@ -499,12 +508,16 @@ void WorldRenderSystem::unloadScene(Engine* engine) {
   scenarioLoaded_ = mistLoaded_ = false;
 }
 
-void WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int step) {
+bool WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int step) {
+  if (!engine || step < 0) return false;
   if (scene == Core::SceneId::Exterior) {
     if (step == 0) loadScenario3D(engine);
     else loadMist3D(engine);
-    return;
+    return true;
   }
+  if (step >= Core::kInsideLoadStepCount) return false;
+  if (step >= Core::kInsidePartCount)
+    return enemyTest_.loadVariant(engine, step - Core::kInsidePartCount);
   const std::string base = std::string("etip_inside/") + Core::kInsideParts[step];
   ObjLoaderOptions options; options.scale = 1.0F; options.flipUVs = true;
   auto data = ObjLoader::load(FileUtils::fromCwd((base + ".obj").c_str()), options);
@@ -544,6 +557,7 @@ void WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
   if (std::string(Core::kInsideParts[step]) == "capsula_vidro") capsuleGlassMesh_ = std::move(mesh);
   else if (step == Core::kInsidePartCount - 1) doorMesh_ = std::move(mesh);
   else interiorMeshes_.push_back(std::move(mesh));
+  return true;
 }
 
 }  // namespace Render3D
