@@ -38,6 +38,10 @@ struct SceneState {
   int nearbyDoor = -1;
   bool terminalNearby = false;
   bool terminalActive = false;
+  int terminalTopic = 0;
+  int terminalPage = 0;
+  bool terminalReading = false;
+  int terminalBootFrames = 0;
   DoorState doors[4] = {};
 };
 

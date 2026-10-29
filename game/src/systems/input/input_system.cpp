@@ -66,6 +66,43 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
   }
 
   if (state.menu.currentScreen == Core::ScreenState::GameplayFps) {
+    // Terminal owns input before pause, radio, debug shortcuts and gameplay.
+    if (state.scene.terminalActive) {
+      const auto& clicked = engine->pad.getClicked();
+      auto& terminal = state.scene;
+      if (clicked.Triangle || (clicked.Circle && !terminal.terminalReading)) {
+        terminal.terminalActive = false;
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
+      } else if (clicked.Circle) {
+        terminal.terminalReading = false;
+        terminal.terminalPage = 0;
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
+      } else if (terminal.terminalBootFrames > 0) {
+        --terminal.terminalBootFrames;
+      } else {
+        const auto& joy = engine->pad.getLeftJoyPad();
+        const bool up = clicked.DpadUp || (state.menu.padCooldown == 0 && joy.v <= 70);
+        const bool down = clicked.DpadDown || (state.menu.padCooldown == 0 && joy.v >= 185);
+        const bool left = clicked.DpadLeft || (state.menu.padCooldown == 0 && joy.h <= 70);
+        const bool right = clicked.DpadRight || (state.menu.padCooldown == 0 && joy.h >= 185);
+        if (!terminal.terminalReading && clicked.Cross) {
+          terminal.terminalReading = true;
+          terminal.terminalPage = 0;
+          bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
+        } else if (!terminal.terminalReading && (up || down)) {
+          terminal.terminalTopic = (terminal.terminalTopic + (up ? 2 : 1)) % 3;
+          state.menu.padCooldown = 12;
+          bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
+        } else if (terminal.terminalReading &&
+                   ((left && terminal.terminalPage > 0) ||
+                    (right && terminal.terminalPage < 1))) {
+          terminal.terminalPage += left ? -1 : 1;
+          state.menu.padCooldown = 12;
+          bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
+        }
+      }
+      return; // Closing must consume this frame's Circle/Cross/R1 too.
+    }
     if (engine->pad.getClicked().Start) {
       state.menu.currentScreen = Core::ScreenState::Paused;
       state.menu.pauseSelectedIndex = 0;
@@ -163,8 +200,17 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   state.scene.terminalNearby = state.scene.active == Core::SceneId::Interior &&
       terminalDx * terminalDx + terminalDz * terminalDz <= 1.8F * 1.8F;
   if (!state.scene.terminalNearby) state.scene.terminalActive = false;
-  if (state.scene.terminalNearby && !state.radio.popupActive && clicked.Triangle)
-    state.scene.terminalActive = !state.scene.terminalActive;
+  if (state.scene.terminalNearby && !state.radio.popupActive && clicked.Triangle) {
+    state.scene.terminalActive = true;
+    state.scene.terminalTopic = 0;
+    state.scene.terminalPage = 0;
+    state.scene.terminalReading = false;
+    state.scene.terminalBootFrames = 24;
+    state.menu.padCooldown = 12;
+    state.weapon.cancelTransient();
+    bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
+    return;
+  }
 
   float lookYawDelta = 0.0F;
   float lookPitchDelta = 0.0F;

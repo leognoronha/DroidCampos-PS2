@@ -13,7 +13,7 @@ void WeaponSystem::executeStage(Core::HardwareStage stage, Tyra::Engine*,
   u32 elapsed = timer_.getTimeDelta();
   timer_.prime();
   const bool active = s.menu.currentScreen == Core::ScreenState::GameplayFps &&
-                      !s.intro.active && s.scene.resident &&
+                      !s.intro.active && !s.scene.terminalActive && s.scene.resident &&
                       s.scene.presented && !s.scene.requested &&
                       s.scene.accessFrames == 0;
   if (!active) {
