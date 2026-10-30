@@ -19,7 +19,9 @@ enum class EventType : u8 {
   MenuNavigateRequested = 10,
   RadioReviewRequested = 11,
   WeaponFired = 12,
-  WeaponReloadStarted = 13
+  WeaponReloadStarted = 13,
+  EnemyDefeated = 16,
+  PlayerDefeated = 17
 };
 
 struct alignas(16) GameEvent {

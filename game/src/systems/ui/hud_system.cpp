@@ -109,6 +109,21 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
     return;
   }
 
+  const Color cyan(55,120,120,128),dim(20,48,50,128);
+  auto& font=drawer_->getFont();
+  if(state.damageFlashTicks) {
+    const Color flash(110,10,5,40);
+    drawer_->drawRect(0,0,512,6,flash);drawer_->drawRect(0,442,512,6,flash);
+    drawer_->drawRect(0,0,6,448,flash);drawer_->drawRect(506,0,6,448,flash);
+  }
+  // Keep telemetry below the incoming-radio icon and above contextual prompts.
+  drawer_->drawBlueprintPanel(12,100,174,42,Color(2,7,10,112),cyan);
+  char health[24];std::snprintf(health,sizeof(health),"VIDA %03d / 100",state.playerHealth);
+  const Color life=state.playerHealth<25?Color(128,35,18,128):cyan;
+  font.drawText(health,22,107,life,.9F);
+  drawer_->drawRect(22,129,152,4,dim);
+  if(state.playerHealth>0)drawer_->drawRect(22,129,152.F*state.playerHealth/Core::kPlayerHealth,4,life);
+
   // Center First-Person Reticle (Crosshair)
   const float cx = 256.0F;
   const float cy = 224.0F;

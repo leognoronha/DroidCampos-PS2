@@ -10,6 +10,7 @@ try {
   $algorithm = 'engine/src/renderer/core/3d/clipper/planes_clip_algorithm.cpp'
   $core = 'engine/src/renderer/3d/pipeline/static/core'
   $cases = @(
+    @{Name='combat'; Args=$game+@('tests/host/combat_test.cpp','game/src/systems/weapon/weapon_system.cpp','game/src/systems/weapon/weapon_geometry.cpp','game/src/events/event_bus.cpp','game/src/hardware/ps2_scratchpad.cpp')},
     @{Name='terminal'; Args=$game+@('tests/host/terminal_test.cpp', 'game/src/systems/input/input_system.cpp', 'game/src/systems/player/player_controller_system.cpp', 'game/src/systems/physics/collision_system.cpp', 'game/src/systems/ui/hud_system.cpp', 'game/src/systems/ui/ui_context_drawer.cpp', 'game/src/systems/ui/font_sprite.cpp', 'game/src/events/event_bus.cpp', 'game/src/hardware/ps2_scratchpad.cpp')},
     @{Name='enemy-test'; Args=$game+@('tests/host/enemy_test.cpp', 'game/src/systems/enemy/enemy_render_system.cpp', 'game/src/events/event_bus.cpp')},
     @{Name='weapon-hud'; Args=$game+@('tests/host/weapon_hud_test.cpp', 'game/src/systems/ui/hud_system.cpp', 'game/src/systems/ui/ui_context_drawer.cpp', 'game/src/systems/ui/font_sprite.cpp', 'game/src/events/event_bus.cpp', 'game/src/hardware/ps2_scratchpad.cpp')},

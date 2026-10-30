@@ -281,6 +281,14 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
     state.menu.padCooldown = 12;
   }
 
+  if (state.menu.currentScreen == Core::ScreenState::Defeated) {
+    if(clicked.Cross) {
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
+      state.menu.currentScreen=Core::ScreenState::MainMenu;
+    }
+    return;
+  }
+
   if (state.menu.currentScreen == Core::ScreenState::Paused) {
     if (clicked.Start || clicked.Circle) {
       state.menu.currentScreen = Core::ScreenState::GameplayFps;

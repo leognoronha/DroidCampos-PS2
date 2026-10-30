@@ -98,7 +98,7 @@ void EnemyRenderSystem::render(Tyra::Engine* engine,const Core::WorldState& s) {
           from[v*3+1]+(to[v*3+1]-from[v*3+1])*pose.blend,
           from[v*3+2]+(to[v*3+2]-from[v*3+2])*pose.blend,1);
     auto* mat=actor.mesh->materials[0];
-    mat->ambient.set(128,128,128,128);
+    mat->ambient.set(128,enemy.hitTicks?55:128,enemy.hitTicks?55:128,128);
     actor.mesh->rotation.identity();actor.mesh->rotation.rotateY(enemy.yaw);
     actor.mesh->translation.identity();actor.mesh->translation.translate(enemy.position);
     pipeline_.render(actor.mesh.get(),options_);

@@ -14,6 +14,7 @@ int main(){
   auto poll=[&](){bus.flushFrameEvents(); input.executeStage(Core::HardwareStage::Stage0_IopInputPoll,&engine,s,bus,spr);};
   auto resolve=[&](float& x,float& z){spr.resetFrame(); Systems::Physics::CollisionSystem::resolvePlayerCollisions(x,z,spr,s);};
   s.menu.currentScreen=Core::ScreenState::GameplayFps;
+  s.scene.resident=s.scene.presented=true;
   s.player.playerPos.set(2.48F,1.7F,3.8F);
   auto aim=[&](float x,float y,float z){
     s.player.yaw=std::atan2(z-s.player.playerPos.z,x-s.player.playerPos.x);
@@ -65,10 +66,10 @@ int main(){
   for(int i=0;i<60;i++){poll();tick();peak=std::max(peak,s.player.playerPos.y);}
   assert(peak>2.5F && peak<3.0F && s.player.grounded);
   assert(std::fabs(s.player.cameraPos.y-1.7F)<.001F);
-  // Radio overlay leaves jumping available and X never dismisses the message.
+  // Radio freezes locomotion; X never dismisses the message.
   s.radio.popupActive=true;s.radio.phase=Core::RadioPhase::Message;
   engine.pad.clicked.Cross=true;poll();tick();
-  assert(!s.player.grounded && s.player.playerPos.y>1.7F && s.radio.popupActive);
+  assert(s.player.grounded && s.player.playerPos.y==1.7F && s.radio.popupActive);
   assert(bus.size()==0 && s.inputCmd.jumpRequested);
   engine.pad.clicked={};
   for(int i=0;i<60;i++){poll();tick();}
@@ -100,7 +101,8 @@ int main(){
   assert(s.menu.pauseSelectedIndex==1);
   engine.pad.clicked={};engine.pad.clicked.Cross=true;poll();
   assert(s.menu.currentScreen==Core::ScreenState::MainMenu);
-  s.menu.currentScreen=Core::ScreenState::GameplayFps;engine.pad.clicked={};
+  s.menu.currentScreen=Core::ScreenState::GameplayFps;
+  s.scene.resident=s.scene.presented=true;engine.pad.clicked={};
   float x=0,z=-1; for(int i=0;i<50;i++){z+=.1F;resolve(x,z);} assert(z<=-.59F);
   x=0;z=-20;for(int i=0;i<80;i++){z-=.1F;resolve(x,z);} assert(z<-27.5F);
   // Capsule occupies only the right wall; the wide central aisle stays free.

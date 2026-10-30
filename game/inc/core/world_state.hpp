@@ -22,7 +22,8 @@ enum class ScreenState : u8 {
   Settings = 3,
   GameplayFps = 4,
   Loading = 5,
-  Paused = 6
+  Paused = 6,
+  Defeated = 7
 };
 
 enum class SceneId : u8 { Exterior, Interior };
@@ -138,7 +139,9 @@ struct WeaponState {
   u32 beamTicks = 0;
   u32 impactTicks = 0;
   bool impact = false;
-  Tyra::Vec4 beamStart, beamEnd, impactNormal;
+  Tyra::Vec4 beamStart = Tyra::Vec4(0,0,0,1);
+  Tyra::Vec4 beamEnd = Tyra::Vec4(0,0,0,1);
+  Tyra::Vec4 impactNormal = Tyra::Vec4(0,1,0,0);
   void cancelTransient() {
     cooldownTicks = reloadTicks = beamTicks = impactTicks = 0;
     impact = false;
@@ -149,10 +152,11 @@ struct EnemyState {
   bool active = false;
   bool moving = false;
   int variant = 0;
+  int health = kEnemyHealth;
   Tyra::Vec4 position = Tyra::Vec4(0,0,0,1);
   float yaw = 0;
   WeaponState weapon;
-  u32 animationTicks = 0, shotAnimationTicks = 0;
+  u32 animationTicks = 0, shotAnimationTicks = 0, hitTicks = 0;
 };
 
 struct alignas(64) WorldState {
@@ -165,7 +169,15 @@ struct alignas(64) WorldState {
   SceneState scene;
   SceneIntroState intro;
   WeaponState weapon;
+  int playerHealth = kPlayerHealth;
+  u32 damageFlashTicks = 0;
   std::array<EnemyState,kMaxEnemies> enemies{};
+
+  bool simulationActive() const {
+    return menu.currentScreen == ScreenState::GameplayFps && scene.resident &&
+        scene.presented && !scene.requested && !scene.accessFrames &&
+        !intro.active && !scene.terminalActive && !radio.popupActive && playerHealth>0;
+  }
 
   void resetPlayerToSpawn() {
     player.playerPos.set(0.0F, kDefaultEyeHeight, 17.0F, 1.0F);
@@ -206,6 +218,8 @@ struct alignas(64) WorldState {
   void resetToDefaults() {
     weapon = WeaponState{};
     enemies = {};
+    playerHealth = kPlayerHealth;
+    damageFlashTicks = 0;
     scene = SceneState{};
     intro = SceneIntroState{};
     player.moveSpeed = 0.11F;

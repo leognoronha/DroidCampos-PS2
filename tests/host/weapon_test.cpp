@@ -134,9 +134,10 @@ int main(int argc, char** argv) {
   s.radio.popupActive = true;
   s.radio.phase = Core::RadioPhase::Message;
   click(true, false, Core::kShotIntervalTicks);
-  assert(s.weapon.ammo == 7 && s.radio.popupActive);
+  assert(s.weapon.ammo == 8 && s.radio.popupActive);
   click(false, true, 0);
-  assert(!s.radio.popupActive && !s.weapon.reloadTicks && s.weapon.ammo == 7);
+  assert(!s.radio.popupActive && !s.weapon.reloadTicks && s.weapon.ammo == 8);
+  click(true, false, 0); // The first shot after closing the radio is explicit.
   click(false, true, 0);
   assert(s.weapon.reloadTicks == Core::kReloadTicks);
   s.weapon.cancelTransient();

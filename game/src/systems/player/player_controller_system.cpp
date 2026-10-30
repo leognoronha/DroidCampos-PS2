@@ -39,8 +39,7 @@ void PlayerControllerSystem::executeStage(
 
   updateGlobalAnimations(state);
 
-  if (state.menu.currentScreen == Core::ScreenState::GameplayFps &&
-      !state.scene.terminalActive) {
+  if (state.simulationActive()) {
     updateFpsKinematics(state, scratchpad);
   }
 }

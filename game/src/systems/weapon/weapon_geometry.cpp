@@ -53,6 +53,7 @@ bool WeaponRayScene::trace(const Core::WorldState& state,
       if (v < 0 || u + v > 1) continue;
       const float distance = dot(e2, q) * inv;
       if (distance < 0.0001F || distance > result.distance) continue;
+      result.actor = -2;
       result.distance = distance;
       result.position = Weapon::add(origin, mul(direction, distance));
       result.normal = unit(cross(e1, e2));

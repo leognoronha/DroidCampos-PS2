@@ -68,6 +68,11 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       drawer_->renderFooter(failed ? "O / X: RETURN TO MENU" : "LOADING ETIP...");
       break;
     }
+    case Core::ScreenState::Defeated:
+      drawer_->drawBlueprintPanel(80,144,352,170,menuInk(0,0,0),menuInk(230,70,50));
+      drawer_->getFont().drawText("VOCE FOI DERROTADO",120,168,menuInk(250,130,100));
+      drawer_->renderFooter("X: MENU PRINCIPAL");
+      break;
     case Core::ScreenState::Paused:
       drawer_->drawBlueprintPanel(96, 144, 320, 160, menuInk(0, 0, 0), menuInk(0, 190, 210));
       drawer_->getFont().drawText("JOGO PAUSADO", 152, 164, menuInk(159, 239, 232));
