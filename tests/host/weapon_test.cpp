@@ -170,6 +170,11 @@ int main(int argc, char** argv) {
   e.pad.clicked.Cross = true;
   poll();
   assert(s.weapon.ammo == 8);
+  s.menu.currentScreen=Core::ScreenState::Defeated;
+  bus.clear();sounds=HostAudio::played.size();
+  bus.publish(Events::GameEvent::makeSimple(Events::EventType::WeaponFired,1));
+  audio.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&e,s,bus,spr);
+  assert(HostAudio::played.size()==sounds+1 && HostAudio::channels.back()==7);
   audio.shutdown(&e);
   assert(HostAudio::loaded.empty());
   // A wall between camera and barrel must stop the beam on the near side.

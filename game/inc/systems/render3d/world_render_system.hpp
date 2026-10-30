@@ -39,6 +39,7 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
   void loadPistol3D(Tyra::Engine* engine);
   void loadWeaponEffects();
   void renderWeaponEffects(Tyra::Engine*,const Core::WorldState&);
+  void renderOneWeaponEffect(Tyra::Engine*,const Core::WeaponState&);
   void registerWeaponGeometry(Tyra::StaticMesh*,int door=-1);
   Weapon::WeaponRayScene weaponRays_;
   std::unique_ptr<Tyra::StaticMesh> beamCore_, beamGlow_, impactMesh_;

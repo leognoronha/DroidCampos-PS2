@@ -224,8 +224,12 @@ void WorldRenderSystem::loadWeaponEffects() {
 
 void WorldRenderSystem::renderWeaponEffects(Engine* engine,
                                             const Core::WorldState& state) {
+  renderOneWeaponEffect(engine,state.weapon);
+  for(const auto& enemy:state.enemies)
+    if(enemy.active)renderOneWeaponEffect(engine,enemy.weapon);
+}
+void WorldRenderSystem::renderOneWeaponEffect(Engine* engine,const Core::WeaponState& w) {
   using namespace Weapon;
-  const auto& w = state.weapon;
   if (!beamCore_ || !beamGlow_ || !impactMesh_) return;
   // The unit geometry never changes: model transforms keep Tyra's bbox cache
   // valid.

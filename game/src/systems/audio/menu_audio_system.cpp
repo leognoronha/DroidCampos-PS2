@@ -89,7 +89,8 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
   if (!engine || !initialized_) return;
   if (stage == Core::HardwareStage::Stage1_EeVu0Simulation) {
     // Weapon events are emitted in simulation, after input and player movement.
-    if (state.menu.currentScreen == Core::ScreenState::GameplayFps &&
+    if ((state.menu.currentScreen == Core::ScreenState::GameplayFps ||
+         state.menu.currentScreen == Core::ScreenState::Defeated) &&
         state.menu.sfxVolume > 0) {
       u32 count = 0;
       const auto* events = bus.getFrameEvents(count);
@@ -98,12 +99,15 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
             weaponShotLoaded_) {
           // 11 voices cover the full 2.598s tail at 4 shots/sec; never
           // wait/retry.
-          engine->audio.adpcm.tryPlay(&weaponShot_, nextWeaponChannel_);
-          nextWeaponChannel_ =
-              nextWeaponChannel_ == 20 ? 10 : nextWeaponChannel_ + 1;
+          if(events[i].intParam>=0)
+            engine->audio.adpcm.tryPlay(&weaponShot_,6+events[i].intParam%4);
+          else {
+            engine->audio.adpcm.tryPlay(&weaponShot_, nextWeaponChannel_);
+            nextWeaponChannel_ = nextWeaponChannel_ == 20 ? 10 : nextWeaponChannel_ + 1;
+          }
         } else if (events[i].type == Events::EventType::WeaponReloadStarted &&
                    weaponReloadLoaded_)
-          engine->audio.adpcm.tryPlay(&weaponReload_, 21);
+          engine->audio.adpcm.tryPlay(&weaponReload_,events[i].intParam>=0?6+events[i].intParam%4:21);
       }
     }
     updateRadio(engine, state);
@@ -142,7 +146,7 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
         engine->audio.adpcm.tryPlay(sample, 22);
       else {
         engine->audio.adpcm.tryPlay(sample, nextUiChannel_);
-        nextUiChannel_ = nextUiChannel_ == 9 ? 0 : nextUiChannel_ + 1;
+        nextUiChannel_ = nextUiChannel_ == 5 ? 0 : nextUiChannel_ + 1;
       }
     }
   }

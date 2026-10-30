@@ -151,14 +151,21 @@ struct WeaponState {
 struct EnemyState {
   bool active = false;
   bool moving = false;
+  bool canShoot = false;
   int variant = 0;
   int health = kEnemyHealth;
   EnemyBehavior behavior = EnemyBehavior::Alert;
   Tyra::Vec4 position = Tyra::Vec4(0,0,0,1);
   float yaw = 0;
   WeaponState weapon;
-  u32 pathTicks = 0, stuckTicks = 0;
+  u32 alertTicks = kEnemyReaction;
+  u32 fireTicks = 0, pathTicks = 0, stuckTicks = 0;
   u32 animationTicks = 0, shotAnimationTicks = 0, hitTicks = 0;
+  u32 randomState = 1;
+};
+struct EncounterState {
+  u32 attackTicks = 0;
+  int attackCursor = 0;
 };
 
 struct alignas(64) WorldState {
@@ -174,6 +181,7 @@ struct alignas(64) WorldState {
   int playerHealth = kPlayerHealth;
   u32 damageFlashTicks = 0;
   std::array<EnemyState,kMaxEnemies> enemies{};
+  EncounterState encounter;
 
   bool simulationActive() const {
     return menu.currentScreen == ScreenState::GameplayFps && scene.resident &&
@@ -219,9 +227,10 @@ struct alignas(64) WorldState {
 
   void resetToDefaults() {
     weapon = WeaponState{};
-    enemies = {};
     playerHealth = kPlayerHealth;
     damageFlashTicks = 0;
+    enemies = {};
+    encounter = EncounterState{};
     scene = SceneState{};
     intro = SceneIntroState{};
     player.moveSpeed = 0.11F;

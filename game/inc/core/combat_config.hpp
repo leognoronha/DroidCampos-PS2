@@ -10,7 +10,14 @@ constexpr float kPlayerBodyRadius = .48F;
 constexpr float kEnemyRadius = .35F;
 constexpr float kEnemyHeight = 1.75F;
 constexpr float kEnemySpeed = 3.0F;
+constexpr float kCombatEnterRange = 6.0F;
+constexpr float kCombatExitRange = 8.0F;
+constexpr float kEnemySpreadRadians = .104719755F;
 constexpr std::uint32_t kCombatTicksPerSecond = 15625;
+constexpr std::uint32_t kEnemyReaction = 12500;
+constexpr std::uint32_t kEnemyFireInterval = 12500;
+constexpr std::uint32_t kDecisionInterval = 1563;
 constexpr std::uint32_t kPathInterval = 7813;
+constexpr std::uint32_t kAttackRotation = 31250;
 enum class EnemyBehavior : std::uint8_t { Alert, Pursuit, Combat };
 }}  // namespace DroidCampos::Core

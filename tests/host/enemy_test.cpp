@@ -55,22 +55,35 @@ int main(int argc,char** argv) {
   p=moveInterior(s,Tyra::Vec4(.8F,0,-8,1),3,0,.35F,0);assert(p.x<1.2F);
   s.scene.doors[1].openAmount=1;p=moveInterior(s,Tyra::Vec4(.8F,0,-8,1),3,0,.35F,0);
   assert(p.x>3.5F);
+  // Occlusion gates Combat; rotation never grants more than two firing slots.
+  s=fixture();s.player.playerPos=Tyra::Vec4(0,1.7F,-29,1);
+  const Tyra::Vec4 positions[]={{-2,0,-27,1},{-1,0,-26,1},{0,0,-25,1},{1,0,-26,1},{1,0,-30.5F,1}};
+  for(int i=0;i<5;++i){auto& e=s.enemies[i];e.active=true;e.position=positions[i];e.alertTicks=1;e.randomState=i+1;}
+  ai.init(&engine,s,bus);bus.clear();ai.advance(s,bus,0);
+  for(const auto& e:s.enemies)assert(e.behavior==Core::EnemyBehavior::Alert);
+  ai.advance(s,bus,Core::kDecisionInterval);int slots=0;
+  for(const auto& e:s.enemies)if(e.canShoot)++slots;
+  assert(slots==2);
+  int oldCursor=s.encounter.attackCursor;s.playerHealth=100;ai.advance(s,bus,Core::kAttackRotation);
+  assert(s.encounter.attackCursor!=oldCursor);slots=0;
+  for(const auto& e:s.enemies)if(e.canShoot)++slots;
+  assert(slots<=2);
   // A pursued side room opens its own door and crosses only after clearance.
   s=fixture();s.player.playerPos=Tyra::Vec4(3.8F,1.7F,-16,1);
   auto& pursuer=s.enemies[0];pursuer.active=true;pursuer.position=Tyra::Vec4(0,0,-16,1);
-  pursuer.behavior=Core::EnemyBehavior::Pursuit;scene.blind=true;ai.init(&engine,s,bus);
+  pursuer.alertTicks=0;scene.blind=true;ai.init(&engine,s,bus);
   for(int i=0;i<400;++i){bus.clear();ai.advance(s,bus,260);s.playerHealth=100;}
   assert(s.scene.doors[3].targetOpen && s.scene.doors[3].openAmount==1);
   assert(pursuer.position.x>1.9F);
   // Door safety includes enemies, even when the player is elsewhere.
   pursuer.position=Tyra::Vec4(Core::kInsideDoorX[3],0,Core::kInsideDoorZ[3],1);
-  pursuer.behavior=Core::EnemyBehavior::Alert;s.scene.doors[3]={1,false};bus.clear();ai.advance(s,bus,100);
+  pursuer.alertTicks=9999;s.scene.doors[3]={1,false};bus.clear();ai.advance(s,bus,100);
   assert(s.scene.doors[3].targetOpen && s.scene.doors[3].openAmount==1);
   // Five agents queue through a side-room door without overlapping or escaping geometry.
   s=fixture();s.player.playerPos=Tyra::Vec4(0,1.7F,-25,1);
   const Tyra::Vec4 queuePositions[]={{-3.8F,0,-16,1},{-3,0,-16,1},
       {-2.2F,0,-16,1},{-3,0,-15.1F,1},{-4.1F,0,-15.1F,1}};
-  for(int i=0;i<5;++i){s.enemies[i].active=true;s.enemies[i].behavior=Core::EnemyBehavior::Pursuit;s.enemies[i].position=queuePositions[i];}
+  for(int i=0;i<5;++i){s.enemies[i].active=true;s.enemies[i].alertTicks=0;s.enemies[i].position=queuePositions[i];}
   ai.init(&engine,s,bus);
   for(int frame=0;frame<2400;++frame) {
     bus.clear();ai.advance(s,bus,260);
@@ -104,5 +117,5 @@ int main(int argc,char** argv) {
   {std::ofstream file(temp/"enemies/leader/motion.bin",std::ios::binary);file<<"invalid";}
   assert(!renderer.loadSlot(&engine,0));assert(engine.renderer.repo.getTexturesCount()==0);
   Tyra::FileUtils::root=oldRoot;fs::remove_all(temp);
-  std::cout<<"PASS: A*, swept movement, actor separation, doors and independent meshes\n";
+  std::cout<<"PASS: A*, movement, alert/pursuit/combat, firing slots and doors\n";
 }

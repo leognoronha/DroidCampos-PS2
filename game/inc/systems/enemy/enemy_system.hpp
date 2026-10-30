@@ -16,13 +16,16 @@ class EnemySystem final : public Core::ISubsystem {
   void advance(Core::WorldState&,Events::EventBus&,u32 elapsed);
   static void reset(Core::WorldState&);
  private:
+  void decide(Core::WorldState&);
   void move(Core::WorldState&,int,float);
+  void fire(Core::WorldState&,Events::EventBus&,int);
   void doors(Core::WorldState&,float);
   Weapon::WeaponScene* scene_;
   InteriorNavigation navigation_;
   Tyra::Timer timer_;
   bool wasActive_=false;
   bool navigationReady_=false;
+  u32 decisionTicks_=0;
   std::array<std::array<int,InteriorNavigation::kCapacity>,Core::kMaxEnemies> paths_{};
   std::array<int,Core::kMaxEnemies> pathSizes_{},pathCursors_{};
 };
