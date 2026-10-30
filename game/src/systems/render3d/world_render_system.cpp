@@ -371,27 +371,12 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
                                      Hardware::Ps2ScratchpadArena& scratchpad) {
   (void)scratchpad;
 
-  if (stage == Core::HardwareStage::Stage1_EeVu0Simulation)
-    (void)bus;
 
   if (state.menu.currentScreen != Core::ScreenState::GameplayFps) {
     return;
   }
 
   if (stage == Core::HardwareStage::Stage1_EeVu0Simulation) {
-    if (state.scene.active == Core::SceneId::Interior) {
-      for (int i = 0; i < 4; ++i) {
-        auto& door = state.scene.doors[i];
-        const float dx = std::fabs(state.player.playerPos.x - Core::kInsideDoorX[i]);
-        const float dz = std::fabs(state.player.playerPos.z - Core::kInsideDoorZ[i]);
-        // Occupied doorway: reverse closing before re-enabling its collider.
-        if (!door.targetOpen && door.openAmount > 0.0F && dx < 0.9F && dz < 1.25F)
-          door.targetOpen = true;
-        door.openAmount += door.targetOpen ? Core::kDoorSpeed : -Core::kDoorSpeed;
-        if (door.openAmount < 0.0F) door.openAmount = 0.0F;
-        if (door.openAmount > 1.0F) door.openAmount = 1.0F;
-      }
-    }
     updatePistolViewmodelTransform(state);
     updateAbandonedSignFlicker(state);
     updateCardReaderLight(state, bus);

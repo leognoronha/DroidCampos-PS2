@@ -12,7 +12,6 @@ void WeaponSystem::executeStage(Core::HardwareStage stage,Tyra::Engine*,
   if(!s.simulationActive()){wasActive_=false;return;}
   if(!wasActive_)elapsed=0;
   wasActive_=true;
-  reduceTicks(s.damageFlashTicks,elapsed);
   auto& w=s.weapon;tickWeapon(w,elapsed);
   if(s.inputCmd.reloadRequested && reloadWeapon(w,bus,-1))return;
   if(!s.inputCmd.fireRequested || !scene_ || !consumeShot(w))return;

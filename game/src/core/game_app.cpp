@@ -17,6 +17,7 @@ GameApp::GameApp(Tyra::Engine* engine)
       playerSystem_(),
       render3dSystem_(),
       weaponSystem_(&render3dSystem_),
+      enemySystem_(&render3dSystem_),
       radioCodecSystem_(&uiDrawer_),
       hudSystem_(&uiDrawer_),
       menuSystem_(&uiDrawer_),
@@ -45,6 +46,7 @@ void GameApp::init() {
   scheduler_.registerSubsystem(&inputSystem_);
   scheduler_.registerSubsystem(&playerSystem_);
   scheduler_.registerSubsystem(&weaponSystem_);
+  scheduler_.registerSubsystem(&enemySystem_);
   scheduler_.registerSubsystem(&radioCodecSystem_);
   scheduler_.registerSubsystem(&menuAudioSystem_);
   scheduler_.registerSubsystem(&render3dSystem_);
@@ -179,6 +181,7 @@ void GameApp::advanceLoading() {
     worldState_.intro = SceneIntroState{true, 0};
     scene.nearbyDoor = -1;
     for (auto& door : scene.doors) door = DoorState{};
+    Systems::Enemy::EnemySystem::reset(worldState_);
     worldState_.resetPlayerToSpawn();
     worldState_.menu.currentScreen = ScreenState::GameplayFps;
     logSceneMemory("scene ready");

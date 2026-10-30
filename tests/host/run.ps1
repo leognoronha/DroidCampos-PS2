@@ -32,6 +32,9 @@ try {
     @{Name='render'; Args=$game+@('tests/host/render_lifecycle_test.cpp', 'game/src/systems/render3d/world_render_system.cpp', 'game/src/systems/weapon/weapon_geometry.cpp', 'game/src/events/event_bus.cpp', 'game/src/hardware/ps2_scratchpad.cpp')}
   )
   foreach ($case in $cases) {
+    if ($case.Name -eq 'enemy-test') {
+      $case.Args += @('game/src/systems/enemy/enemy_system.cpp','game/src/systems/weapon/weapon_geometry.cpp','game/src/hardware/ps2_scratchpad.cpp')
+    }
     if ($case.Args -contains 'game/src/systems/render3d/world_render_system.cpp') {
       $case.Args += 'game/src/systems/enemy/enemy_render_system.cpp'
     }

@@ -45,14 +45,9 @@ int main(int argc,char** argv){
     assert(repo.getTexturesCount()==13); // Scene, two enemies and persistent pistol.
     checkPass(16); // No enemies before the first terminal interaction.
     s.scene.active=Core::SceneId::Interior;s.resetPlayerToSpawn();s.menu.currentScreen=Core::ScreenState::GameplayFps;
-    for(int i=0;i<4;i++){
-      s.scene.doors[i]={1,false};s.player.playerPos.set(Core::kInsideDoorX[i],1.7F,Core::kInsideDoorZ[i]);
-      render.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&engine,s,bus,spr);
-      assert(s.scene.doors[i].targetOpen && s.scene.doors[i].openAmount==1);
-      s.player.playerPos.set(0,1.7F,-1.8F);s.scene.doors[i].targetOpen=false;
-      render.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&engine,s,bus,spr);
-      assert(s.scene.doors[i].openAmount<1);
-    }
+    s.scene.doors[0]={1,false};
+    render.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&engine,s,bus,spr);
+    assert(s.scene.doors[0].openAmount==1 && !s.scene.doors[0].targetOpen);
     Tyra::StaticPipeline::draws.clear();render.executeStage(Core::HardwareStage::Stage2_Vu1GsRender3D,&engine,s,bus,spr);
     assert(Tyra::StaticPipeline::draws.size()==16);
     assert(engine.renderer.core.gs.zBuffer.mask==0); // Restore depth writes after glass.

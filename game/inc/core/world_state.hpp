@@ -153,9 +153,11 @@ struct EnemyState {
   bool moving = false;
   int variant = 0;
   int health = kEnemyHealth;
+  EnemyBehavior behavior = EnemyBehavior::Alert;
   Tyra::Vec4 position = Tyra::Vec4(0,0,0,1);
   float yaw = 0;
   WeaponState weapon;
+  u32 pathTicks = 0, stuckTicks = 0;
   u32 animationTicks = 0, shotAnimationTicks = 0, hitTicks = 0;
 };
 

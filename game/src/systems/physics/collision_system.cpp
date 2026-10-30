@@ -3,6 +3,7 @@
 #include <cmath>
 #include <initializer_list>
 #include "core/interior_layout.hpp"
+#include "systems/physics/interior_geometry.hpp"
 
 namespace DroidCampos {
 namespace Systems {
@@ -63,58 +64,8 @@ void CollisionSystem::resolvePlayerCollisions(
     float& x, float& z, Hardware::Ps2ScratchpadArena& scratchpad,
     const Core::WorldState& state) {
   if (state.scene.active == Core::SceneId::Interior) {
-    const auto resolve = [&x, &z](float minX, float maxX, float minZ, float maxZ) {
-      minX -= kPlayerRadius; maxX += kPlayerRadius;
-      minZ -= kPlayerRadius; maxZ += kPlayerRadius;
-      if (x <= minX || x >= maxX || z <= minZ || z >= maxZ) return;
-      float penetration = x - minX; int axis = 0;
-      if (maxX - x < penetration) { penetration = maxX - x; axis = 1; }
-      if (z - minZ < penetration) { penetration = z - minZ; axis = 2; }
-      if (maxZ - z < penetration) { axis = 3; }
-      if (axis == 0) x = minX;
-      else if (axis == 1) x = maxX;
-      else if (axis == 2) z = minZ;
-      else z = maxZ;
-    };
-    const bool inTerminalRoom = z < Core::kTerminalRoomFrontZ;
-    const float maxX = inTerminalRoom ? Core::kTerminalRoomMaxX - kPlayerRadius : 5.12F;
-    const float minX = inTerminalRoom ? Core::kTerminalRoomMinX + kPlayerRadius : -5.12F;
-    if (x < minX) x = minX;
-    if (x > maxX) x = maxX;
-    if (z < Core::kTerminalRoomBackZ + kPlayerRadius) z = Core::kTerminalRoomBackZ + kPlayerRadius;
-    if (z > -0.60F) z = -0.60F;
-    for (int side : {-1, 1}) {
-      const float wx = side * 1.6F;
-      resolve(wx - .1F, wx + .1F, -7.3F, 0);
-      resolve(wx - .1F, wx + .1F, -15.3F, -8.7F);
-      resolve(wx - .1F, wx + .1F, -24, -16.7F);
-      // Empty space beside the corridor outside the two enclosed rooms.
-      const float minX = side < 0 ? -5.8F : 1.5F;
-      const float maxX = side < 0 ? -1.5F : 5.8F;
-      resolve(minX, maxX, -6.1F, 0);
-      resolve(minX, maxX, -14.1F, -9.9F);
-      resolve(minX, maxX, -24, -17.9F);
-      for (float roomZ : {-8.0F, -16.0F}) {
-        const float cx = side * 5.25F;
-        for (int j = 0; j < 3; ++j) {
-          const float cz = roomZ + 1.25F - j * .8F;
-          resolve(cx - .25F, cx + .25F, cz - .32F, cz + .32F);
-        }
-        const float bx = side * 3.7F;
-        resolve(bx - .9F, bx + .9F, roomZ - 1.90F, roomZ - 1.20F);
-      }
-    }
-    for (int i = 0; i < 4; ++i) {
-      const float dx = Core::kInsideDoorX[i];
-      const float dz = Core::kInsideDoorZ[i] - state.scene.doors[i].openAmount * Core::kDoorTravel;
-      resolve(dx - .08F, dx + .08F, dz - .7F, dz + .7F);
-    }
-    // Front wings of the terminal room leave a central opening at the corridor.
-    resolve(-5.0F, -1.7F, -24.1F, -23.9F);
-    resolve(1.7F, 5.0F, -24.1F, -23.9F);
-    resolve(-5.0F, -3.58F, -29.175F, -26.825F); // Terminal against left wall.
-    resolve(Core::kCapsuleMinX, Core::kCapsuleMaxX,
-            Core::kCapsuleMinZ, Core::kCapsuleMaxZ);
+    auto p = projectInterior(state,Tyra::Vec4(x,0,z,1),Core::kPlayerBodyRadius);
+    x=p.x; z=p.z;
     return;
   }
   if (x < kPerimeterMinX) x = kPerimeterMinX;
