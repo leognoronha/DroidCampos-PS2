@@ -5,7 +5,7 @@
 #include <map>
 #include "core/isubsystem.hpp"
 #include "systems/weapon/weapon_geometry.hpp"
-#include "systems/enemy/enemy_test_system.hpp"
+#include "systems/enemy/enemy_render_system.hpp"
 
 namespace DroidCampos {
 namespace Systems {
@@ -50,7 +50,7 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
   void updateCardReaderLight(Core::WorldState& state, Events::EventBus& bus);
 
   Tyra::StaticPipeline stapip_;
-  Enemy::EnemyTestSystem enemyTest_;
+  Enemy::EnemyRenderSystem enemyRenderer_;
 
   std::unique_ptr<Tyra::StaticMesh> scenarioMesh_;
   Tyra::StaPipOptions scenarioOptions_;

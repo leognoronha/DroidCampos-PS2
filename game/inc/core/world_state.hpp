@@ -1,6 +1,8 @@
 #pragma once
 
 #include <tyra>
+#include <array>
+#include "core/combat_config.hpp"
 
 namespace DroidCampos {
 namespace Core {
@@ -143,6 +145,16 @@ struct WeaponState {
   }
 };
 
+struct EnemyState {
+  bool active = false;
+  bool moving = false;
+  int variant = 0;
+  Tyra::Vec4 position = Tyra::Vec4(0,0,0,1);
+  float yaw = 0;
+  WeaponState weapon;
+  u32 animationTicks = 0, shotAnimationTicks = 0;
+};
+
 struct alignas(64) WorldState {
   PlayerKinematicsState player;
   InputCommandState inputCmd;
@@ -153,6 +165,7 @@ struct alignas(64) WorldState {
   SceneState scene;
   SceneIntroState intro;
   WeaponState weapon;
+  std::array<EnemyState,kMaxEnemies> enemies{};
 
   void resetPlayerToSpawn() {
     player.playerPos.set(0.0F, kDefaultEyeHeight, 17.0F, 1.0F);
@@ -192,6 +205,7 @@ struct alignas(64) WorldState {
 
   void resetToDefaults() {
     weapon = WeaponState{};
+    enemies = {};
     scene = SceneState{};
     intro = SceneIntroState{};
     player.moveSpeed = 0.11F;

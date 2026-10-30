@@ -26,7 +26,7 @@ void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
   }
 
   stapip_.setRenderer(&engine->renderer.core);
-  enemyTest_.init(engine);
+  enemyRenderer_.init(engine);
 
   scenarioOptions_.frustumCulling = PipelineFrustumCulling_Precise;
   scenarioOptions_.fullClipChecks = true;
@@ -372,7 +372,7 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
   (void)scratchpad;
 
   if (stage == Core::HardwareStage::Stage1_EeVu0Simulation)
-    enemyTest_.update(state, bus);
+    (void)bus;
 
   if (state.menu.currentScreen != Core::ScreenState::GameplayFps) {
     return;
@@ -423,7 +423,7 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       renderTransparentPass(engine, mistMesh_.get(), mistOptions_);
     }
 
-    enemyTest_.render(engine);
+    enemyRenderer_.render(engine, state);
     engine->renderer.renderer3D.usePipeline(stapip_);
 
     if (capsuleGlassMesh_) {
@@ -460,7 +460,7 @@ void WorldRenderSystem::shutdown(Engine* engine) {
 }
 
 bool WorldRenderSystem::validateScene(Core::SceneId scene) const {
-  if (scene == Core::SceneId::Interior && !Enemy::EnemyTestSystem::validateAssets()) return false;
+  if (scene == Core::SceneId::Interior && !Enemy::EnemyRenderSystem::validateAssets()) return false;
   // Check OBJ, its MTL and every referenced PNG before destroying the old scene.
   std::vector<std::string> bases;
   if (scene == Core::SceneId::Exterior) bases = {"etip/etip_cenario", "etip/etip_nevoa"};
@@ -499,7 +499,7 @@ void WorldRenderSystem::unloadScene(Engine* engine) {
   if (scenarioMesh_) repo.freeByMesh(scenarioMesh_.get());
   if (mistMesh_) repo.freeByMesh(mistMesh_.get());
   scenarioMesh_.reset(); mistMesh_.reset();
-  enemyTest_.unload(engine);
+  enemyRenderer_.unload(engine);
   // Each interior PNG is owned once, regardless of how many material links use it.
   for (const auto& entry : interiorTextures_) repo.free(entry.second);
   interiorTextures_.clear(); interiorMeshes_.clear(); doorMesh_.reset();
@@ -517,7 +517,7 @@ bool WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
   }
   if (step >= Core::kInsideLoadStepCount) return false;
   if (step >= Core::kInsidePartCount)
-    return enemyTest_.loadVariant(engine, step - Core::kInsidePartCount);
+    return enemyRenderer_.loadSlot(engine, step - Core::kInsidePartCount);
   const std::string base = std::string("etip_inside/") + Core::kInsideParts[step];
   ObjLoaderOptions options; options.scale = 1.0F; options.flipUVs = true;
   auto data = ObjLoader::load(FileUtils::fromCwd((base + ".obj").c_str()), options);

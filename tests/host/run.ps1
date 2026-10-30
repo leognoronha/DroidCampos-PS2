@@ -11,7 +11,7 @@ try {
   $core = 'engine/src/renderer/3d/pipeline/static/core'
   $cases = @(
     @{Name='terminal'; Args=$game+@('tests/host/terminal_test.cpp', 'game/src/systems/input/input_system.cpp', 'game/src/systems/player/player_controller_system.cpp', 'game/src/systems/physics/collision_system.cpp', 'game/src/systems/ui/hud_system.cpp', 'game/src/systems/ui/ui_context_drawer.cpp', 'game/src/systems/ui/font_sprite.cpp', 'game/src/events/event_bus.cpp', 'game/src/hardware/ps2_scratchpad.cpp')},
-    @{Name='enemy-test'; Args=$game+@('tests/host/enemy_test.cpp', 'game/src/systems/enemy/enemy_test_system.cpp', 'game/src/events/event_bus.cpp')},
+    @{Name='enemy-test'; Args=$game+@('tests/host/enemy_test.cpp', 'game/src/systems/enemy/enemy_render_system.cpp', 'game/src/events/event_bus.cpp')},
     @{Name='weapon-hud'; Args=$game+@('tests/host/weapon_hud_test.cpp', 'game/src/systems/ui/hud_system.cpp', 'game/src/systems/ui/ui_context_drawer.cpp', 'game/src/systems/ui/font_sprite.cpp', 'game/src/events/event_bus.cpp', 'game/src/hardware/ps2_scratchpad.cpp')},
     @{Name='weapon'; Args=$game+@('tests/host/weapon_test.cpp', 'game/src/systems/weapon/weapon_system.cpp', 'game/src/systems/weapon/weapon_geometry.cpp', 'game/src/systems/render3d/world_render_system.cpp', 'game/src/systems/audio/menu_audio_system.cpp', 'game/src/systems/narrative/radio_codec_system.cpp', 'game/src/systems/ui/ui_context_drawer.cpp', 'game/src/systems/ui/font_sprite.cpp', 'game/src/systems/input/input_system.cpp', 'game/src/events/event_bus.cpp', 'game/src/hardware/ps2_scratchpad.cpp')},
     @{Name='scene-intro'; Args=$game+@('tests/host/scene_intro_test.cpp', 'game/src/systems/ui/scene_intro_system.cpp', 'game/src/systems/ui/hud_system.cpp', 'game/src/systems/audio/menu_audio_system.cpp', 'game/src/systems/narrative/radio_codec_system.cpp', 'game/src/systems/ui/ui_context_drawer.cpp', 'game/src/systems/ui/font_sprite.cpp', 'game/src/systems/input/input_system.cpp', 'game/src/events/event_bus.cpp', 'game/src/hardware/ps2_scratchpad.cpp')},
@@ -32,7 +32,7 @@ try {
   )
   foreach ($case in $cases) {
     if ($case.Args -contains 'game/src/systems/render3d/world_render_system.cpp') {
-      $case.Args += 'game/src/systems/enemy/enemy_test_system.cpp'
+      $case.Args += 'game/src/systems/enemy/enemy_render_system.cpp'
     }
     $output = Join-Path $env:TEMP ('droid-optimization-' + $case.Name + '.exe')
     $compilerArgs = @('-std=c++17', '-O3', '-Wall', '-Wextra') + $case.Args + @('-o', $output)

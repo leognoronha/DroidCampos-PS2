@@ -27,7 +27,7 @@ int main(int argc,char** argv){
       const auto index=p-events.begin();assert(index+7<=int(events.size()));
       const std::vector<std::string> expected={"P1","Zoff","P3","draw","P1",initialMask?"Zoff":"Zon","P3"};
       assert(std::vector<std::string>(p,p+7)==expected);
-      assert(std::count(events.begin(),events.end(),"P1")== (totalDraws==18 ? 3 : 2));
+      assert(std::count(events.begin(),events.end(),"P1")==2);
       assert(std::count(events.begin(),events.end(),"P3")==2);
     }
     Tyra::StaticPipeline::visible=false;Tyra::RendererCore::renderEvents.clear();
@@ -43,7 +43,7 @@ int main(int argc,char** argv){
     assert(repo.getTexturesCount()>1);render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
     for(int step=0;step<Core::kInsideLoadStepCount;step++)assert(render.loadSceneStep(&engine,Core::SceneId::Interior,step));
     assert(repo.getTexturesCount()==13); // Scene, two enemies and persistent pistol.
-    checkPass(18);
+    checkPass(16); // No enemies before the first terminal interaction.
     s.scene.active=Core::SceneId::Interior;s.resetPlayerToSpawn();s.menu.currentScreen=Core::ScreenState::GameplayFps;
     for(int i=0;i<4;i++){
       s.scene.doors[i]={1,false};s.player.playerPos.set(Core::kInsideDoorX[i],1.7F,Core::kInsideDoorZ[i]);
@@ -54,7 +54,7 @@ int main(int argc,char** argv){
       assert(s.scene.doors[i].openAmount<1);
     }
     Tyra::StaticPipeline::draws.clear();render.executeStage(Core::HardwareStage::Stage2_Vu1GsRender3D,&engine,s,bus,spr);
-    assert(Tyra::StaticPipeline::draws.size()==18);
+    assert(Tyra::StaticPipeline::draws.size()==16);
     assert(engine.renderer.core.gs.zBuffer.mask==0); // Restore depth writes after glass.
     render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
   }
