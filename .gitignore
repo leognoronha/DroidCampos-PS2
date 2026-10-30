@@ -31,3 +31,7 @@
 *.erl
 *.elf
 *.irx
+
+# Generated combat validation data
+/artifacts/combat/
+/game/build-etip.log

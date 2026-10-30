@@ -32,6 +32,10 @@ class GameApp final : public Tyra::Game {
   void updateSceneTransition();
   void advanceLoading();
   void logSceneMemory(const char* phase);
+  void recordCombatMetrics(u32 simulationTicks,u32 renderTicks);
+  Tyra::Timer stageTimer_;
+  int metricsActors_ = -1;
+  u32 metricsFrames_ = 0, simulationTicks_ = 0, renderTicks_ = 0;
   Tyra::Engine* engine_;
   WorldState worldState_;
   Events::EventBus eventBus_;

@@ -6,7 +6,7 @@ do jogo sem PS2SDK; não substituem build PS2 ou testes no emulador.
 ```sh
 g++ -std=c++17 -Wall -Wextra -Itests/host -Igame/inc tests/host/interior_test.cpp game/src/systems/input/input_system.cpp game/src/systems/player/player_controller_system.cpp game/src/systems/physics/collision_system.cpp game/src/hardware/ps2_scratchpad.cpp game/src/events/event_bus.cpp -o /tmp/etip-input-test
 /tmp/etip-input-test
-g++ -std=c++17 -Wall -Wextra -Itests/host -Igame/inc tests/host/render_lifecycle_test.cpp game/src/systems/render3d/world_render_system.cpp game/src/systems/weapon/weapon_geometry.cpp game/src/events/event_bus.cpp game/src/hardware/ps2_scratchpad.cpp -o /tmp/etip-render-test
+g++ -std=c++17 -Wall -Wextra -Itests/host -Igame/inc tests/host/render_lifecycle_test.cpp game/src/systems/render3d/world_render_system.cpp game/src/systems/enemy/enemy_render_system.cpp game/src/systems/weapon/weapon_geometry.cpp game/src/events/event_bus.cpp game/src/hardware/ps2_scratchpad.cpp -o /tmp/etip-render-test
 /tmp/etip-render-test "$PWD/game/res/"
 ```
 
@@ -44,7 +44,7 @@ reuse cycles. `packager_reuse_test.cpp` checks independent parent/child storage,
 growth, disabled attributes and ownership of the legacy allocating API.
 These tests use math and bag doubles; they do not prove real DMA synchronization.
 
-Run all twelve host tests and the asset audit on Windows:
+Run all twenty host tests and the asset audit on Windows:
 
 ```powershell
 ./tests/host/run.ps1 -Compiler C:/msys64/ucrt64/bin/g++.exe
@@ -70,6 +70,19 @@ PS2SDK GIF encoding, pixels, real DMA timing or GS registers.
 intersecoes com os OBJ reais de ambos os cenarios. O double de ObjLoader agora
 le vertices/faces e mantem sua propriedade compartilhada durante a vida dos meshes.
 `weapon_hud_test.cpp` verifica limites, oito indicadores e ausencia do painel com
-radio/terminal/introducao; um segundo argumento opcional exporta as chamadas de
+radio/terminal aberto/introducao; um segundo argumento opcional exporta as chamadas de
 sprites para uma pasta existente, para verificacao visual.
 Os dois casos estao incluidos em `run.ps1`.
+
+
+## IA e combate por ondas
+
+`combat_test.cpp` cobre alvos/cenário mais próximos, cápsulas durante o salto,
+obstrução pelo próprio grupo, recargas independentes, cano bloqueado, dano e derrota.
+`enemy_test.cpp` cobre os três comportamentos, rota A*, spawns em 462 posições
+alcançáveis por flood fill independente, ondas 2/3/5, suspensão dos relógios,
+checkpoint, rádio final e três ciclos de cinco malhas com duas texturas.
+Inclui ainda cinco inimigos atravessando a mesma porta durante 2.400 atualizações,
+verificando colisão e separação em cada atualização e saída de todos da sala.
+Os testes do terminal cobrem o novo registro, e os de HUD incluem vida e ondas.
+O roteiro de execução e as métricas do ELF estão em `docs/combate-ondas.md`.

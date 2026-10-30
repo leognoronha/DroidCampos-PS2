@@ -76,9 +76,12 @@ void GameApp::loop() {
   updateSceneTransition();
 
   // Stage 1: EE + VU0 + Scratchpad Simulation
+  stageTimer_.prime();
   scheduler_.runStage(HardwareStage::Stage1_EeVu0Simulation, engine_,
                       worldState_, eventBus_, scratchpad_);
 
+  const u32 simulationTicks=stageTimer_.getTimeDelta();
+  u32 renderTicks=0;
   auto& renderer = engine_->renderer;
   renderer.core.renderer2D.setTextureMappingType(
       worldState_.menu.nearestFilter ? Tyra::TyraNearest : Tyra::TyraLinear);
@@ -92,9 +95,11 @@ void GameApp::loop() {
     renderer.beginFrame(camInfo);
 
     // Stage 2: VU1 / GS 3D DMA Kick (StaticPipeline: Scenario, Mist, Viewmodel)
+    stageTimer_.prime();
     scheduler_.runStage(HardwareStage::Stage2_Vu1GsRender3D, engine_,
                         worldState_, eventBus_, scratchpad_);
 
+    renderTicks=stageTimer_.getTimeDelta();
     // Stage 3: GIF Path 3 2D HUD & Codec Overlay
     scheduler_.runStage(HardwareStage::Stage3_GifPath3Render2D, engine_,
                         worldState_, eventBus_, scratchpad_);
@@ -112,10 +117,32 @@ void GameApp::loop() {
     renderer.endFrame();
   }
 
+  recordCombatMetrics(simulationTicks,renderTicks);
   scheduler_.yieldToIopAudioThread();
   // Loading was presented before any synchronous IO or destruction begins.
   if (worldState_.menu.currentScreen == ScreenState::Loading && !worldState_.scene.error)
     advanceLoading();
+}
+
+void GameApp::recordCombatMetrics(u32 simulationTicks,u32 renderTicks) {
+  if(worldState_.scene.active!=SceneId::Interior || !worldState_.simulationActive()) {
+    metricsFrames_=simulationTicks_=renderTicks_=0;
+    return;
+  }
+  int actors=0;for(const auto& enemy:worldState_.enemies)if(enemy.active)++actors;
+  if(actors!=metricsActors_) {
+    metricsActors_=actors;metricsFrames_=simulationTicks_=renderTicks_=0;
+    std::printf("[COMBAT MEMORY] actors=%d free=%.3f MiB textures=%lu\n",actors,
+        engine_->info.getAvailableRAM(),static_cast<unsigned long>(
+        engine_->renderer.getTextureRepository().getTexturesCount()));
+  }
+  simulationTicks_+=simulationTicks;renderTicks_+=renderTicks;
+  if(++metricsFrames_<120)return;
+  const float ms=1000.F/(kCombatTicksPerSecond*static_cast<float>(metricsFrames_));
+  std::printf("[COMBAT PERF] actors=%d fps=%lu simulation-ms=%.3f render-submit-ms=%.3f\n",
+      actors,static_cast<unsigned long>(engine_->info.getFps()),
+      simulationTicks_*ms,renderTicks_*ms);
+  metricsFrames_=simulationTicks_=renderTicks_=0;
 }
 
 void GameApp::logSceneMemory(const char* phase) {
