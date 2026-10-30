@@ -89,10 +89,18 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
         if (!terminal.terminalReading && clicked.Cross) {
           terminal.terminalReading = true;
           terminal.terminalPage = 0;
+          if(terminal.terminalTopic==2 && terminal.terminalEntry==1 &&
+             state.encounter.newEntryUnlocked) state.encounter.objectiveComplete=true;
           bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
         } else if (!terminal.terminalReading && (up || down)) {
           terminal.terminalTopic = (terminal.terminalTopic + (up ? 2 : 1)) % 3;
+          terminal.terminalEntry=terminal.terminalTopic==2 && state.encounter.newEntryUnlocked?1:0;
           state.menu.padCooldown = 12;
+          bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
+        } else if (!terminal.terminalReading && terminal.terminalTopic==2 &&
+                   state.encounter.newEntryUnlocked && (left || right)) {
+          terminal.terminalEntry=1-terminal.terminalEntry;
+          state.menu.padCooldown=12;
           bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
         } else if (terminal.terminalReading &&
                    ((left && terminal.terminalPage > 0) ||
@@ -204,6 +212,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   if (state.scene.terminalNearby && !state.radio.popupActive && clicked.Triangle) {
     state.scene.terminalActive = true;
     bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalOpened));
+    state.scene.terminalEntry=0;
     state.scene.terminalTopic = 0;
     state.scene.terminalPage = 0;
     state.scene.terminalReading = false;

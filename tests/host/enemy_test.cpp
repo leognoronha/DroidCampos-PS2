@@ -114,9 +114,9 @@ int main(int argc,char** argv) {
       ai.advance(s,bus,1);
     }
   }
-  assert(s.encounter.phase==Core::EncounterPhase::Complete);
-  bus.clear();ai.advance(s,bus,1);u32 count=0;bus.getFrameEvents(count);
-  assert(count==0);
+  assert(s.encounter.phase==Core::EncounterPhase::Complete && s.encounter.newEntryUnlocked);
+  bus.clear();ai.advance(s,bus,1);u32 count=0;auto events=bus.getFrameEvents(count);
+  assert(count==1 && events[0].type==Events::EventType::RadioTransmissionTriggered);
   bus.clear();ai.advance(s,bus,100000);assert(bus.size()==0);
   bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalClosed));
   ai.advance(s,bus,0);assert(s.encounter.phase==Core::EncounterPhase::Complete);
@@ -128,7 +128,7 @@ int main(int argc,char** argv) {
   assert(s.playerHealth==100 && s.weapon.ammo==8 && !s.radio.popupActive);
   assert(s.player.playerPos.x==checkpoint.playerPos.x && s.player.cameraLookAt.z==checkpoint.cameraLookAt.z);
   assert(s.scene.doors[0].openAmount==doorSnapshot.openAmount && s.encounter.wave==0);
-  assert(s.encounter.countdownTicks==46875);
+  assert(!s.encounter.newEntryUnlocked && s.encounter.countdownTicks==46875);
   // All suspension surfaces freeze the encounter, including doors and damage feedback.
   auto frozen=s.encounter.countdownTicks;
   for(int mode=0;mode<5;++mode) {
@@ -212,5 +212,5 @@ int main(int argc,char** argv) {
   {std::ofstream file(temp/"enemies/leader/motion.bin",std::ios::binary);file<<"invalid";}
   assert(!renderer.loadSlot(&engine,0));assert(engine.renderer.repo.getTexturesCount()==0);
   Tyra::FileUtils::root=oldRoot;fs::remove_all(temp);
-  std::cout<<"PASS: "<<audited<<" spawn positions; A*, swept movement, FSM, doors, 2/3/5 waves, damage, retry, pause and five independent meshes\n";
+  std::cout<<"PASS: "<<audited<<" spawn positions; A*, swept movement, FSM, doors, 2/3/5 waves, damage, retry, pause, final radio and five independent meshes\n";
 }

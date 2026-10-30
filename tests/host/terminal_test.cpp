@@ -69,6 +69,17 @@ int main(int argc, char** argv) {
   e.pad.clicked = {}; e.pad.clicked.Triangle = true; poll();
   assert(s.scene.terminalActive && s.scene.terminalBootFrames == 24);
   poll(); assert(!s.scene.terminalActive); // Exit even during boot.
+  // The final-wave record is gated, highlighted and leaves the original accessible.
+  s.encounter.newEntryUnlocked=true;s.scene.terminalActive=true;
+  s.scene.terminalBootFrames=0;s.scene.terminalTopic=1;
+  e.pad.clicked={};e.pad.clicked.DpadDown=true;poll();
+  assert(s.scene.terminalTopic==2 && s.scene.terminalEntry==1);render();
+  e.pad.clicked={};e.pad.clicked.DpadLeft=true;poll();
+  assert(s.scene.terminalEntry==0);render();
+  e.pad.clicked={};e.pad.clicked.DpadRight=true;poll();
+  assert(s.scene.terminalEntry==1);
+  e.pad.clicked={};e.pad.clicked.Cross=true;poll();
+  assert(s.scene.terminalReading && s.encounter.objectiveComplete);render();
   drawer.shutdown(&e);
   assert(e.renderer.repo.getTexturesCount() == 0);
   std::cout << "PASS: terminal boot, 3 topics, pages, bounds, frozen camera, input ownership and exit\n";

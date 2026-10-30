@@ -43,6 +43,7 @@ struct SceneState {
   bool terminalActive = false;
   int terminalTopic = 0;
   int terminalPage = 0;
+  int terminalEntry = 0;
   bool terminalReading = false;
   int terminalBootFrames = 0;
   DoorState doors[4] = {};
@@ -169,6 +170,8 @@ struct EncounterState {
   u32 countdownTicks = 0, attackTicks = 0;
   int attackCursor = 0;
   bool checkpointValid = false;
+  bool newEntryUnlocked = false, objectiveComplete = false;
+  bool finalRadioPending = false;
   PlayerKinematicsState checkpointPlayer{};
   DoorState checkpointDoors[4]{};
 };

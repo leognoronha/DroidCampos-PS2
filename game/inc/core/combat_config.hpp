@@ -24,6 +24,8 @@ constexpr std::uint32_t kEnemyFireInterval = 12500;
 constexpr std::uint32_t kDecisionInterval = 1563;
 constexpr std::uint32_t kPathInterval = 7813;
 constexpr std::uint32_t kAttackRotation = 31250;
+constexpr const char* kEncounterRadioMessage =
+    "DR. CAMPOS, A SEGURANCA\nFOI MOBILIZADA. DETECTAMOS\nUMA NOVA ENTRADA NO TERMINAL.\nVOLTE AO TERMINAL E VERIFIQUE.";
 enum class EnemyBehavior : std::uint8_t { Alert, Pursuit, Combat };
 enum class EncounterPhase : std::uint8_t {
   Dormant, Armed, Countdown, Wave, Intermission, Complete

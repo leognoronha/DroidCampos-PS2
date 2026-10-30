@@ -44,6 +44,7 @@ void EnemySystem::retry(WorldState& s) {
   s.radio.popupActive=false;s.radio.phase=RadioPhase::Idle;
   c.phase=EncounterPhase::Countdown;c.wave=0;c.remaining=0;
   c.countdownTicks=kEncounterDelay;c.attackTicks=0;c.attackCursor=0;
+  c.newEntryUnlocked=c.objectiveComplete=c.finalRadioPending=false;
   s.menu.currentScreen=ScreenState::GameplayFps;
 }
 bool EnemySystem::spawnWave(WorldState& s,int wave) {
@@ -117,6 +118,13 @@ void EnemySystem::advance(WorldState& s,Events::EventBus& bus,u32 elapsed) {
   if(!navigationReady_){navigation_.build(s);navigationReady_=true;}
   reduceTicks(s.damageFlashTicks,elapsed);
   doors(s,static_cast<float>(elapsed)/kCombatTicksPerSecond);
+  if(c.finalRadioPending) {
+    c.finalRadioPending=false;
+    bus.publish(Events::GameEvent::makeSimple(Events::EventType::RadioTransmissionTriggered,
+                                            0,0,kEncounterRadioMessage));
+    // Stop this frame as soon as the new transmission owns gameplay.
+    return;
+  }
   if(c.phase==EncounterPhase::Countdown || c.phase==EncounterPhase::Intermission) {
     reduceTicks(c.countdownTicks,elapsed);
     if(!c.countdownTicks) {
@@ -131,7 +139,7 @@ void EnemySystem::advance(WorldState& s,Events::EventBus& bus,u32 elapsed) {
   if(!c.remaining) {
     bus.publish(Events::GameEvent::makeSimple(Events::EventType::WaveCompleted,static_cast<s16>(c.wave)));
     if(c.wave==3) {
-      c.phase=EncounterPhase::Complete;
+      c.phase=EncounterPhase::Complete;c.newEntryUnlocked=true;c.finalRadioPending=true;
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::EncounterCompleted));
     }else {
       s.playerHealth=std::min(kPlayerHealth,s.playerHealth+kWaveHealing);

@@ -42,6 +42,12 @@ void HudSystem::renderTerminal(const Core::WorldState& state) {
   const Color black(0, 0, 0, 128), paper(100, 113, 118, 128);
   auto& font = drawer_->getFont();
   const auto& terminal = state.scene;
+  const bool newEntry=state.encounter.newEntryUnlocked &&
+      terminal.terminalTopic==2 && terminal.terminalEntry==1;
+  const char* newSummary="NOVA ENTRADA DETECTADA\n\nREGISTRO POS-COMBATE.\n\nCONTEUDO NARRATIVO PROVISORIO.\n\nX: ABRIR NOVO REGISTRO\nESQ/DIR: TROCAR REGISTRO";
+  const char* newPages[2]={
+      "[NOVA ENTRADA / PROVISORIO]\n\nREGISTRO DISPONIBILIZADO\nAPOS A MOBILIZACAO\nDA SEGURANCA.\n\nCONTEUDO NARRATIVO PENDENTE.",
+      "[CONTINUACAO / PROVISORIO]\n\nESPACO RESERVADO PARA\nA PROXIMA ETAPA DA HISTORIA.\n\nCONTEUDO NARRATIVO PENDENTE."};
   // Short, authored lines fit the PS2 font without runtime text allocation.
   static const char* topics[] = {"CORPORATIVO", "HISTORICO", "OCORRENCIAS"};
   static const char* summaries[] = {
@@ -71,7 +77,8 @@ void HudSystem::renderTerminal(const Core::WorldState& state) {
     char label[32];
     std::snprintf(label, sizeof(label), "0%d / ARQUIVO", i + 1);
     font.drawText(label, 34, y + 7, selected ? black : dim, .8F);
-    font.drawText(topics[i], 34, y + 28, selected ? black : cyan, .85F);
+    font.drawText(i==2 && state.encounter.newEntryUnlocked ? "OCORRENCIAS *" : topics[i],
+                  34,y+28,selected?black:cyan,.85F);
   }
   font.drawText("USO INTERNO ETIP", 28, 366, dim, .75F);
   if (terminal.terminalBootFrames > 0) {
@@ -83,17 +90,20 @@ void HudSystem::renderTerminal(const Core::WorldState& state) {
     font.drawText("DATA: --/--/--  AUTOR: PENDENTE", 198, 136, dim, .8F);
     drawer_->drawRect(198, 156, 282, 1, dim);
     font.drawText(terminal.terminalReading
-        ? pages[terminal.terminalTopic][terminal.terminalPage]
-        : summaries[terminal.terminalTopic], 198, 174, paper, .9F);
+        ? (newEntry ? newPages[terminal.terminalPage] : pages[terminal.terminalTopic][terminal.terminalPage])
+        : (newEntry ? newSummary : summaries[terminal.terminalTopic]), 198, 174, paper, .9F);
     char page[48];
     std::snprintf(page, sizeof(page), "DOC 0%d // %s", terminal.terminalTopic + 1,
-        terminal.terminalReading ? (terminal.terminalPage ? "PAGINA 2/2" : "PAGINA 1/2") : "PREVIA");
+        terminal.terminalReading ? (terminal.terminalPage ? "PAGINA 2/2" : "PAGINA 1/2")
+                                : (newEntry ? "NOVO REGISTRO" : "PREVIA"));
     font.drawText(page, 198, 366, cyan, .85F);
   }
   drawer_->drawBlueprintPanel(16, 404, 480, 28, black, dim);
   font.drawText(terminal.terminalReading
       ? "ESQ/DIR: PAGINA   O: VOLTAR   TRIANGULO: SAIR"
-      : "CIMA/BAIXO: TOPICO   X: ABRIR   O / TRIANGULO: SAIR",
+      : (terminal.terminalTopic==2 && state.encounter.newEntryUnlocked
+          ? "ESQ/DIR: REGISTRO  X: ABRIR  O / TRIANGULO: SAIR"
+          : "CIMA/BAIXO: TOPICO   X: ABRIR   O / TRIANGULO: SAIR"),
       26, 412, cyan, .85F);
   if (state.menu.scanlinesEnabled)
     for (int y = 22; y < 432; y += 4)
@@ -136,6 +146,10 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   if(wave[0]) {
     drawer_->drawBlueprintPanel(246,52,254,28,Color(2,7,10,112),cyan);
     font.drawText(wave,254,60,cyan,.85F);
+  }
+  if(encounter.newEntryUnlocked && !encounter.objectiveComplete && !state.radio.popupActive) {
+    drawer_->drawBlueprintPanel(12,152,360,28,Color(2,7,10,112),cyan);
+    font.drawText("CONSULTAR NOVA ENTRADA NO TERMINAL",22,160,cyan,.85F);
   }
 
   // Center First-Person Reticle (Crosshair)
@@ -189,16 +203,16 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   }
 
   if (state.scene.terminalNearby && !state.radio.popupActive) {
-    drawer_->drawPanel(76, 344, 360, 58, Color(8, 16, 22, 112), Color(0, 190, 210, 128));
+    drawer_->drawPanel(12, 344, 356, 28, Color(8, 16, 22, 112), Color(0, 190, 210, 128));
     drawer_->getFont().drawText(state.scene.terminalActive
         ? "TERMINAL ETIP // CONECTADO" : "[TRIANGULO] INTERAGIR TERMINAL",
-        90, 352, Color(160, 240, 240, 128));
+        24, 352, Color(160, 240, 240, 128));
     if (state.scene.terminalActive)
       drawer_->getFont().drawText("[TRIANGULO] FECHAR TERMINAL", 90, 378,
                                   Color(160, 240, 240, 128));
   }
 
-  if (!state.radio.popupActive && !state.scene.terminalNearby) {
+  if (!state.radio.popupActive) {
     const auto& w = state.weapon;
     const Color cyan(40, 120, 128, 128), dim(18, 48, 54, 128);
     const Color ink = w.ammo ? cyan : Color(128, 70, 30, 128);
