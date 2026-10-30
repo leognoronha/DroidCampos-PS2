@@ -8,6 +8,12 @@ using namespace Core;
 using namespace Physics;
 using namespace Weapon;
 namespace {
+const Tyra::Vec4 kSpawnPoints[] = {
+  {-3.8F,0,-8,1},{3.8F,0,-8,1},{-3.8F,0,-16,1},{3.8F,0,-16,1},
+  {-4.25F,0,-25.2F,1},{4.25F,0,-25.2F,1},{-4.25F,0,-31.2F,1},
+  {4.25F,0,-31.2F,1},{-1.6F,0,-31.2F,1},{1.F,0,-31.2F,1},
+  {-3.8F,0,-7,1},{3.8F,0,-7,1},{-3.8F,0,-15,1},{3.8F,0,-15,1}
+};
 float randomSigned(EnemyState& e) {
   e.randomState=e.randomState*1664525U+1013904223U;
   return static_cast<float>((e.randomState>>8)&0xffff)/32767.5F-1;
@@ -29,6 +35,52 @@ void EnemySystem::reset(WorldState& s) {
   s.enemies={};s.encounter=EncounterState{};s.playerHealth=kPlayerHealth;s.weapon=WeaponState{};
   s.damageFlashTicks=0;
 }
+void EnemySystem::retry(WorldState& s) {
+  auto& c=s.encounter;if(!c.checkpointValid)return;
+  s.player=c.checkpointPlayer;
+  for(int i=0;i<4;++i)s.scene.doors[i]=c.checkpointDoors[i];
+  s.playerHealth=kPlayerHealth;s.damageFlashTicks=0;s.weapon=WeaponState{};
+  s.enemies={};s.inputCmd.clear();s.scene.terminalActive=false;
+  s.radio.popupActive=false;s.radio.phase=RadioPhase::Idle;
+  c.phase=EncounterPhase::Countdown;c.wave=0;c.remaining=0;
+  c.countdownTicks=kEncounterDelay;c.attackTicks=0;c.attackCursor=0;
+  s.menu.currentScreen=ScreenState::GameplayFps;
+}
+bool EnemySystem::spawnWave(WorldState& s,int wave) {
+  if(wave<0 || wave>2)return false;
+  std::array<int,kMaxEnemies> chosen{};
+  int count=0;
+  // Prefer occluded / behind-camera points, then use any valid designated point.
+  auto view=unit(sub(s.player.cameraLookAt,s.player.cameraPos));
+  for(int pass=0;pass<2;++pass)for(int p=0;p<static_cast<int>(sizeof(kSpawnPoints)/sizeof(*kSpawnPoints));++p) {
+    const auto& point=kSpawnPoints[p];
+    if(distanceXZ(point,s.player.playerPos)<kSpawnDistance ||
+       !interiorFree(s,point.x,point.z,kEnemyRadius))continue;
+    bool duplicate=false;
+    for(int j=0;j<count;++j)
+      if(distanceXZ(point,kSpawnPoints[chosen[j]])<2*kEnemyRadius)duplicate=true;
+    if(duplicate)continue;
+    auto relative=sub(point,s.player.cameraPos);relative.y=0;
+    bool behind=dot(unit(relative),view)<.55F;
+    bool occluded=!interiorSegmentFree(s,s.player.playerPos,point,.02F);
+    if(pass==0 && !behind && !occluded)continue;
+    chosen[count++]=p;
+    if(count==kWaveSizes[wave]) {
+      s.enemies={};
+      for(int i=0;i<count;++i) {
+        auto& e=s.enemies[i];e.active=true;e.variant=i%2;
+        e.position=kSpawnPoints[chosen[i]];
+        e.randomState=static_cast<u32>(1+i*997+wave*7919);
+        e.pathTicks=i*1500U;
+        e.yaw=std::atan2(s.player.playerPos.x-e.position.x,s.player.playerPos.z-e.position.z);
+      }
+      s.encounter.wave=wave+1;s.encounter.remaining=count;
+      s.encounter.phase=EncounterPhase::Wave;s.encounter.attackTicks=0;
+      return true;
+    }
+  }
+  return false; // No partial waves. The authored spawn coverage is audited in host tests.
+}
 void EnemySystem::executeStage(HardwareStage stage,Tyra::Engine*,WorldState& s,
                                Events::EventBus& bus,Hardware::Ps2ScratchpadArena&) {
   if(stage!=HardwareStage::Stage1_EeVu0Simulation)return;
@@ -40,14 +92,53 @@ void EnemySystem::executeStage(HardwareStage stage,Tyra::Engine*,WorldState& s,
 void EnemySystem::advance(WorldState& s,Events::EventBus& bus,u32 elapsed) {
   auto& c=s.encounter;
   u32 count=0;auto events=bus.getFrameEvents(count);
-  for(u32 i=0;i<count;++i)if(events[i].type==Events::EventType::PlayerSpawnResetRequested) {
-    reset(s);navigationReady_=false;pathSizes_.fill(0);wasActive_=false;
+  for(u32 i=0;i<count;++i) {
+    switch(events[i].type) {
+      case Events::EventType::PlayerSpawnResetRequested:
+        reset(s);navigationReady_=false;pathSizes_.fill(0);wasActive_=false;break;
+      case Events::EventType::EncounterRetryRequested:
+        retry(s);pathSizes_.fill(0);pathCursors_.fill(0);decisionTicks_=0;
+        wasActive_=false;elapsed=0;break;
+      case Events::EventType::TerminalOpened:
+        if(c.phase==EncounterPhase::Dormant)c.phase=EncounterPhase::Armed;
+        break;
+      case Events::EventType::TerminalClosed:
+        if(c.phase==EncounterPhase::Armed) {
+          c.checkpointValid=true;c.checkpointPlayer=s.player;
+          for(int d=0;d<4;++d)c.checkpointDoors[d]=s.scene.doors[d];
+          c.phase=EncounterPhase::Countdown;c.countdownTicks=kEncounterDelay;
+          elapsed=0;
+        }break;
+      default:break;
+    }
   }
   if(s.scene.active!=SceneId::Interior){navigationReady_=false;return;}
   if(!s.simulationActive()){wasActive_=false;return;}
   if(!navigationReady_){navigation_.build(s);navigationReady_=true;}
   reduceTicks(s.damageFlashTicks,elapsed);
   doors(s,static_cast<float>(elapsed)/kCombatTicksPerSecond);
+  if(c.phase==EncounterPhase::Countdown || c.phase==EncounterPhase::Intermission) {
+    reduceTicks(c.countdownTicks,elapsed);
+    if(!c.countdownTicks) {
+      if(spawnWave(s,c.wave)){pathSizes_.fill(0);pathCursors_.fill(0);decisionTicks_=0;}
+      else c.countdownTicks=kCombatTicksPerSecond;
+    }
+    return;
+  }
+  if(c.phase!=EncounterPhase::Wave)return;
+  c.remaining=0;
+  for(const auto& e:s.enemies)if(e.active)++c.remaining;
+  if(!c.remaining) {
+    bus.publish(Events::GameEvent::makeSimple(Events::EventType::WaveCompleted,static_cast<s16>(c.wave)));
+    if(c.wave==3) {
+      c.phase=EncounterPhase::Complete;
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::EncounterCompleted));
+    }else {
+      s.playerHealth=std::min(kPlayerHealth,s.playerHealth+kWaveHealing);
+      c.phase=EncounterPhase::Intermission;c.countdownTicks=kWaveInterval;
+    }
+    return;
+  }
   c.attackTicks+=elapsed;
   if(c.attackTicks>=kAttackRotation){c.attackTicks%=kAttackRotation;c.attackCursor=(c.attackCursor+1)%kMaxEnemies;}
   for(auto& e:s.enemies)if(e.active) {

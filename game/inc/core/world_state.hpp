@@ -164,8 +164,13 @@ struct EnemyState {
   u32 randomState = 1;
 };
 struct EncounterState {
-  u32 attackTicks = 0;
+  EncounterPhase phase = EncounterPhase::Dormant;
+  int wave = 0, remaining = 0;
+  u32 countdownTicks = 0, attackTicks = 0;
   int attackCursor = 0;
+  bool checkpointValid = false;
+  PlayerKinematicsState checkpointPlayer{};
+  DoorState checkpointDoors[4]{};
 };
 
 struct alignas(64) WorldState {

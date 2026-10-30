@@ -65,6 +65,13 @@ int main(int argc, char** argv) {
   s.radio.popupActive = false;
   s.scene.terminalNearby = true;
   render("weapon_terminal_hidden", false);
+  s.scene.terminalNearby=false;
+  for(auto phase:{Core::EncounterPhase::Countdown,Core::EncounterPhase::Wave,
+                 Core::EncounterPhase::Intermission,Core::EncounterPhase::Complete}) {
+    s.encounter.phase=phase;s.encounter.wave=2;s.encounter.remaining=5;
+    s.encounter.countdownTicks=78125;s.playerHealth=10;s.damageFlashTicks=100;
+    render("wave_health",true);
+  }
   s.intro.active = true;
   render("weapon_intro_hidden", false);
   drawer.shutdown(&e);

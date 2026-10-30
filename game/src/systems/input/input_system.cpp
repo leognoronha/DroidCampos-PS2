@@ -72,6 +72,7 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
       auto& terminal = state.scene;
       if (clicked.Triangle || (clicked.Circle && !terminal.terminalReading)) {
         terminal.terminalActive = false;
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalClosed));
         bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
       } else if (clicked.Circle) {
         terminal.terminalReading = false;
@@ -202,6 +203,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   if (!state.scene.terminalNearby) state.scene.terminalActive = false;
   if (state.scene.terminalNearby && !state.radio.popupActive && clicked.Triangle) {
     state.scene.terminalActive = true;
+    bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalOpened));
     state.scene.terminalTopic = 0;
     state.scene.terminalPage = 0;
     state.scene.terminalReading = false;
@@ -282,9 +284,14 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
   }
 
   if (state.menu.currentScreen == Core::ScreenState::Defeated) {
-    if(clicked.Cross) {
+    if(upPressed || downPressed) {
+      state.menu.pauseSelectedIndex=1-state.menu.pauseSelectedIndex;
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
+    } else if(clicked.Cross) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
-      state.menu.currentScreen=Core::ScreenState::MainMenu;
+      if(state.menu.pauseSelectedIndex==0)
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::EncounterRetryRequested));
+      else state.menu.currentScreen=Core::ScreenState::MainMenu;
     }
     return;
   }

@@ -14,6 +14,8 @@ class EnemySystem final : public Core::ISubsystem {
   void shutdown(Tyra::Engine*)override{}
   // Deterministic simulation seam, also used by the real scheduler.
   void advance(Core::WorldState&,Events::EventBus&,u32 elapsed);
+  static bool spawnWave(Core::WorldState&,int wave);
+  static void retry(Core::WorldState&);
   static void reset(Core::WorldState&);
  private:
   void decide(Core::WorldState&);

@@ -123,6 +123,20 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   font.drawText(health,22,107,life,.9F);
   drawer_->drawRect(22,129,152,4,dim);
   if(state.playerHealth>0)drawer_->drawRect(22,129,152.F*state.playerHealth/Core::kPlayerHealth,4,life);
+  const auto& encounter=state.encounter;
+  char wave[64]{};
+  if(encounter.phase==Core::EncounterPhase::Countdown)
+    std::snprintf(wave,sizeof(wave),"ALERTA // ONDA 1 EM %u",(encounter.countdownTicks+15624)/15625);
+  else if(encounter.phase==Core::EncounterPhase::Wave)
+    std::snprintf(wave,sizeof(wave),"ONDA %d/3 // RESTAM %d",encounter.wave,encounter.remaining);
+  else if(encounter.phase==Core::EncounterPhase::Intermission)
+    std::snprintf(wave,sizeof(wave),"ONDA %d/3 EM %u // VIDA +25",encounter.wave+1,(encounter.countdownTicks+15624)/15625);
+  else if(encounter.phase==Core::EncounterPhase::Complete)
+    std::snprintf(wave,sizeof(wave),"AMEACA ELIMINADA // 3/3");
+  if(wave[0]) {
+    drawer_->drawBlueprintPanel(246,52,254,28,Color(2,7,10,112),cyan);
+    font.drawText(wave,254,60,cyan,.85F);
+  }
 
   // Center First-Person Reticle (Crosshair)
   const float cx = 256.0F;

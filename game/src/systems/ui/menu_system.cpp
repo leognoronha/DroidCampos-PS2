@@ -71,7 +71,11 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
     case Core::ScreenState::Defeated:
       drawer_->drawBlueprintPanel(80,144,352,170,menuInk(0,0,0),menuInk(230,70,50));
       drawer_->getFont().drawText("VOCE FOI DERROTADO",120,168,menuInk(250,130,100));
-      drawer_->renderFooter("X: MENU PRINCIPAL");
+      drawer_->getFont().drawText(state.menu.pauseSelectedIndex==0
+          ? "> TENTAR NOVAMENTE" : "  TENTAR NOVAMENTE",112,218,menuInk(200,225,235));
+      drawer_->getFont().drawText(state.menu.pauseSelectedIndex==1
+          ? "> MENU PRINCIPAL" : "  MENU PRINCIPAL",112,256,menuInk(200,225,235));
+      drawer_->renderFooter("D-PAD: SELECIONAR  X: CONFIRMAR");
       break;
     case Core::ScreenState::Paused:
       drawer_->drawBlueprintPanel(96, 144, 320, 160, menuInk(0, 0, 0), menuInk(0, 190, 210));
