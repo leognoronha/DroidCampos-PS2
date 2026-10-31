@@ -140,6 +140,34 @@ for o in list(capsule.all_objects):
     if o.type!='MESH':bpy.data.objects.remove(o,do_unlink=True)
 bpy.context.view_layer.update()
 placement=Matrix.Translation((3.58,29,.012))@Matrix.Rotation(-math.pi/2,4,'Z')
+# Use the saved, manually corrected model; keep the capsule's controlled runtime LOD.
+character_source=MODELS/'DroidCampos'/'DroidCampos-v02.blend'
+with bpy.data.libraries.load(str(character_source),link=False) as (src,dst):
+    assert 'DroidCampos_PS2_v02' in src.collections
+    dst.collections=['DroidCampos_PS2_v02']
+character_collection=dst.collections[0]
+character_meshes=[o for o in character_collection.all_objects if o.type=='MESH']
+assert character_meshes, 'Empty DroidCampos source'
+for obj in character_meshes:
+    capsule.objects.link(obj)
+    for c in list(obj.users_collection):
+        if c!=capsule:c.objects.unlink(obj)
+    obj.hide_render=False;obj.hide_viewport=False
+    # Check the original capsule-local fit before applying the shared placement.
+    for v in obj.data.vertices:
+        point=obj.matrix_world@v.co
+        assert point.x**2+point.y**2<1.0**2 and 1.224<=point.z<=4.69, (obj.name,tuple(point))
+bpy.data.collections.remove(character_collection)
+character_materials={m for o in character_meshes for m in o.data.materials}
+for mat in character_materials:
+    tag='body' if mat.name.startswith('DC_body') else 'head'
+    assert mat.name.startswith('DC_'+tag), mat.name
+    mat.name='PS2_Mat_Capsule_DroidCampos_'+tag
+    image=next(n.image for n in mat.node_tree.nodes if n.type=='TEX_IMAGE' and n.image)
+    size=256 if tag=='body' else 128
+    image.scale(size,size);image.name='ps2_tex_droidcampos_'+tag
+    image.filepath_raw=str(RES/(image.name+'.png'));image.file_format='PNG';image.save();image.pack()
+    mat.diffuse_color=(1,1,1,1)
 capsule_meshes=list(capsule.all_objects)
 for o in capsule_meshes:o.matrix_world=placement@o.matrix_world
 bpy.context.view_layer.update()
@@ -236,6 +264,12 @@ for p,mi,coords in zip(mesh.polygons,lod_mats,lod_uvs):
     for li,co in zip(p.loop_indices,coords):uv.data[li].uv=co
 opaque=bpy.data.objects.new('PS2_Capsula_Runtime_Opaca',mesh);runtime.objects.link(opaque)
 assert architecture_triangles+triangle_count([opaque,glass_lod])<=5000
+character_triangles=triangle_count(character_meshes)
+assert 2000<=character_triangles<=2500, character_triangles
+shell_opaque=opaque
+opaque=merged_runtime('PS2_Capsula_Runtime_Ocupada',[shell_opaque]+character_meshes)
+bpy.data.objects.remove(shell_opaque,do_unlink=True)
+assert architecture_triangles+triangle_count([opaque,glass_lod])<=7500
 for obj in (opaque,glass_lod):
     for corner in obj.data.uv_layers.active.data:
         corner.uv=(max(0,min(1,corner.uv.x)),max(0,min(1,corner.uv.y)))
@@ -253,7 +287,11 @@ for objs in parts.values():
                 img=bpy.data.images.new('ps2_tex_capsula_vidro',width=64,height=64)
                 img.pixels=[.10,.48,.27,.20]*(64*64);img.pack()
             if img is None:continue
-            path=RES/(img.name.lower().removesuffix('.png')+'.png'); img.save_render(str(path)); texpaths[m.name]=path.stem
+            path=RES/(img.name.lower().removesuffix('.png')+'.png')
+            if m in character_materials:
+                img.filepath_raw=str(path);img.file_format='PNG';img.save()
+            else:img.save_render(str(path))
+            texpaths[m.name]=path.stem
 def export(name,objs,local=False):
     lines=['mtllib '+name+'.mtl']; mats={}; idx=1
     for o in objs:
@@ -297,9 +335,9 @@ for screen in bpy.data.screens:
 meshes=[o for o in scene.objects if o.type=='MESH' and o.name not in runtime.objects]
 visual_tris=triangle_count(meshes)
 tris=sum(triangle_count(objs) for name,objs in parts.items() if name!='doors')+triangle_count(door_objects)
-assert tris<=5000,tris
+assert tris<=7500,tris
 print('SAVING MASTER',flush=True)
-audit={'triangles':tris,'visual_triangles':visual_tris,'meshes':len(meshes),'capsule':{'center':[3.58,29,.012],'bounds_min':caps_min,'bounds_max':caps_max,'wall_clearance_m':5-caps_max[0],'ceiling_clearance_m':ROOM_HEIGHT-caps_max[2],'source_triangles':triangle_count(capsule_meshes),'runtime_triangles':triangle_count([opaque,glass_lod])},'max_panel_edge_m':2.0,'terminal_room':{'width':10,'depth':8,'height':ROOM_HEIGHT,'y_start':24,'y_end':32},'parts':{k:len(v) for k,v in parts.items()},'textures':texpaths,'coordinates':'Tyra=(Blender X, Blender Z, -Blender Y)','doors':[{'x':o.location.x,'z':-o.location.y} for o in door_objects]}
+audit={'triangles':tris,'visual_triangles':visual_tris,'meshes':len(meshes),'capsule':{'center':[3.58,29,.012],'bounds_min':caps_min,'bounds_max':caps_max,'wall_clearance_m':5-caps_max[0],'ceiling_clearance_m':ROOM_HEIGHT-caps_max[2],'source_triangles':triangle_count(capsule_meshes),'runtime_triangles':triangle_count([opaque,glass_lod]),'occupant':{'source':character_source.relative_to(MODELS).as_posix(),'triangles':character_triangles,'materials':sorted(m.name for m in character_materials),'static':True}},'max_panel_edge_m':2.0,'terminal_room':{'width':10,'depth':8,'height':ROOM_HEIGHT,'y_start':24,'y_end':32},'parts':{k:len(v) for k,v in parts.items()},'textures':texpaths,'coordinates':'Tyra=(Blender X, Blender Z, -Blender Y)','doors':[{'x':o.location.x,'z':-o.location.y} for o in door_objects]}
 (RES/'audit.json').write_text(json.dumps(audit,indent=2),encoding='utf8')
 bpy.ops.wm.save_as_mainfile(filepath=str(MODELS/'ETIP-inside.blend'))
 if not args.skip_previews:

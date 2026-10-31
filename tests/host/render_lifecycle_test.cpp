@@ -42,7 +42,7 @@ int main(int argc,char** argv){
     checkPass(3); // Exterior, mist and weapon.
     assert(repo.getTexturesCount()>1);render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
     for(int step=0;step<Core::kInsideLoadStepCount;step++)assert(render.loadSceneStep(&engine,Core::SceneId::Interior,step));
-    assert(repo.getTexturesCount()==13); // Scene, two enemies and persistent pistol.
+    assert(repo.getTexturesCount()==15); // 12 scene textures (including body/head), two enemies and persistent pistol.
     checkPass(16); // No enemies before the first terminal interaction.
     s.scene.active=Core::SceneId::Interior;s.resetPlayerToSpawn();s.menu.currentScreen=Core::ScreenState::GameplayFps;
     s.scene.doors[0]={1,false};
@@ -54,5 +54,5 @@ int main(int argc,char** argv){
     render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
   }
   render.shutdown(&engine);assert(repo.getTexturesCount()==0);
-  std::cout<<"PASS: asset preflight, 3 unload cycles, 10 shared textures, mist/glass PATH1/PATH3 ordering, both prior depth masks, invisible pass rejection, doors and persistent pistol\n";
+  std::cout<<"PASS: asset preflight, 3 unload cycles, 12 shared scene textures, mist/glass PATH1/PATH3 ordering, both prior depth masks, invisible pass rejection, doors and persistent pistol\n";
 }

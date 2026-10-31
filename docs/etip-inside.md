@@ -21,11 +21,10 @@ um painel de porta em coordenadas locais. A mesma malha e as mesmas texturas sã
 reutilizadas nos quatro painéis. OBJ triangulado, UVs positivas, transformação
 Blender → Tyra `(X,Z,-Y)`, PNG RGBA 8-bit, prefixos `PS2_*` preservados.
 
-Orçamento auditado do jogo: **4.966 triângulos renderizados**, dez PNGs de 64 × 64,
-160 KiB de pixels RGBA decodificados (sem metadados e buffers da engine).
+Orçamento auditado do interior: **7.266 triângulos**, com 12 PNGs: dez de 64 × 64, corpo de 256 × 256 e cabeça de 128 × 128. São **480 KiB** de pixels RGBA decodificados, sem metadados, alinhamento GS, buffers ou inimigos.
 O Blender mantém a cápsula detalhada original de 5.073 triângulos; a composição
-visível tem 9.217 triângulos. A coleção oculta `Inside_Capsula_Runtime_LOD`
-contém a versão de exportação de 822 triângulos (774 opacos + 48 de vidro).
+visível tem 11.517 triângulos, incluindo o DroidCampos estático de 2.300 triângulos. A coleção oculta `Inside_Capsula_Runtime_LOD`
+contém a versão ocupada de exportação de 3.122 triângulos (774 da estrutura, 2.300 do personagem e 48 do vidro).
 Ela não é desenhada junto com o modelo detalhado na prévia. O original
 `ETIP-capsule.blend` não é sobrescrito pelo gerador.
 Sombras de borda e detalhes luminosos estão nas texturas; o jogo também aplica
@@ -41,7 +40,7 @@ tonalidade escura aos materiais não luminosos. Não depende de luzes do Blender
 - UI e pistola permanecem carregadas. O interior possui um proprietário por PNG
   e múltiplos vínculos de material; descarregar libera cada textura uma vez.
 - A cápsula é carregada em duas etapas, usando o mesmo loader de cenas:
-  `capsula.obj` e `capsula_vidro.obj`. O vidro é desenhado após os sólidos, com
+  `capsula.obj` (estrutura + DroidCampos estático) e `capsula_vidro.obj`. O vidro é desenhado após os sólidos, com
   alpha e teste de profundidade, sem gravar Z. A engine agora envia a alteração
   de máscara ao registro GS via `setZBufferWriteEnabled`, restaurando-a antes
   de desenhar a pistola. As cores Kd dos materiais da cápsula são preservadas.
@@ -67,8 +66,7 @@ python tools/audit_etip_inside.py
 
 O gerador aceita `-- --models CAMINHO --resources CAMINHO` e `--skip-previews`, e usa a matriz externa
 como origem dos materiais de ferrugem e advertência e `ETIP-capsule.blend` como
-origem do novo asset. A versão leve usa geometria paramétrica controlada, com
-cilindros de 12 lados e suportes retos, dentro do orçamento de 5.000 triângulos.
+origem da estrutura. O ocupante vem de `DroidCampos/DroidCampos-v02.blend`, coleção `DroidCampos_PS2_v02`, preservando os ajustes manuais das mãos e pelve. A estrutura leve usa geometria paramétrica controlada, com cilindros de 12 lados e suportes retos. A auditoria limita a estrutura do interior a 5.000 triângulos, o ocupante a 2.000–2.500, o conjunto a 7.500 e os pixels das texturas do interior a 512 KiB.
 Sua posição e envelope são auditados para preservar as folgas; uma redução por
 colapso global foi descartada após a inspeção visual detectar deformações.
 Regenerar sobrescreve apenas
@@ -116,3 +114,12 @@ Os logs `[ETIP MEMORY]` registram RAM disponível e quantidade de texturas antes
 depois da descarga e após cada parte. Eles são amostras, não uma medição do pico
 temporário dentro do parser/decoder. O orçamento total de 32 MB e o uso efetivo
 de VRAM ainda precisam ser confirmados em execução, idealmente no console.
+
+
+### Cápsula ocupada — 31/10/2026
+
+A exportação substitui a cápsula vazia no mesmo `capsula.obj`, sem alterar as etapas de carregamento, colisão externa ou posição. O personagem recebe a mesma transformação da cápsula, com a frente voltada ao centro da sala. Corpo e cabeça usam dois materiais próprios dentro da malha opaca, reutilizando a política de tonalidade dos materiais de cápsula. A geometria local do personagem é conferida contra raio de 1 m e altura entre Z=1,224 e 4,69 m antes da colocação. O vidro permanece separado e não foi alterado.
+
+Os arquivos atualizados também foram copiados para `game/bin/etip_inside`, com hashes iguais aos de `game/res/etip_inside`. O ELF existente pode carregar os novos assets porque não houve mudança no código de runtime. A tentativa de recompilação em 31/10 não concluiu: o pipe `dockerDesktopLinuxEngine` estava indisponível. A contagem adicional de geometria/texturas requer avaliação de desempenho e memória no PCSX2/PS2; os limites de exportação não são garantia de taxa de quadros.
+
+Validação desta exportação: suíte completa de 20 casos host e auditoria de assets aprovadas; três ciclos de carga/descarga preservam as 12 texturas de cena, dois atlas de inimigos e a pistola persistente. A prévia Blender da malha runtime com o vidro foi inspecionada. Não foi feita validação visual desta revisão no PCSX2.

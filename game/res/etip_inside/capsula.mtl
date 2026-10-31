@@ -11,3 +11,9 @@ newmtl PS2_Mat_Capsule_Led_Alerta
 Kd 0.950000 0.330000 0.035000
 newmtl PS2_Mat_Capsule_Borracha_Cabos
 Kd 0.016000 0.022000 0.019000
+newmtl PS2_Mat_Capsule_DroidCampos_body
+Kd 1.000000 1.000000 1.000000
+map_Kd ps2_tex_droidcampos_body.png
+newmtl PS2_Mat_Capsule_DroidCampos_head
+Kd 1.000000 1.000000 1.000000
+map_Kd ps2_tex_droidcampos_head.png

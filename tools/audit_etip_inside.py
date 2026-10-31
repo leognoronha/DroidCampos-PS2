@@ -3,7 +3,7 @@ import json, struct
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]/'game/res/etip_inside'
 parts=['corredor_1','corredor_2','corredor_3','sala_1','sala_2','sala_3','sala_4','sala_terminal','terminal','capsula','capsula_vidro','porta']
-totals={}; textures=set()
+totals={}; textures=set(); occupant_triangles=0
 for part in parts:
     lines=(root/(part+'.obj')).read_text().splitlines()
     mtl=(root/(part+'.mtl')).read_text().splitlines()
@@ -36,6 +36,13 @@ for part in parts:
     for line in mtl:
         if line.startswith('map_Kd '):textures.add(line.split()[1])
     totals[part]=len(faces)
+    if part=='capsula':
+        active=''
+        for line in lines:
+            if line.startswith('usemtl '):active=line.split()[1]
+            elif line.startswith('f ') and active.startswith('PS2_Mat_Capsule_DroidCampos_'):occupant_triangles+=1
+        assert {'PS2_Mat_Capsule_DroidCampos_body','PS2_Mat_Capsule_DroidCampos_head'}<=materials
+        assert 2000<=occupant_triangles<=2500, ('Missing/oversized occupant',occupant_triangles)
     if part=='porta':
         assert max(abs(v[0]) for v in positions)<.081
         assert abs(max(v[1] for v in positions)-1.1)<.001
@@ -44,13 +51,20 @@ for part in parts:
         assert all(-5.01<=v[0]<=-3.5 and -29.2<=v[2]<=-26.8 for v in positions),'Terminal not on left wall'
     if part.startswith('capsula'):
         assert all(2.18<=v[0]<=4.97 and 0.005<v[1]<5.68 and -30.55<=v[2]<=-27.45 for v in positions),(part,'Capsule out of reserved volume',[min(v[i] for v in positions) for i in range(3)],[max(v[i] for v in positions) for i in range(3)])
+decoded_bytes=0
 for texture in textures:
     data=(root/texture).read_bytes();assert data[:8]==b'\x89PNG\r\n\x1a\n'
-    w,h=struct.unpack('>II',data[16:24]);assert w==h==64
+    w,h=struct.unpack('>II',data[16:24])
+    expected={'ps2_tex_droidcampos_body.png':256,'ps2_tex_droidcampos_head.png':128}.get(texture,64)
+    assert w==h==expected,(texture,w,h)
+    decoded_bytes+=w*h*4
     assert data[24]==8 and data[25] in (2,6)
 runtime_tris=sum(totals.values())+totals['porta']*3
-assert runtime_tris<=5000
+assert runtime_tris<=7500
+assert runtime_tris-occupant_triangles<=5000
+assert decoded_bytes<=512*1024
 audit=json.loads((root/'audit.json').read_text());assert audit['triangles']==runtime_tris
 assert audit['capsule']['ceiling_clearance_m']>=.4 and audit['capsule']['wall_clearance_m']>=.05
 assert audit['terminal_room']['height']==6.25
-print(json.dumps({'status':'PASS','triangles_with_4_doors':runtime_tris,'parts':totals,'unique_textures':len(textures),'decoded_RGBA_bytes':len(textures)*64*64*4},indent=2))
+assert audit['capsule']['occupant']['triangles']==occupant_triangles
+print(json.dumps({'status':'PASS','triangles_with_4_doors':runtime_tris,'parts':totals,'unique_textures':len(textures),'decoded_RGBA_bytes':decoded_bytes,'occupant_triangles':occupant_triangles},indent=2))

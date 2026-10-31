@@ -1,7 +1,7 @@
 {
-  "triangles": 4966,
-  "visual_triangles": 9217,
-  "meshes": 271,
+  "triangles": 7266,
+  "visual_triangles": 11517,
+  "meshes": 327,
   "capsule": {
     "center": [
       3.58,
@@ -20,8 +20,17 @@
     ],
     "wall_clearance_m": 0.07999992370605469,
     "ceiling_clearance_m": 0.6079998016357422,
-    "source_triangles": 5073,
-    "runtime_triangles": 822
+    "source_triangles": 7373,
+    "runtime_triangles": 3122,
+    "occupant": {
+      "source": "DroidCampos/DroidCampos-v02.blend",
+      "triangles": 2300,
+      "materials": [
+        "PS2_Mat_Capsule_DroidCampos_body",
+        "PS2_Mat_Capsule_DroidCampos_head"
+      ],
+      "static": true
+    }
   },
   "max_panel_edge_m": 2.0,
   "terminal_room": {
@@ -55,6 +64,8 @@
     "PS2_Mat_Advertencia": "ps2_tex_advertencia",
     "PS2_Mat_Inside_Terminal": "ps2_tex_inside_terminal",
     "PS2_Mat_Capsule_Pintura_Industrial": "ps2_tex_capsule_pintura_desgastada",
+    "PS2_Mat_Capsule_DroidCampos_body": "ps2_tex_droidcampos_body",
+    "PS2_Mat_Capsule_DroidCampos_head": "ps2_tex_droidcampos_head",
     "PS2_Mat_Capsule_Vidro_Contencao": "ps2_tex_capsula_vidro"
   },
   "coordinates": "Tyra=(Blender X, Blender Z, -Blender Y)",
