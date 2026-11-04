@@ -1,0 +1,24 @@
+{
+  "source": "C:\\Users\\leogn\\OneDrive\\Documents\\DroidCampos-models\\DroidCampos\\animacoes\\DroidCampos-animacoes-v07.blend",
+  "sha256": "5f2769cc2bfdd45e0cc5657b391234df27959ed57007d862720453a4ee7eff6a",
+  "vertices": 6900,
+  "material_counts": [
+    4068,
+    2832
+  ],
+  "frames": 36,
+  "walk_frames": 12,
+  "punch_frames": 24,
+  "walk_seconds": 2,
+  "punch_seconds": 3,
+  "min": [
+    -1.2072652578353882,
+    -8.620887115284859e-08,
+    -0.8920467495918274
+  ],
+  "max": [
+    0.9235366582870483,
+    3.27044415473938,
+    1.0987309217453003
+  ]
+}

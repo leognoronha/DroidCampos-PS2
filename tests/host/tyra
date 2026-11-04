@@ -72,7 +72,7 @@ struct StaticMesh {
   explicit StaticMesh(const MeshBuilderData* b):frames(b->frames){for(auto& m:b->materials)materials.push_back(new MeshMaterial(m));}
   ~StaticMesh(){for(auto* m:materials)delete m;delete frame;}
 };
-struct ObjLoaderOptions {float scale=1;bool flipUVs=false;};
+struct ObjLoaderOptions {float scale=1;bool flipUVs=false;bool preserveTriangleOrder=false;};
 struct FileUtils {inline static std::string root;static std::string fromCwd(const std::string& s){return root+s;}};
 struct ObjLoader {
   static std::unique_ptr<MeshBuilderData> load(const std::string& path,const ObjLoaderOptions&){

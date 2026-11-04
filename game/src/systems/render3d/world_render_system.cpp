@@ -27,6 +27,7 @@ void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
 
   stapip_.setRenderer(&engine->renderer.core);
   enemyRenderer_.init(engine);
+  droidPreview_.init(engine);
 
   scenarioOptions_.frustumCulling = PipelineFrustumCulling_Precise;
   scenarioOptions_.fullClipChecks = true;
@@ -413,6 +414,7 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
     }
 
     enemyRenderer_.render(engine, state);
+    droidPreview_.render(engine, state);
     engine->renderer.renderer3D.usePipeline(stapip_);
 
     if (capsuleGlassMesh_) {
@@ -450,6 +452,7 @@ void WorldRenderSystem::shutdown(Engine* engine) {
 
 bool WorldRenderSystem::validateScene(Core::SceneId scene) const {
   if (scene == Core::SceneId::Interior && !Enemy::EnemyRenderSystem::validateAssets()) return false;
+  if (scene == Core::SceneId::Interior && !DroidPreview::validateAssets()) return false;
   // Check OBJ, its MTL and every referenced PNG before destroying the old scene.
   std::vector<std::string> bases;
   if (scene == Core::SceneId::Exterior) bases = {"etip/etip_cenario", "etip/etip_nevoa"};
@@ -489,6 +492,7 @@ void WorldRenderSystem::unloadScene(Engine* engine) {
   if (mistMesh_) repo.freeByMesh(mistMesh_.get());
   scenarioMesh_.reset(); mistMesh_.reset();
   enemyRenderer_.unload(engine);
+  droidPreview_.unload(engine);
   // Each interior PNG is owned once, regardless of how many material links use it.
   for (const auto& entry : interiorTextures_) repo.free(entry.second);
   interiorTextures_.clear(); interiorMeshes_.clear(); doorMesh_.reset();
@@ -505,6 +509,7 @@ bool WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
     return true;
   }
   if (step >= Core::kInsideLoadStepCount) return false;
+  if (step == Core::kInsidePartCount + 5) return droidPreview_.load(engine);
   if (step >= Core::kInsidePartCount)
     return enemyRenderer_.loadSlot(engine, step - Core::kInsidePartCount);
   const std::string base = std::string("etip_inside/") + Core::kInsideParts[step];

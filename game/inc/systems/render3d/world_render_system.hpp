@@ -1,4 +1,5 @@
 #pragma once
+#include "systems/render3d/droid_preview.hpp"
 
 #include <tyra>
 #include <memory>
@@ -52,6 +53,7 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
 
   Tyra::StaticPipeline stapip_;
   Enemy::EnemyRenderSystem enemyRenderer_;
+  DroidPreview droidPreview_;
 
   std::unique_ptr<Tyra::StaticMesh> scenarioMesh_;
   Tyra::StaPipOptions scenarioOptions_;
