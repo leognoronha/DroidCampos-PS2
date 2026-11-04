@@ -9,6 +9,15 @@ void WeaponSystem::executeStage(Core::HardwareStage stage,Tyra::Engine*,
                                 Hardware::Ps2ScratchpadArena&) {
   if(stage!=Core::HardwareStage::Stage1_EeVu0Simulation)return;
   u32 elapsed=timer_.getTimeDelta();timer_.prime();
+  // Radio pauses combat, but visible shot effects must still finish while walking.
+  if(s.playerMovementActive() && s.radio.popupActive) {
+    auto expire=[&](Core::WeaponState& w) {
+      reduceTicks(w.beamTicks,elapsed);reduceTicks(w.impactTicks,elapsed);
+      if(!w.impactTicks)w.impact=false;
+    };
+    expire(s.weapon);
+    for(auto& enemy:s.enemies)expire(enemy.weapon);
+  }
   if(!s.simulationActive()){wasActive_=false;return;}
   if(!wasActive_)elapsed=0;
   wasActive_=true;

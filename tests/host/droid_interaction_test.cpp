@@ -22,5 +22,15 @@ int main(){
  Systems::Player::PlayerControllerSystem::updateCameraVectors(s);auto camera=s.player.cameraLookAt;auto physical=s.player.playerPos;
  for(int i=0;i<100;++i)Systems::Player::PlayerControllerSystem::updateCameraVectors(s);
  assert(s.player.cameraLookAt.x==camera.x && s.player.cameraLookAt.y==camera.y && s.player.playerPos.x==physical.x && s.player.yaw==.1F);
+ s.resetToDefaults();s.scene.active=SceneId::Interior;s.scene.resident=s.scene.presented=true;
+ s.menu.currentScreen=ScreenState::GameplayFps;s.intro.active=false;s.radio.popupActive=true;s.radio.phase=RadioPhase::Message;
+ assert(s.playerMovementActive() && !s.simulationActive());
+ Systems::Player::PlayerControllerSystem player;player.init(&engine,s,bus);bus.clear();
+ s.inputCmd.moveForward=1;auto before=s.player.playerPos;
+ player.executeStage(HardwareStage::Stage1_EeVu0Simulation,&engine,s,bus,spr);
+ assert(Systems::Physics::distanceXZ(before,s.player.playerPos)>0);
+ s.scene.terminalActive=true;before=s.player.playerPos;
+ player.executeStage(HardwareStage::Stage1_EeVu0Simulation,&engine,s,bus,spr);
+ assert(Systems::Physics::distanceXZ(before,s.player.playerPos)==0);
  std::cout<<"PASS: post readiness/distance/aim, consumed activation, boss game-over routes and non-accumulating camera shake\n";
 }

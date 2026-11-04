@@ -40,7 +40,7 @@ void PlayerControllerSystem::executeStage(
 
   updateGlobalAnimations(state);
 
-  if (state.simulationActive()) {
+  if (state.playerMovementActive()) {
     updateFpsKinematics(state, scratchpad);
   }
 }

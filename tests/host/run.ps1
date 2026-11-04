@@ -10,6 +10,7 @@ try {
   $algorithm = 'engine/src/renderer/core/3d/clipper/planes_clip_algorithm.cpp'
   $core = 'engine/src/renderer/3d/pipeline/static/core'
   $cases = @(
+    @{Name='radio-effects'; Args=$game+@('tests/host/radio_effects_test.cpp','game/src/systems/weapon/weapon_system.cpp','game/src/events/event_bus.cpp','game/src/hardware/ps2_scratchpad.cpp')},
     @{Name='droid-interaction'; Args=$game+@('tests/host/droid_interaction_test.cpp','game/src/systems/input/input_system.cpp','game/src/systems/player/player_controller_system.cpp','game/src/systems/physics/collision_system.cpp','game/src/events/event_bus.cpp','game/src/hardware/ps2_scratchpad.cpp')},
     @{Name='droid-encounter'; Args=$game+@('tests/host/droid_encounter_test.cpp','game/src/systems/enemy/enemy_system.cpp','game/src/systems/weapon/weapon_geometry.cpp','game/src/events/event_bus.cpp','game/src/hardware/ps2_scratchpad.cpp')},
     @{Name='obj-animation-order'; Args=@('-Itests/host/obj_stubs','-Itests/host/engine_stubs','-Iengine/inc','tests/host/obj_animation_order_test.cpp','engine/src/loaders/3d/obj_loader/obj_loader.cpp','engine/src/loaders/3d/builder/mesh_builder_data.cpp','engine/src/loaders/3d/builder/mesh_builder_material_data.cpp','engine/src/loaders/3d/builder/mesh_builder_material_frame_data.cpp')},

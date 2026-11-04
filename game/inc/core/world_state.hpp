@@ -215,10 +215,13 @@ struct alignas(64) WorldState {
   EncounterState encounter;
   DroidEncounterState droid;
 
-  bool simulationActive() const {
+  bool playerMovementActive() const {
     return menu.currentScreen == ScreenState::GameplayFps && scene.resident &&
         scene.presented && !scene.requested && !scene.accessFrames &&
-        !intro.active && !scene.terminalActive && !radio.popupActive && playerHealth>0;
+        !intro.active && !scene.terminalActive && playerHealth>0;
+  }
+  bool simulationActive() const {
+    return playerMovementActive() && !radio.popupActive;
   }
 
   void resetPlayerToSpawn() {
