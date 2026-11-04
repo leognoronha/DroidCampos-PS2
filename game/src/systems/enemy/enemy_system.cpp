@@ -32,7 +32,7 @@ void EnemySystem::init(Tyra::Engine*,WorldState&,Events::EventBus&) {
   timer_.prime();wasActive_=false;navigationReady_=false;decisionTicks_=0;
 }
 void EnemySystem::reset(WorldState& s) {
-  s.enemies={};s.encounter=EncounterState{};s.playerHealth=kPlayerHealth;s.weapon=WeaponState{};
+  s.enemies={};s.encounter=EncounterState{};s.droid=DroidEncounterState{};s.playerHealth=kPlayerHealth;s.weapon=WeaponState{};
   s.damageFlashTicks=0;
 }
 void EnemySystem::retry(WorldState& s) {
@@ -104,6 +104,9 @@ void EnemySystem::advance(WorldState& s,Events::EventBus& bus,u32 elapsed) {
         if(c.phase==EncounterPhase::Dormant)c.phase=EncounterPhase::Armed;
         break;
       case Events::EventType::TerminalClosed:
+        if(c.newEntryUnlocked && c.objectiveComplete && s.droid.phase==DroidPhase::Inactive) {
+          s.droid.phase=DroidPhase::ButtonRising;s.droid.phaseTicks=0;
+        }
         if(c.phase==EncounterPhase::Armed) {
           c.checkpointValid=true;c.checkpointPlayer=s.player;
           for(int d=0;d<4;++d)c.checkpointDoors[d]=s.scene.doors[d];
@@ -118,6 +121,7 @@ void EnemySystem::advance(WorldState& s,Events::EventBus& bus,u32 elapsed) {
   if(!navigationReady_){navigation_.build(s);navigationReady_=true;}
   reduceTicks(s.damageFlashTicks,elapsed);
   doors(s,static_cast<float>(elapsed)/kCombatTicksPerSecond);
+  droidController_.advance(s,bus,elapsed,scene_);
   if(c.finalRadioPending) {
     c.finalRadioPending=false;
     bus.publish(Events::GameEvent::makeSimple(Events::EventType::RadioTransmissionTriggered,
@@ -172,6 +176,7 @@ void EnemySystem::doors(WorldState& s,float dt) {
     };
     bool hasActor=occupied(s.player.playerPos,kPlayerBodyRadius);
     for(const auto& e:s.enemies)if(e.active && occupied(e.position,kEnemyRadius))hasActor=true;
+    if(s.droid.mobile() && occupied(s.droid.position,kDroidRadius))hasActor=true;
     if(!d.targetOpen && d.openAmount>0 && hasActor)d.targetOpen=true;
     d.openAmount=std::max(0.F,std::min(1.F,d.openAmount+(d.targetOpen?1:-1)*kDoorSpeed*60*dt));
   }

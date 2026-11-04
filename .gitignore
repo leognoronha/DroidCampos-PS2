@@ -35,3 +35,6 @@
 # Generated combat validation data
 /artifacts/combat/
 /game/build-etip.log
+
+# Isolated DroidCampos release emulator validation
+/artifacts/droid-release/

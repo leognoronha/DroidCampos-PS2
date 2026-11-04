@@ -395,7 +395,16 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
 
     engine->renderer.renderer3D.usePipeline(stapip_);
 
+    const float shake=state.droid.shake(),t=state.droid.phaseTicks/15625.F;
+    const float light=1-shake*((std::sin(t*37.F)+std::sin(t*17.F)>.1F)?.78F:.18F);
+    for(const auto& base:interiorAmbient_)base.material->ambient.set(base.r*light,base.g*light,base.b*light,128);
     for (auto& mesh : interiorMeshes_) stapip_.render(mesh.get(), scenarioOptions_);
+    if(capsuleOccupantMesh_ && !state.droid.mobile())stapip_.render(capsuleOccupantMesh_.get(),scenarioOptions_);
+    if(capsuleLocksMesh_) {
+      capsuleLocksMesh_->translation.identity();
+      capsuleLocksMesh_->translation.translate(Vec4(0,2.35F*state.droid.opening(),0,1));
+      stapip_.render(capsuleLocksMesh_.get(),scenarioOptions_);
+    }
     if (doorMesh_) {
       for (int i = 0; i < 4; ++i) {
         doorMesh_->translation.identity();
@@ -418,6 +427,8 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
     engine->renderer.renderer3D.usePipeline(stapip_);
 
     if (capsuleGlassMesh_) {
+      capsuleGlassMesh_->translation.identity();
+      capsuleGlassMesh_->translation.translate(Vec4(0,-5.F*state.droid.opening(),0,1));
       renderTransparentPass(engine, capsuleGlassMesh_.get(), capsuleGlassOptions_);
     }
 
@@ -496,7 +507,7 @@ void WorldRenderSystem::unloadScene(Engine* engine) {
   // Each interior PNG is owned once, regardless of how many material links use it.
   for (const auto& entry : interiorTextures_) repo.free(entry.second);
   interiorTextures_.clear(); interiorMeshes_.clear(); doorMesh_.reset();
-  capsuleGlassMesh_.reset();
+  capsuleGlassMesh_.reset();capsuleOccupantMesh_.reset();capsuleLocksMesh_.reset();interiorAmbient_.clear();
   etipLogoMat_ = etipBoardMat_ = cardReaderLightMat_ = nullptr;
   scenarioLoaded_ = mistLoaded_ = false;
 }
@@ -533,6 +544,7 @@ bool WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
       const float tint = luminous ? 128.0F : 72.0F;
       mat->ambient.set(tint, tint, tint, 128);
     }
+    interiorAmbient_.push_back({mat,mat->ambient.r,mat->ambient.g,mat->ambient.b});
     if (!mat->textureName.has_value()) continue;
     const std::string name = mat->textureName.value();
     auto it = interiorTextures_.find(name);
@@ -547,8 +559,13 @@ bool WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
     prepareOpaqueMesh(mesh.get(), repo, stapip_);
   if (step == Core::kInsidePartCount - 1) {
     for(int door=0;door<4;++door) registerWeaponGeometry(mesh.get(),door);
-  } else registerWeaponGeometry(mesh.get());
+  } else {
+    const std::string part=Core::kInsideParts[step];
+    if(part!="capsula_ocupante")registerWeaponGeometry(mesh.get(),part=="capsula_travas"?-3:part=="capsula_vidro"?-4:-1);
+  }
   if (std::string(Core::kInsideParts[step]) == "capsula_vidro") capsuleGlassMesh_ = std::move(mesh);
+  else if (std::string(Core::kInsideParts[step]) == "capsula_ocupante") capsuleOccupantMesh_ = std::move(mesh);
+  else if (std::string(Core::kInsideParts[step]) == "capsula_travas") capsuleLocksMesh_ = std::move(mesh);
   else if (step == Core::kInsidePartCount - 1) doorMesh_ = std::move(mesh);
   else interiorMeshes_.push_back(std::move(mesh));
   return true;

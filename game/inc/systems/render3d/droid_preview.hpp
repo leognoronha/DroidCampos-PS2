@@ -12,12 +12,9 @@ class DroidPreview {
   void render(Tyra::Engine*,const Core::WorldState&);
   void unload(Tyra::Engine*);
  private:
-  std::unique_ptr<Tyra::StaticMesh> mesh_;
+  std::unique_ptr<Tyra::StaticMesh> mesh_,button_;
   std::vector<float> bank_;
   Tyra::StaticPipeline pipeline_;
   Tyra::StaPipOptions options_;
-  Tyra::Timer timer_;
-  float seconds_=0;
-  bool wasActive_=false;
 };
 }}}

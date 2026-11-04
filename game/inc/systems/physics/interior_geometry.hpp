@@ -36,6 +36,7 @@ inline void visitInteriorBoxes(const Core::WorldState& s, bool doors, Visit visi
   visit(InteriorBox{-5,-1.7F,-24.1F,-23.9F});
   visit(InteriorBox{1.7F,5,-24.1F,-23.9F});
   visit(InteriorBox{-5,-3.58F,-29.175F,-26.825F});
+  if(s.droid.phase!=Core::DroidPhase::Inactive)visit(InteriorBox{-.16F,.16F,-26.16F,-25.84F});
   visit(InteriorBox{Core::kCapsuleMinX,Core::kCapsuleMaxX,
                     Core::kCapsuleMinZ,Core::kCapsuleMaxZ});
 }
@@ -87,6 +88,8 @@ inline Tyra::Vec4 projectInterior(const Core::WorldState& s,Tyra::Vec4 p,float r
 inline bool actorPositionFree(const Core::WorldState& s,float x,float z,float r,
                              int self) {
   Tyra::Vec4 p(x,0,z,1);
+  if(self!=Core::kMaxEnemies && s.droid.phase==Core::DroidPhase::Pursuit &&
+     distanceXZ(p,s.droid.position)<r+Core::kDroidRadius-.001F)return false;
   if(self>=0 && distanceXZ(p,s.player.playerPos)<r+Core::kPlayerBodyRadius-.001F)
     return false;
   for(int i=0;i<Core::kMaxEnemies;++i)

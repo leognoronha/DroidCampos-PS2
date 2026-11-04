@@ -1,11 +1,13 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $buildLog = Join-Path $projectRoot 'game/build-etip.log'
-$containerBuild = 'set -eu; rsync -ac --exclude .git --exclude obj --exclude bin --exclude build-etip.log /host/ /src/; rsync -ac --delete /host/game/src/ /src/game/src/; rsync -ac --delete /host/game/inc/ /src/game/inc/; cd /src/game; make build-engine all; test -s /src/game/bin/droid_campos.elf; test -s /src/game/bin/etip_inside/porta.obj; rsync -ac /src/game/bin/ /host/game/bin/'
+$containerBuild = 'set -eu; rsync -ac --exclude .git --exclude artifacts --exclude obj --exclude bin --exclude build-etip.log /host/ /src/; rsync -ac --delete /host/game/src/ /src/game/src/; rsync -ac --delete /host/game/inc/ /src/game/inc/; cd /src/game; make build-engine all; test -s /src/game/bin/droid_campos.elf; test -s /src/game/bin/etip_inside/porta.obj; rsync -ac /src/game/bin/ /host/game/bin/'
 Push-Location $projectRoot
 try {
+    $ErrorActionPreference = 'Continue' # Native compiler warnings on stderr are not build failures.
     & docker exec tyra-compiler sh -lc $containerBuild 2>&1 | Tee-Object -FilePath $buildLog
     $buildExit = $LASTEXITCODE
+    $ErrorActionPreference = 'Stop'
     if ($buildExit -ne 0) {
         throw "Build falhou (codigo $buildExit). Log: $buildLog"
     }

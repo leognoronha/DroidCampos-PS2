@@ -1,6 +1,7 @@
 #include "systems/input/input_system.hpp"
 #include <cmath>
 #include "core/interior_layout.hpp"
+#include "systems/physics/interior_geometry.hpp"
 
 namespace DroidCampos {
 namespace Systems {
@@ -39,6 +40,7 @@ void InputSystem::init(Tyra::Engine* engine, Core::WorldState& state,
   (void)engine;
   (void)bus;
   state.inputCmd.clear();
+  state.droid.buttonNearby=false;
 }
 
 void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
@@ -50,6 +52,7 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
   }
 
   state.inputCmd.clear();
+  state.droid.buttonNearby=false;
 
   if (state.menu.padCooldown > 0) {
     state.menu.padCooldown--;
@@ -180,6 +183,23 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
         Events::EventType::CardReaderInteracted));
   }
 
+  state.droid.buttonNearby=false;
+  if(state.scene.active==Core::SceneId::Interior && !state.radio.popupActive &&
+     state.droid.phase==Core::DroidPhase::ButtonReady) {
+    float hit=1.5F;
+    Tyra::Vec4 post(0,0,-26,1);
+    if(Systems::Physics::distanceXZ(state.player.playerPos,post)<=1.5F &&
+       reticleHits(state,-.1F,.90F,-26.1F,.1F,1.02F,-25.9F,hit) &&
+       Systems::Physics::interiorSegmentFree(state,state.player.playerPos,
+         Tyra::Vec4(state.player.playerPos.x*.25F/std::max(.001F,Systems::Physics::distanceXZ(state.player.playerPos,post)),0,-26+(state.player.playerPos.z+26)*.25F/std::max(.001F,Systems::Physics::distanceXZ(state.player.playerPos,post)),1),.01F)) {
+      state.droid.buttonNearby=true;
+      if(clicked.Triangle) {
+        state.droid.phase=Core::DroidPhase::Release;state.droid.phaseTicks=0;
+        state.weapon.cancelTransient();state.inputCmd.clear();
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));return;
+      }
+    }
+  }
   state.scene.nearbyDoor = -1;
   if (state.scene.active == Core::SceneId::Interior && !state.radio.popupActive) {
     float nearestHit = 1.8F;
@@ -298,7 +318,10 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
     } else if(clicked.Cross) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
-      if(state.menu.pauseSelectedIndex==0)
+      if(state.droid.phase==Core::DroidPhase::GameOver) {
+        state.menu.currentScreen=state.menu.pauseSelectedIndex==0?Core::ScreenState::NewGame:Core::ScreenState::LoadGame;
+        bus.publish(Events::GameEvent::makeScreenTransition(static_cast<u8>(state.menu.currentScreen)));
+      } else if(state.menu.pauseSelectedIndex==0)
         bus.publish(Events::GameEvent::makeSimple(Events::EventType::EncounterRetryRequested));
       else state.menu.currentScreen=Core::ScreenState::MainMenu;
     }

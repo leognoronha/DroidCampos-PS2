@@ -69,6 +69,14 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       break;
     }
     case Core::ScreenState::Defeated:
+      if(state.droid.phase==Core::DroidPhase::GameOver) {
+        drawer_->drawBlueprintPanel(56,144,400,180,menuInk(0,0,0),menuInk(230,70,50));
+        drawer_->getFont().drawText("GAME OVER",176,158,menuInk(250,130,100));
+        drawer_->getFont().drawText("DROIDCAMPOS E INEVITAVEL",92,186,menuInk(250,130,100));
+        drawer_->getFont().drawText(state.menu.pauseSelectedIndex==0?"> NEW GAME":"  NEW GAME",144,224,menuInk(200,225,235));
+        drawer_->getFont().drawText(state.menu.pauseSelectedIndex==1?"> LOAD GAME":"  LOAD GAME",144,264,menuInk(200,225,235));
+        drawer_->renderFooter("D-PAD: SELECIONAR  X: CONFIRMAR");break;
+      }
       drawer_->drawBlueprintPanel(80,144,352,170,menuInk(0,0,0),menuInk(230,70,50));
       drawer_->getFont().drawText("VOCE FOI DERROTADO",120,168,menuInk(250,130,100));
       drawer_->getFont().drawText(state.menu.pauseSelectedIndex==0

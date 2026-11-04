@@ -71,7 +71,9 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
   bool pistolLoaded_;
   std::vector<std::unique_ptr<Tyra::StaticMesh>> interiorMeshes_;
   std::unique_ptr<Tyra::StaticMesh> doorMesh_;
-  std::unique_ptr<Tyra::StaticMesh> capsuleGlassMesh_;
+  std::unique_ptr<Tyra::StaticMesh> capsuleGlassMesh_, capsuleOccupantMesh_, capsuleLocksMesh_;
+  struct AmbientBaseline {Tyra::MeshMaterial* material;float r,g,b;};
+  std::vector<AmbientBaseline> interiorAmbient_;
   Tyra::StaPipOptions capsuleGlassOptions_;
   std::map<std::string, u32> interiorTextures_;
 };

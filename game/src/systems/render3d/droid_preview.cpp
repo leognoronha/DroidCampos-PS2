@@ -5,7 +5,7 @@
 #include <algorithm>
 namespace DroidCampos { namespace Systems { namespace Render3D {
 namespace {
-constexpr unsigned kVertices=6900,kFrames=36;
+constexpr unsigned kVertices=6900,kFrames=84;
 std::string path(const char* name) {return Tyra::FileUtils::fromCwd(std::string("droid_preview/")+name);}
 bool readBank(std::vector<float>* bank) {
  FILE* f=std::fopen(path("motion.bin").c_str(),"rb");if(!f)return false;
@@ -23,13 +23,13 @@ bool readBank(std::vector<float>* bank) {
 }
 }
 void DroidPreview::init(Tyra::Engine* e) {
- pipeline_.setRenderer(&e->renderer.core);timer_.prime();
+ pipeline_.setRenderer(&e->renderer.core);
  options_.frustumCulling=Tyra::PipelineFrustumCulling_Precise;
  options_.fullClipChecks=true;options_.textureMappingType=Tyra::TyraNearest;
  options_.transformationType=Tyra::TyraMVP;
 }
 bool DroidPreview::validateAssets() {
- for(const char* name:{"actor.obj","actor.mtl","body.png","head.png"}) {
+ for(const char* name:{"actor.obj","actor.mtl","body.png","head.png","button.obj","button.mtl"}) {
   FILE* f=std::fopen(path(name).c_str(),"rb");if(!f)return false;std::fclose(f);
  }
  return readBank(nullptr);
@@ -44,23 +44,28 @@ bool DroidPreview::load(Tyra::Engine* e) {
   count+=m->frames[0]->count;
   auto* texture=e->renderer.getTextureRepository().add(path((m->name+".png").c_str()));
   texture->addLink(m->id);
-  const Tyra::Vec4 bounds[]={Tyra::Vec4(-1.3F,-.01F,-1.2F,1),Tyra::Vec4(1.3F,3.4F,1.2F,1)};
+  const Tyra::Vec4 bounds[]={Tyra::Vec4(-1.6F,-.01F,-1.7F,1),Tyra::Vec4(1.6F,3.4F,1.7F,1)};
   *m->frames[0]->bbox=Tyra::BBox(bounds,2);*mesh_->frame->bbox=Tyra::BBox(bounds,2);
  }
  if(count!=kVertices){unload(e);return false;}
- seconds_=0;wasActive_=false;timer_.prime();return true;
+ auto buttonData=Tyra::ObjLoader::load(path("button.obj"),opt);
+ button_=std::make_unique<Tyra::StaticMesh>(buttonData.get());
+ return true;
 }
 void DroidPreview::render(Tyra::Engine* e,const Core::WorldState& s) {
- float dt=std::min(timer_.getTimeDelta()/15625.F,.1F);timer_.prime();
- bool active=s.simulationActive();if(active && wasActive_)seconds_+=dt;wasActive_=active;
  if(!mesh_)return;
- // Four two-metre legs, each followed by the complete three-second punch.
- const float t=std::fmod(seconds_,28.F);int leg=static_cast<int>(t/7.F);
- float phase=t-leg*7.F,travel=std::min(phase/4.F,1.F);
- const float x[5]={-2.F,0.F,0.F,-2.F,-2.F},z[5]={-26.F,-26.F,-30.F,-30.F,-26.F};
- float pose=phase<4?std::fmod(phase,2.F)*6.F:12.F+std::min((phase-4)*8.F,23.F);
- int from=static_cast<int>(pose),to=phase<4?(from+1)%12:std::min(from+1,35);
- float blend=pose-from;
+ const auto& boss=s.droid;
+ if(boss.phase!=Core::DroidPhase::Inactive && button_) {
+   float rise=boss.phase==Core::DroidPhase::ButtonRising?std::min(1.F,boss.phaseTicks/(4.F*Core::kDroidSecond)):1.F;
+   button_->translation.identity();button_->translation.translate(Tyra::Vec4(0,-1.02F*(1-rise),-26,1));
+   e->renderer.renderer3D.usePipeline(pipeline_);pipeline_.render(button_.get(),options_);
+ }
+ if(!boss.mobile())return;
+ float pose=boss.attacking?12.F+std::min(boss.attackTicks/15625.F*8.F,23.F):std::fmod(boss.animationTicks/15625.F,2.F)*6.F;
+ int base=boss.passage?72:(boss.crouched?36:0);
+ int local=static_cast<int>(pose),from=base+local;
+ int to=base+(boss.attacking?std::min(local+1,35):(local+1)%12);
+ float blend=pose-local;
  e->renderer.core.sync.align3D();pipeline_.core.clearGeometryCache();
  unsigned offset=0;
  for(auto* m:mesh_->materials) {
@@ -73,14 +78,14 @@ void DroidPreview::render(Tyra::Engine* e,const Core::WorldState& s) {
   }
   offset+=f->count;
  }
- mesh_->rotation.identity();mesh_->rotation.rotateY(std::atan2(x[leg+1]-x[leg],z[leg+1]-z[leg]));
- mesh_->translation.identity();mesh_->translation.translate(Tyra::Vec4(x[leg]+(x[leg+1]-x[leg])*travel,0,z[leg]+(z[leg+1]-z[leg])*travel,1));
+ mesh_->rotation.identity();mesh_->rotation.rotateY(boss.yaw+(boss.passage?1.570796327F:0));
+ mesh_->translation.identity();mesh_->translation.translate(boss.position);
  e->renderer.renderer3D.usePipeline(pipeline_);pipeline_.render(mesh_.get(),options_);
 }
 void DroidPreview::unload(Tyra::Engine* e) {
  if(e)e->renderer.core.sync.align3D();
  pipeline_.core.clearGeometryCache();
  if(e && mesh_)e->renderer.getTextureRepository().freeByMesh(mesh_.get());
- mesh_.reset();std::vector<float>().swap(bank_);seconds_=0;wasActive_=false;
+ button_.reset();mesh_.reset();std::vector<float>().swap(bank_);
 }
 }}}

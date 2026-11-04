@@ -16,10 +16,10 @@ constexpr float kCapsuleMinX = 2.20F;
 constexpr float kCapsuleMaxX = 4.96F;
 constexpr float kCapsuleMinZ = -30.55F;
 constexpr float kCapsuleMaxZ = -27.45F;
-constexpr int kInsidePartCount = 12;
+constexpr int kInsidePartCount = 14;
 constexpr int kInsideLoadStepCount = kInsidePartCount + 6; // Five enemies and one animated DroidCampos preview.
 constexpr const char* kInsideParts[kInsidePartCount] = {
     "corredor_1", "corredor_2", "corredor_3", "sala_1", "sala_2",
-    "sala_3", "sala_4", "sala_terminal", "terminal", "capsula", "capsula_vidro", "porta"};
+    "sala_3", "sala_4", "sala_terminal", "terminal", "capsula_casca", "capsula_ocupante", "capsula_travas", "capsula_vidro", "porta"};
 }  // namespace Core
 }  // namespace DroidCampos

@@ -357,3 +357,7 @@ for name in ('estrutura','portas','salas','terminal','capsula'):
     for c in list(bpy.data.collections):
         if c not in keep_collections: bpy.data.collections.remove(c)
     bpy.ops.wm.save_as_mainfile(filepath=str(MODELS/('ETIP-inside-'+name+'.blend')))
+
+# Separate runtime actors without altering the authored capsule.
+import runpy
+runpy.run_path(str(repo/"tools/split_droid_capsule.py"),run_name="__main__")

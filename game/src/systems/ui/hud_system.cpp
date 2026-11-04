@@ -44,10 +44,10 @@ void HudSystem::renderTerminal(const Core::WorldState& state) {
   const auto& terminal = state.scene;
   const bool newEntry=state.encounter.newEntryUnlocked &&
       terminal.terminalTopic==2 && terminal.terminalEntry==1;
-  const char* newSummary="NOVA ENTRADA DETECTADA\n\nREGISTRO POS-COMBATE.\n\nCONTEUDO NARRATIVO PROVISORIO.\n\nX: ABRIR NOVO REGISTRO\nESQ/DIR: TROCAR REGISTRO";
+  const char* newSummary="NOVA ENTRADA DETECTADA\n\nPROTOCOLO DE CONTENCAO.\n\nLEIA PARA LIBERAR O DISPOSITIVO.\n\nX: ABRIR NOVO REGISTRO\nESQ/DIR: TROCAR REGISTRO";
   const char* newPages[2]={
-      "[NOVA ENTRADA / PROVISORIO]\n\nREGISTRO DISPONIBILIZADO\nAPOS A MOBILIZACAO\nDA SEGURANCA.\n\nCONTEUDO NARRATIVO PENDENTE.",
-      "[CONTINUACAO / PROVISORIO]\n\nESPACO RESERVADO PARA\nA PROXIMA ETAPA DA HISTORIA.\n\nCONTEUDO NARRATIVO PENDENTE."};
+      "[PROTOCOLO DE LIBERACAO]\n\nSEGURANCA DESATIVADA.\nAO ENCERRAR ESTE TERMINAL,\nUM DISPOSITIVO VERMELHO\nSURGIRA NO CENTRO DA SALA.",
+      "[ATIVACAO MANUAL]\n\nAPROXIME-SE DO BOTAO.\nMIRE E PRESSIONE TRIANGULO\nPARA LIBERAR A CAPSULA.\n\nCONTENCAO IRREVERSIVEL."};
   // Short, authored lines fit the PS2 font without runtime text allocation.
   static const char* topics[] = {"CORPORATIVO", "HISTORICO", "OCORRENCIAS"};
   static const char* summaries[] = {
@@ -142,7 +142,7 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   else if(encounter.phase==Core::EncounterPhase::Intermission)
     std::snprintf(wave,sizeof(wave),"ONDA %d/3 EM %u // VIDA +25",encounter.wave+1,(encounter.countdownTicks+15624)/15625);
   else if(encounter.phase==Core::EncounterPhase::Complete)
-    std::snprintf(wave,sizeof(wave),"AMEACA ELIMINADA // 3/3");
+    std::snprintf(wave,sizeof(wave),state.droid.phase>=Core::DroidPhase::Release?"DROIDCAMPOS // CONTENCAO ROMPIDA":"AMEACA ELIMINADA // 3/3");
   if(wave[0]) {
     drawer_->drawBlueprintPanel(246,52,254,28,Color(2,7,10,112),cyan);
     font.drawText(wave,254,60,cyan,.85F);
@@ -152,6 +152,10 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
     font.drawText("CONSULTAR NOVA ENTRADA NO TERMINAL",22,160,cyan,.85F);
   }
 
+  if(state.droid.phase==Core::DroidPhase::ButtonRising)
+    font.drawText("DISPOSITIVO DE LIBERACAO EMERGINDO",22,192,cyan,.85F);
+  if(state.droid.phase==Core::DroidPhase::ButtonReady)
+    font.drawText(state.droid.buttonNearby?"TRIANGULO: LIBERAR CAPSULA":"ATIVAR DISPOSITIVO NA SALA",22,192,cyan,.85F);
   // Center First-Person Reticle (Crosshair)
   const float cx = 256.0F;
   const float cy = 224.0F;

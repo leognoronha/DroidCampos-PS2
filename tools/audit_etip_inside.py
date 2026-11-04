@@ -67,4 +67,20 @@ audit=json.loads((root/'audit.json').read_text());assert audit['triangles']==run
 assert audit['capsule']['ceiling_clearance_m']>=.4 and audit['capsule']['wall_clearance_m']>=.05
 assert audit['terminal_room']['height']==6.25
 assert audit['capsule']['occupant']['triangles']==occupant_triangles
-print(json.dumps({'status':'PASS','triangles_with_4_doors':runtime_tris,'parts':totals,'unique_textures':len(textures),'decoded_RGBA_bytes':decoded_bytes,'occupant_triangles':occupant_triangles},indent=2))
+# Release-scene resources must partition the original occupied capsule exactly.
+split_totals={}
+for name in ('capsula_casca','capsula_ocupante','capsula_travas'):
+    obj=(root/(name+'.obj')).read_text()
+    split_totals[name]=sum(line.startswith('f ') for line in obj.splitlines())
+    assert split_totals[name]>0
+assert sum(split_totals.values())==totals['capsula']
+assert split_totals['capsula_ocupante']==occupant_triangles
+preview=root.parent/'droid_preview'
+bank=(preview/'motion.bin').read_bytes()
+magic,vertices,frames=struct.unpack('<8sII',bank[:16])
+assert (magic,vertices,frames)==(b'DROIDAN1',6900,84)
+assert len(bank)==16+vertices*frames*12
+manifest=json.loads((preview/'assets.json').read_text())
+assert manifest['passage_height']<2.2 and manifest['passage_width']<1.4
+assert (preview/'button.obj').is_file() and (preview/'button.mtl').is_file()
+print(json.dumps({'status':'PASS','triangles_with_4_doors':runtime_tris,'parts':totals,'unique_textures':len(textures),'decoded_RGBA_bytes':decoded_bytes,'occupant_triangles':occupant_triangles,'capsule_components':split_totals,'droid_frames':frames,'passage_height':manifest['passage_height'],'passage_width':manifest['passage_width']},indent=2))

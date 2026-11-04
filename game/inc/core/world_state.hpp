@@ -2,6 +2,7 @@
 
 #include <tyra>
 #include <array>
+#include <algorithm>
 #include "core/combat_config.hpp"
 
 namespace DroidCampos {
@@ -164,6 +165,28 @@ struct EnemyState {
   u32 animationTicks = 0, shotAnimationTicks = 0, hitTicks = 0;
   u32 randomState = 1;
 };
+enum class DroidPhase : u8 { Inactive, ButtonRising, ButtonReady, Release, Pursuit, GameOver };
+constexpr float kDroidRadius=.60F;
+constexpr u32 kDroidSecond=15625;
+struct DroidEncounterState {
+  DroidPhase phase=DroidPhase::Inactive;
+  u32 phaseTicks=0, animationTicks=0, attackTicks=0, pathTicks=0;
+  bool buttonNearby=false, attacking=false, impactDone=false, moving=false, crouched=false, passage=false;
+  Tyra::Vec4 position=Tyra::Vec4(3.58F,1.237F,-29.F,1);
+  int passageDoor=-1, passageSide=1;
+  float yaw=-1.570796327F;
+  float opening() const {
+    return phase==DroidPhase::Release ? std::min(1.F,phaseTicks/(3.F*kDroidSecond)) :
+      (phase==DroidPhase::Pursuit || phase==DroidPhase::GameOver ? 1.F : 0.F);
+  }
+  bool mobile() const {return phase==DroidPhase::Pursuit || phase==DroidPhase::GameOver ||
+    (phase==DroidPhase::Release && phaseTicks>=3*kDroidSecond);}
+  float shake() const {
+    if(phase!=DroidPhase::Release)return 0;
+    float t=phaseTicks/float(kDroidSecond);
+    return t<3 ? t/3 : std::max(0.F,(6-t)/3);
+  }
+};
 struct EncounterState {
   EncounterPhase phase = EncounterPhase::Dormant;
   int wave = 0, remaining = 0;
@@ -190,6 +213,7 @@ struct alignas(64) WorldState {
   u32 damageFlashTicks = 0;
   std::array<EnemyState,kMaxEnemies> enemies{};
   EncounterState encounter;
+  DroidEncounterState droid;
 
   bool simulationActive() const {
     return menu.currentScreen == ScreenState::GameplayFps && scene.resident &&
@@ -258,6 +282,7 @@ struct alignas(64) WorldState {
     menu.padCooldown = 0;
     menu.activeSaveSlot = 1;
 
+    droid = DroidEncounterState{};
     anim.animTick = 0.0F;
     anim.scanlineY = 0.0F;
     anim.bgScrollOffset = 0.0F;
