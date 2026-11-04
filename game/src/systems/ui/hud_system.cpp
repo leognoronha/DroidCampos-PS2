@@ -148,8 +148,9 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
     font.drawText(wave,254,60,cyan,.85F);
   }
   if(encounter.newEntryUnlocked && !encounter.objectiveComplete && !state.radio.popupActive) {
-    drawer_->drawBlueprintPanel(12,152,360,28,Color(2,7,10,112),cyan);
-    font.drawText("CONSULTAR NOVA ENTRADA NO TERMINAL",22,160,cyan,.85F);
+    drawer_->drawBlueprintPanel(12,152,174,42,Color(2,7,10,112),cyan);
+    font.drawText("NOVA ENTRADA",22,160,cyan,.9F);
+    font.drawText("CONSULTAR TERMINAL",22,176,cyan,.9F);
   }
 
   if(state.droid.phase==Core::DroidPhase::ButtonRising)
