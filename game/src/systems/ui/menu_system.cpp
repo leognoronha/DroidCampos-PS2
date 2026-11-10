@@ -97,21 +97,21 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
     case Core::ScreenState::MainMenu:
       renderMainMenu(state);
       drawer_->renderFooter(
-          "D-PAD: NAVIGATE  X: SELECT");
+          "D-PAD: NAVEGAR  X: SELECIONAR");
       break;
     case Core::ScreenState::NewGame:
       renderNewGameScreen(state);
-      drawer_->renderFooter("X: ENTER ETIP  O: BACK");
+      drawer_->renderFooter("X: ENTRAR NA ETIP  O: VOLTAR");
       break;
     case Core::ScreenState::LoadGame:
       renderLoadGameScreen(state);
       drawer_->renderFooter(
-          "D-PAD: SLOT  X: LOAD  O: BACK");
+          "X: CARREGAR  O: VOLTAR");
       break;
     case Core::ScreenState::Settings:
       renderSettingsScreen(state);
       drawer_->renderFooter(
-          "D-PAD: ADJUST  O: BACK");
+          "O: VOLTAR");
       break;
     case Core::ScreenState::GameplayFps:
       break;
@@ -132,27 +132,29 @@ void MenuSystem::renderNewGameScreen(const Core::WorldState& state) {
                      menuInk(99, 180, 179, 128));
 
   drawer_->getFont().drawText(
-      "MISSION DOSSIER // ETIP COMPLEX", 32, 118,
+      "DOSSIE DA MISSAO // COMPLEXO ETIP", 32, 118,
       menuInk(159, 239, 232, 128));
   drawer_->drawRect(28.0F, 136.0F, 456.0F, 2.0F,
                     menuInk(54, 112, 115, 128));
 
   drawer_->getFont().drawText(
-      "YEAR 2066 - UTINGA INDUSTRIAL DISTRICT.\n"
-      "DR. VICTOR CAMPOS, CHIEF MATHEMATICIAN AT ETIP,\n"
-      "ARRIVES AT THE ABANDONED PERIMETER OF THE ETIP\n"
-      "INDUSTRIAL INSTALLATION.\n\n"
-      "OBJECTIVE:\n"
-      "- ADVANCE THROUGH ACCESS ROAD (ZONA A -> ZONA B)\n"
-      "- INSPECT SECURITY GUARITA & CARD READER AT GATE\n"
-      "- BREACH MAIN INDUSTRIAL GATE INTO ETIP FACILITY.",
-      32, 148, menuInk(200.0F, 225.0F, 235.0F, 128.0F));
+      "ANO 2066 - DISTRITO INDUSTRIAL DE UTINGA.\n"
+      "A CORPORACAO ETIP MANTEM SUAS INSTALACOES\n"
+      "SOB RIGIDO CONTROLE DE SEGURANCA.\n\n"
+      "GUIADO PELA ORGANIZACAO REBELDE CJE,\n"
+      "O AGENTE PM INICIA SUA INFILTRACAO\n"
+      "NO COMPLEXO INDUSTRIAL DA ETIP.\n\n"
+      "OBJETIVOS\n"
+      "- AVANCE ATE O PORTAO PRINCIPAL.\n"
+      "- LOCALIZE A GUARITA DE SEGURANCA.\n"
+      "- UTILIZE O LEITOR DE CARTAO PARA ENTRAR.",
+      32, 148, menuInk(200.0F, 225.0F, 235.0F, 128.0F), .9F);
 
   float pulse = (std::sin(state.anim.animTick * 4.0F) + 1.0F) * 0.5F;
-  drawer_->drawBlueprintPanel(86.0F, 344.0F, 340.0F, 36.0F,
+  drawer_->drawBlueprintPanel(86.0F, 350.0F, 340.0F, 32.0F,
                      menuInk(145 + pulse * 14, 225 + pulse * 14, 218 + pulse * 14, 128),
                      menuInk(159, 239, 232, 128));
-  drawer_->getFont().drawText(">> PRESS CROSS TO START 3D FPS <<", 112, 354,
+  drawer_->getFont().drawText("X: INICIAR MISSAO", 208, 358,
                               menuInk(0, 0, 0, 128));
 }
 
