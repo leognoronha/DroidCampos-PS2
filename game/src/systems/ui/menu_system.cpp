@@ -171,8 +171,8 @@ void MenuSystem::renderLoadGameScreen(const Core::WorldState& state) {
       "SLOT 02 // ETIP QUANTUM RESEARCH LAB",
       "SLOT 03 // [ EMPTY / UNFORMATTED DATA BLOCK ]"};
   const char* slotDetails[3] = {
-      "DR. CAMPOS LVL 01 // TIME: 00:05:12",
-      "DR. CAMPOS LVL 02 // TIME: 00:54:09",
+      "PM LVL 01 // TIME: 00:05:12",
+      "PM LVL 02 // TIME: 00:54:09",
       "NO TELEMETRY CHECKSUM FOUND IN THIS MEMORY SECTOR"};
 
   for (int i = 0; i < 3; i++) {

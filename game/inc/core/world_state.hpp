@@ -11,10 +11,12 @@ namespace Core {
 constexpr float kDefaultPi = 3.1415926535F;
 constexpr float kDefaultEyeHeight = 1.70F;
 constexpr const char* kDefaultCodecMessage =
-    "DR. CAMPOS, DO YOU READ ME?\n"
-    "ETIP PERIMETER IS UNDER LOCKDOWN.\n"
-    "CHECK THE GUARD BOOTH AND CARD\n"
-    "READER TO BREACH THE MAIN GATE.";
+    "PM, ESTA NA ESCUTA?\n"
+    "AQUI E O CJE. ESTAMOS NA LINHA.\n"
+    "A ENTRADA DA ETIP ESTA BLOQUEADA.\n"
+    "SEU CARTAO DE ACESSO ESTA LIBERADO.\n"
+    "LOCALIZE O LEITOR PERTO DA ENTRADA.\n"
+    "E ENTRE NO COMPLEXO. CAMBIO";
 
 enum class ScreenState : u8 {
   MainMenu = 0,
@@ -95,7 +97,7 @@ struct RadioCodecState {
   RadioPhase phase = RadioPhase::Idle;
   bool popupActive;
   int visibleChars;
-  float typeTimer;
+  u32 revealTicks = 0;
   const char* currentMessage;
 };
 
@@ -254,7 +256,7 @@ struct alignas(64) WorldState {
     radio.popupActive = true;
     radio.phase = RadioPhase::Waiting;
     radio.visibleChars = 0;
-    radio.typeTimer = 0.0F;
+    radio.revealTicks = 0;
     radio.currentMessage = scene.active == SceneId::Interior
         ? "VOCE ESTA DENTRO DA ETIP.\nA ENTRADA FOI SELADA.\nEXPLORE AS SALAS LATERAIS.\nLOCALIZE O TERMINAL CENTRAL."
         : kDefaultCodecMessage;

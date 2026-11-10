@@ -197,7 +197,7 @@ void MenuAudioSystem::updateRadio(Tyra::Engine* engine,
     engine->audio.adpcm.tryPlay(&radioConfirmation_, 22);
   radio.phase = Core::RadioPhase::Message;
   radio.visibleChars = 0;
-  radio.typeTimer = 0;
+  radio.revealTicks = 0;
   radioTicksRemaining_ = 0;
 }
 

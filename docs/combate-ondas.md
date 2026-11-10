@@ -40,7 +40,7 @@ O HUD mostra vida, onda, quantidade restante e contagem de preparação/interval
 A terceira onda concluída libera uma nova entrada em Ocorrências, mostra o
 objetivo de consultar o terminal e transmite:
 
-> DR. CAMPOS, A SEGURANÇA FOI MOBILIZADA. DETECTAMOS UMA NOVA ENTRADA NO TERMINAL.
+> PM, A SEGURANÇA FOI MOBILIZADA. DETECTAMOS UMA NOVA ENTRADA NO TERMINAL.
 > VOLTE AO TERMINAL E VERIFIQUE.
 
 L2 revisa a mensagem retida. No terminal, selecione Ocorrências e use esquerda ou

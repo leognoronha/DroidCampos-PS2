@@ -35,7 +35,7 @@ int main(int argc,char**argv) {
     for(const auto& s:draws) {
       assert(s.size.x>0&&s.size.y>0);
       assert(s.position.x>=18&&s.position.x+s.size.x*s.scale<=494);
-      assert(s.position.y>= (icon?52:244) &&s.position.y+s.size.y*s.scale<=(icon?86:402));
+      assert(s.position.y>= (icon?52:226) &&s.position.y+s.size.y*s.scale<=(icon?86:402));
       if(icon)assert(s.position.x+s.size.x*s.scale<=50);
     }
     if(argc>2) {
@@ -54,7 +54,16 @@ int main(int argc,char**argv) {
   step(1);
   assert(state.radio.phase==Core::RadioPhase::Message&&state.radio.visibleChars==0);
   assert(HostAudio::played.size()==2&&HostAudio::played[1]==confirmation);
-  for(int i=0;i<300;++i){bus.flushFrameEvents();step(0);}
+  bus.flushFrameEvents();
+  const int firstLine = static_cast<int>(std::strchr(state.radio.currentMessage, '\n') -
+                                         state.radio.currentMessage);
+  for (int i = 0; i < 200 && state.radio.visibleChars < firstLine; ++i) step(500);
+  assert(state.radio.visibleChars == firstLine);
+  step(7031);
+  assert(state.radio.visibleChars == firstLine);
+  step(1);
+  assert(state.radio.visibleChars == firstLine + 2);
+  for (int i = 0; i < 1000; ++i) step(500);
   assert(state.radio.visibleChars==static_cast<int>(std::strlen(state.radio.currentMessage)));
   assert(HostAudio::played.size()==2);render("radio_message",false);
   engine.pad.clicked.Circle=true;bus.flushFrameEvents();stage0();step(0);
