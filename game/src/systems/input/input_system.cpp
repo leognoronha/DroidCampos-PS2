@@ -1,4 +1,5 @@
 #include "systems/input/input_system.hpp"
+#include "core/terminal_documents.hpp"
 #include <cmath>
 #include "core/interior_layout.hpp"
 #include "systems/physics/interior_geometry.hpp"
@@ -73,6 +74,7 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
     if (state.scene.terminalActive) {
       const auto& clicked = engine->pad.getClicked();
       auto& terminal = state.scene;
+      ++terminal.terminalAnimationFrame;
       if (clicked.Triangle || (clicked.Circle && !terminal.terminalReading)) {
         terminal.terminalActive = false;
         bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalClosed));
@@ -89,25 +91,21 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
         const bool down = clicked.DpadDown || (state.menu.padCooldown == 0 && joy.v >= 185);
         const bool left = clicked.DpadLeft || (state.menu.padCooldown == 0 && joy.h <= 70);
         const bool right = clicked.DpadRight || (state.menu.padCooldown == 0 && joy.h >= 185);
+        const int topicCount = Core::kTruthTopic + (state.encounter.newEntryUnlocked ? 1 : 0);
+        const int pageCount = Core::kTerminalDocuments[terminal.terminalTopic].pageCount;
         if (!terminal.terminalReading && clicked.Cross) {
           terminal.terminalReading = true;
           terminal.terminalPage = 0;
-          if(terminal.terminalTopic==2 && terminal.terminalEntry==1 &&
-             state.encounter.newEntryUnlocked) state.encounter.objectiveComplete=true;
+          if (terminal.terminalTopic == Core::kTruthTopic) state.encounter.objectiveComplete = true;
           bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
         } else if (!terminal.terminalReading && (up || down)) {
-          terminal.terminalTopic = (terminal.terminalTopic + (up ? 2 : 1)) % 3;
-          terminal.terminalEntry=terminal.terminalTopic==2 && state.encounter.newEntryUnlocked?1:0;
+          terminal.terminalTopic =
+              (terminal.terminalTopic + (up ? topicCount - 1 : 1)) % topicCount;
           state.menu.padCooldown = 12;
-          bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
-        } else if (!terminal.terminalReading && terminal.terminalTopic==2 &&
-                   state.encounter.newEntryUnlocked && (left || right)) {
-          terminal.terminalEntry=1-terminal.terminalEntry;
-          state.menu.padCooldown=12;
           bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
         } else if (terminal.terminalReading &&
                    ((left && terminal.terminalPage > 0) ||
-                    (right && terminal.terminalPage < 1))) {
+                    (right && terminal.terminalPage + 1 < pageCount))) {
           terminal.terminalPage += left ? -1 : 1;
           state.menu.padCooldown = 12;
           bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
@@ -232,8 +230,8 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   if (state.scene.terminalNearby && !state.radio.popupActive && clicked.Triangle) {
     state.scene.terminalActive = true;
     bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalOpened));
-    state.scene.terminalEntry=0;
-    state.scene.terminalTopic = 0;
+    state.scene.terminalAnimationFrame = 0;
+    state.scene.terminalTopic = state.encounter.newEntryUnlocked ? Core::kTruthTopic : 0;
     state.scene.terminalPage = 0;
     state.scene.terminalReading = false;
     state.scene.terminalBootFrames = 24;

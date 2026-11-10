@@ -44,7 +44,7 @@ struct SceneState {
   bool terminalActive = false;
   int terminalTopic = 0;
   int terminalPage = 0;
-  int terminalEntry = 0;
+  unsigned int terminalAnimationFrame = 0;
   bool terminalReading = false;
   int terminalBootFrames = 0;
   DoorState doors[4] = {};

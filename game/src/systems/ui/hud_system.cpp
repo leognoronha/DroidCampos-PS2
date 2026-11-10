@@ -1,6 +1,8 @@
 #include "systems/ui/hud_system.hpp"
 #include <cstdio>
 
+#include "core/terminal_documents.hpp"
+
 namespace DroidCampos {
 namespace Systems {
 namespace Ui {
@@ -42,43 +44,39 @@ void HudSystem::renderTerminal(const Core::WorldState& state) {
   const Color black(0, 0, 0, 128), paper(100, 113, 118, 128);
   auto& font = drawer_->getFont();
   const auto& terminal = state.scene;
-  const bool newEntry=state.encounter.newEntryUnlocked &&
-      terminal.terminalTopic==2 && terminal.terminalEntry==1;
-  const char* newSummary="NOVA ENTRADA DETECTADA\n\nPROTOCOLO DE CONTENCAO.\n\nLEIA PARA LIBERAR O DISPOSITIVO.\n\nX: ABRIR NOVO REGISTRO\nESQ/DIR: TROCAR REGISTRO";
-  const char* newPages[2]={
-      "[PROTOCOLO DE LIBERACAO]\n\nSEGURANCA DESATIVADA.\nAO ENCERRAR ESTE TERMINAL,\nUM DISPOSITIVO VERMELHO\nSURGIRA NO CENTRO DA SALA.",
-      "[ATIVACAO MANUAL]\n\nAPROXIME-SE DO BOTAO.\nMIRE E PRESSIONE TRIANGULO\nPARA LIBERAR A CAPSULA.\n\nCONTENCAO IRREVERSIVEL."};
-  // Short, authored lines fit the PS2 font without runtime text allocation.
-  static const char* topics[] = {"CORPORATIVO", "HISTORICO", "OCORRENCIAS"};
+  const Color red(125, 42, 42, 128), darkRed(70, 22, 22, 128);
+  const bool truthSelected = terminal.terminalTopic == Core::kTruthTopic;
+  const Color accent = truthSelected ? red : cyan;
+  const bool corrupted = truthSelected && terminal.terminalReading &&
+      terminal.terminalPage >= Core::kTruthCorruptionFirstPage;
+  const int topicCount = Core::kTruthTopic + (state.encounter.newEntryUnlocked ? 1 : 0);
+  static const char* topics[] = {"CORPORATIVO", "HISTORICO", "OCORRENCIAS", "A VERDADE"};
   static const char* summaries[] = {
-      "COMUNICADOS E PROTOCOLOS\n\nRELATORIOS OFICIAIS DA ETIP.\n\nCONTEUDO PROVISORIO.\n\nX: ABRIR DOCUMENTO",
-      "MEMORIA DA INSTALACAO\n\nREGISTROS DE EVENTOS\nANTERIORES A SUA CHEGADA.\n\nCONTEUDO PROVISORIO.\n\nX: ABRIR DOCUMENTO",
-      "REGISTROS DE INCIDENTES\n\nRELATOS DE FUNCIONARIOS\nE ANOMALIAS OBSERVADAS.\n\nCONTEUDO PROVISORIO.\n\nX: ABRIR DOCUMENTO"};
-  static const char* pages[3][2] = {
-      {"[PLACEHOLDER 01]\n\nESPACO PARA UM RELATORIO\nCORPORATIVO DA ETIP.\n\nAPRESENTARA OS OBJETIVOS,\nAS ROTINAS E OS PROTOCOLOS\nOFICIAIS DA INSTALACAO.",
-       "[CONTINUACAO / RASCUNHO]\n\nRESERVADO PARA DIRETRIZES\nINTERNAS E OBSERVACOES\nDA ADMINISTRACAO.\n\nTEXTO NARRATIVO PENDENTE."},
-      {"[PLACEHOLDER 02]\n\nESPACO PARA O HISTORICO\nDA INSTALACAO.\n\nREGISTRARA MARCOS, DATAS\nE ACONTECIMENTOS ANTES\nDA CHEGADA DO PERSONAGEM.",
-       "[CONTINUACAO / RASCUNHO]\n\nRESERVADO PARA UMA\nCRONOLOGIA DOS EVENTOS\nE SUAS CONSEQUENCIAS.\n\nTEXTO NARRATIVO PENDENTE."},
-      {"[PLACEHOLDER 03]\n\nESPACO PARA RELATOS\nDE FUNCIONARIOS.\n\nREGISTRARA INCIDENTES,\nOBSERVACOES E EXPERIENCIAS\nDENTRO DA INSTALACAO.",
-       "[CONTINUACAO / RASCUNHO]\n\nRESERVADO PARA TESTEMUNHOS\nQUE COMPLEMENTEM OU\nQUESTIONEM A VERSAO\nOFICIAL DA ETIP.\n\nTEXTO NARRATIVO PENDENTE."}};
+      "PROTOCOLO DROIDCAMPOS\n\nSTATUS: DESCONTINUADO\nNIVEL DE SIGILO: RESTRITO",
+      "RELATORIO PESSOAL - FUNCIONARIO\n\nIDENTIFICACAO: [DADOS SUPRIMIDOS]\nSTATUS: NAO AUTORIZADO",
+      "DOSSIE DE INVESTIGACAO - CJE\n\nAMEACA INTERNA / EXTERNA\nNIVEL DE SIGILO: RESTRITO",
+      "ARQUIVO DE DIRETORIA\n\nSIGILO ABSOLUTO\nSTATUS: [REGISTRO ADULTERADO]\n\nX: ABRIR NOVO REGISTRO"};
+  const auto& document = Core::kTerminalDocuments[terminal.terminalTopic];
 
   drawer_->drawRect(0, 0, 512, 448, black);
   drawer_->drawBlueprintPanel(16, 20, 480, 66, black, cyan);
   font.drawText("ETIP Corporation.", 30, 32, cyan, 1.25F);
   font.drawText("ARQUIVO INTERNO // TERMINAL 01", 30, 62, paper, .9F);
   drawer_->drawBlueprintPanel(16, 98, 156, 294, black, dim);
-  drawer_->drawBlueprintPanel(182, 98, 314, 294, black, cyan);
+  drawer_->drawBlueprintPanel(182, 98, 314, 294, black, accent);
   font.drawText("ACESSO LOCAL", 28, 112, cyan, .9F);
-  for (int i = 0; i < 3; ++i) {
-    const int y = 148 + i * 66;
+  for (int i = 0; i < topicCount; ++i) {
+    const int y = 148 + i * (topicCount == 4 ? 53 : 66);
+    const int height = topicCount == 4 ? 47 : 54;
+    const Color tabAccent = i == Core::kTruthTopic ? red : cyan;
+    const Color tabBorder = i == Core::kTruthTopic ? darkRed : dim;
     const bool selected = terminal.terminalTopic == i;
-    drawer_->drawBlueprintPanel(24, y, 140, 54,
-                                selected ? cyan : black, selected ? cyan : dim);
+    drawer_->drawBlueprintPanel(24, y, 140, height,
+                                selected ? tabAccent : black, selected ? tabAccent : tabBorder);
     char label[32];
     std::snprintf(label, sizeof(label), "0%d / ARQUIVO", i + 1);
-    font.drawText(label, 34, y + 7, selected ? black : dim, .8F);
-    font.drawText(i==2 && state.encounter.newEntryUnlocked ? "OCORRENCIAS *" : topics[i],
-                  34,y+28,selected?black:cyan,.85F);
+    font.drawText(label, 34, y + 7, selected ? black : tabBorder, .8F);
+    font.drawText(topics[i], 34, y + 26, selected ? black : tabAccent, .85F);
   }
   font.drawText("USO INTERNO ETIP", 28, 366, dim, .75F);
   if (terminal.terminalBootFrames > 0) {
@@ -86,24 +84,35 @@ void HudSystem::renderTerminal(const Core::WorldState& state) {
     drawer_->drawRect(198, 198, 276, 4, dim);
     drawer_->drawRect(198, 198, 276.0F * (24-terminal.terminalBootFrames)/24, 4, cyan);
   } else {
-    font.drawText(topics[terminal.terminalTopic], 198, 112, cyan, 1.0F);
-    font.drawText("DATA: --/--/--  AUTOR: PENDENTE", 198, 136, dim, .8F);
+    font.drawText(topics[terminal.terminalTopic], 198, 112, accent, 1.0F);
     drawer_->drawRect(198, 156, 282, 1, dim);
-    font.drawText(terminal.terminalReading
-        ? (newEntry ? newPages[terminal.terminalPage] : pages[terminal.terminalTopic][terminal.terminalPage])
-        : (newEntry ? newSummary : summaries[terminal.terminalTopic]), 198, 174, paper, .9F);
+    const char* body = terminal.terminalReading ? document.pages[terminal.terminalPage]
+                                               : summaries[terminal.terminalTopic];
+    if (corrupted) {
+      const unsigned int frame = terminal.terminalAnimationFrame;
+      const int shift = frame % 24 < 6 ? 3 : 0;
+      font.drawText(body, 198 - shift, 174 + shift, red, .9F);
+      drawer_->drawRect(195, 173 + (frame * 3 % 176), 286, 2, darkRed);
+      drawer_->drawRect(201 + (frame * 7 % 180), 174 + (frame * 5 % 175),
+                        68, 1, red);
+    } else {
+      font.drawText(body, 198, 174, paper, .9F);
+    }
     char page[48];
-    std::snprintf(page, sizeof(page), "DOC 0%d // %s", terminal.terminalTopic + 1,
-        terminal.terminalReading ? (terminal.terminalPage ? "PAGINA 2/2" : "PAGINA 1/2")
-                                : (newEntry ? "NOVO REGISTRO" : "PREVIA"));
-    font.drawText(page, 198, 366, cyan, .85F);
+    if (terminal.terminalReading) {
+      std::snprintf(page, sizeof(page), "DOC 0%d // PAGINA %d/%d",
+                    terminal.terminalTopic + 1, terminal.terminalPage + 1,
+                    document.pageCount);
+    } else {
+      std::snprintf(page, sizeof(page), "DOC 0%d // %s",
+                    terminal.terminalTopic + 1, truthSelected ? "NOVO REGISTRO" : "PREVIA");
+    }
+    font.drawText(page, 198, 366, accent, .85F);
   }
   drawer_->drawBlueprintPanel(16, 404, 480, 28, black, dim);
   font.drawText(terminal.terminalReading
       ? "ESQ/DIR: PAGINA   O: VOLTAR   TRIANGULO: SAIR"
-      : (terminal.terminalTopic==2 && state.encounter.newEntryUnlocked
-          ? "ESQ/DIR: REGISTRO  X: ABRIR  O / TRIANGULO: SAIR"
-          : "CIMA/BAIXO: TOPICO   X: ABRIR   O / TRIANGULO: SAIR"),
+      : "CIMA/BAIXO: TOPICO   X: ABRIR   O / TRIANGULO: SAIR",
       26, 412, cyan, .85F);
   if (state.menu.scanlinesEnabled)
     for (int y = 22; y < 432; y += 4)

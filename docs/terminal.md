@@ -4,23 +4,26 @@ Interface 512 x 448, fundo preto, tinta ciano esverdeada e molduras blueprint
 com cantos recortados, usando o drawer e a fonte do menu. Scanlines respeitam
 a opcao de video. Nao carrega texturas ou fontes adicionais.
 
-Tres topicos fixos a esquerda: Corporativo, Historico e Ocorrencias. O painel
-direito mostra uma previa ou um documento de duas paginas. Os textos sao
-placeholders explicitos, sem estabelecer fatos da historia. Os textos e suas
-quebras de linha ficam em `HudSystem::renderTerminal`, em `hud_system.cpp`.
-Ao substituir o conteudo, manter as linhas dentro do painel de leitura.
+Tres topicos fixos a esquerda exibem o Protocolo DROIDCAMPOS, o relato pessoal
+de um funcionario e o dossie sobre a CJE. O painel direito mostra uma previa
+ou o documento completo, com a contagem de paginas do registro selecionado.
+Os textos e suas quebras de linha ficam em `game/inc/core/terminal_documents.hpp`.
+A fonte do jogo usa caracteres ASCII.
 
 ## Controles
 
 - Perto do terminal no interior, Triangulo abre a interface.
 - Uma inicializacao de 24 atualizacoes antecede a navegacao.
-- Cima/baixo seleciona um dos tres topicos, com retorno circular.
+- Cima/baixo seleciona um dos topicos disponiveis, com retorno circular.
 - X abre o documento; esquerda/direita troca paginas, sem ultrapassar os limites.
 - Circulo volta da leitura para a lista; na lista, fecha a interface.
 - Triangulo fecha em qualquer momento, inclusive durante a inicializacao.
 - Analogico esquerdo tambem navega, com a repeticao usada pelo menu.
 
-Cada acesso comeca no primeiro topico. Confirmacao, navegacao e retorno usam
+Depois da ultima onda, o acesso comeca na aba vermelha A VERDADE.
+Abrir esse registro libera o dispositivo ao sair do terminal. As paginas
+finais simulam a invasao com deslocamentos de texto e linhas de interferencia.
+Antes do desbloqueio, o acesso comeca no primeiro topico. Confirmacao, navegacao e retorno usam
 os eventos de audio existentes do menu. Movimento, camera, pulo, tiro, recarga,
 radio, pausa e atalhos de debug nao recebem input durante o acesso. O quadro
 de fechamento tambem consome os comandos, evitando recarga ou tiro acidental.

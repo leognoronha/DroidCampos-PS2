@@ -1,4 +1,5 @@
 #include <cassert>
+#include "core/terminal_documents.hpp"
 #include <iostream>
 #include "systems/input/input_system.hpp"
 #include "systems/player/player_controller_system.hpp"
@@ -57,7 +58,14 @@ int main(int argc, char** argv) {
     assert(s.scene.terminalPage == 0);
     e.pad.clicked = {}; e.pad.clicked.DpadRight = true; poll();
     assert(s.scene.terminalPage == 1); render();
-    poll(); assert(s.scene.terminalPage == 1);
+    const int lastPage = Core::kTerminalDocuments[topic].pageCount - 1;
+    for (int page = 2; page <= lastPage; ++page) {
+      poll();
+      assert(s.scene.terminalPage == page);
+      render();
+    }
+    poll();
+    assert(s.scene.terminalPage == lastPage);
     e.pad.clicked = {}; e.pad.clicked.Circle = true; poll();
     assert(!s.scene.terminalReading && s.scene.terminalActive);
     e.pad.clicked = {}; e.pad.clicked.DpadDown = true; poll();
@@ -69,17 +77,30 @@ int main(int argc, char** argv) {
   e.pad.clicked = {}; e.pad.clicked.Triangle = true; poll();
   assert(s.scene.terminalActive && s.scene.terminalBootFrames == 24);
   poll(); assert(!s.scene.terminalActive); // Exit even during boot.
-  // The final-wave record is gated, highlighted and leaves the original accessible.
-  s.encounter.newEntryUnlocked=true;s.scene.terminalActive=true;
-  s.scene.terminalBootFrames=0;s.scene.terminalTopic=1;
-  e.pad.clicked={};e.pad.clicked.DpadDown=true;poll();
-  assert(s.scene.terminalTopic==2 && s.scene.terminalEntry==1);render();
-  e.pad.clicked={};e.pad.clicked.DpadLeft=true;poll();
-  assert(s.scene.terminalEntry==0);render();
-  e.pad.clicked={};e.pad.clicked.DpadRight=true;poll();
-  assert(s.scene.terminalEntry==1);
-  e.pad.clicked={};e.pad.clicked.Cross=true;poll();
-  assert(s.scene.terminalReading && s.encounter.objectiveComplete);render();
+  // The fourth tab is available only after the final wave.
+  s.encounter.newEntryUnlocked = true;
+  e.pad.clicked = {}; e.pad.clicked.Triangle = true; poll();
+  assert(s.scene.terminalActive && s.scene.terminalTopic == Core::kTruthTopic);
+  e.pad.clicked = {};
+  for (int i = 0; i < 24; ++i) poll();
+  render();
+  e.pad.clicked.DpadUp = true; poll();
+  assert(s.scene.terminalTopic == 2); render();
+  e.pad.clicked = {}; e.pad.clicked.DpadDown = true; poll();
+  assert(s.scene.terminalTopic == Core::kTruthTopic);
+  e.pad.clicked = {}; e.pad.clicked.Cross = true; poll();
+  assert(s.scene.terminalReading && s.encounter.objectiveComplete); render();
+  const int truthPages = Core::kTerminalDocuments[Core::kTruthTopic].pageCount;
+  e.pad.clicked = {}; e.pad.clicked.DpadRight = true;
+  for (int page = 1; page < truthPages; ++page) {
+    poll();
+    assert(s.scene.terminalPage == page);
+    render();
+  }
+  poll();
+  assert(s.scene.terminalPage == truthPages - 1);
+  e.pad.clicked = {};
+  for (int i = 0; i < 24; ++i) { poll(); render(); }
   drawer.shutdown(&e);
   assert(e.renderer.repo.getTexturesCount() == 0);
   std::cout << "PASS: terminal boot, 3 topics, pages, bounds, frozen camera, input ownership and exit\n";
