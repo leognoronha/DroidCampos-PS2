@@ -106,8 +106,10 @@ struct MenuNavigationState {
   int mainSelectedIndex;
   int loadSelectedIndex;
   int settingsSelectedIndex;
+  ScreenState settingsReturnScreen = ScreenState::MainMenu;
   int bgmVolume;
   int sfxVolume;
+  int ambientVolume;
   bool scanlinesEnabled;
   bool nearestFilter;
   int padCooldown;
@@ -280,8 +282,10 @@ struct alignas(64) WorldState {
     menu.mainSelectedIndex = 0;
     menu.loadSelectedIndex = 0;
     menu.settingsSelectedIndex = 0;
+    menu.settingsReturnScreen = ScreenState::MainMenu;
     menu.bgmVolume = 80;
     menu.sfxVolume = 90;
+    menu.ambientVolume = 70;
     menu.scanlinesEnabled = true;
     menu.nearestFilter = true;
     menu.padCooldown = 0;

@@ -331,11 +331,16 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
       state.menu.currentScreen = Core::ScreenState::GameplayFps;
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
     } else if (clicked.Cross) {
-      state.menu.currentScreen = state.menu.pauseSelectedIndex == 0
-          ? Core::ScreenState::GameplayFps : Core::ScreenState::MainMenu;
+      if (state.menu.pauseSelectedIndex == 1) {
+        state.menu.settingsReturnScreen = Core::ScreenState::Paused;
+        state.menu.currentScreen = Core::ScreenState::Settings;
+      } else {
+        state.menu.currentScreen = state.menu.pauseSelectedIndex == 0
+            ? Core::ScreenState::GameplayFps : Core::ScreenState::MainMenu;
+      }
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
     } else if (upPressed || downPressed) {
-      state.menu.pauseSelectedIndex = 1 - state.menu.pauseSelectedIndex;
+      state.menu.pauseSelectedIndex = (state.menu.pauseSelectedIndex + (upPressed ? 2 : 1)) % 3;
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
     }
     return;
@@ -359,6 +364,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
         bus.publish(Events::GameEvent::makeScreenTransition(
             static_cast<u8>(Core::ScreenState::LoadGame)));
       } else if (state.menu.mainSelectedIndex == 2) {
+        state.menu.settingsReturnScreen = Core::ScreenState::MainMenu;
         state.menu.currentScreen = Core::ScreenState::Settings;
         bus.publish(Events::GameEvent::makeScreenTransition(
             static_cast<u8>(Core::ScreenState::Settings)));
@@ -410,17 +416,17 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
   } else if (state.menu.currentScreen == Core::ScreenState::Settings) {
     if (clicked.Circle || clicked.Select) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
-      state.menu.currentScreen = Core::ScreenState::MainMenu;
+      state.menu.currentScreen = state.menu.settingsReturnScreen;
       bus.publish(Events::GameEvent::makeScreenTransition(
-          static_cast<u8>(Core::ScreenState::MainMenu)));
+          static_cast<u8>(state.menu.currentScreen)));
       return;
     }
     if (upPressed) {
       state.menu.settingsSelectedIndex =
-          (state.menu.settingsSelectedIndex + 3) % 4;
+          (state.menu.settingsSelectedIndex + 4) % 5;
     } else if (downPressed) {
       state.menu.settingsSelectedIndex =
-          (state.menu.settingsSelectedIndex + 1) % 4;
+          (state.menu.settingsSelectedIndex + 1) % 5;
     }
 
     if (leftPressed || rightPressed || clicked.Cross) {
@@ -441,12 +447,17 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
         bus.publish(Events::GameEvent::makeSimple(
             Events::EventType::AudioSettingChanged,
             static_cast<s16>(state.menu.sfxVolume)));
-      } else if (state.menu.settingsSelectedIndex == 2) {
+      } else if (state.menu.settingsSelectedIndex == 3) {
         state.menu.scanlinesEnabled = !state.menu.scanlinesEnabled;
         bus.publish(Events::GameEvent::makeSimple(
             Events::EventType::VideoFilterChanged,
             state.menu.scanlinesEnabled ? 1 : 0));
-      } else if (state.menu.settingsSelectedIndex == 3) {
+      } else if (state.menu.settingsSelectedIndex == 2) {
+        state.menu.ambientVolume = std::clamp(state.menu.ambientVolume + dir * 10, 0, 100);
+        bus.publish(Events::GameEvent::makeSimple(
+            Events::EventType::AudioSettingChanged,
+            static_cast<s16>(state.menu.ambientVolume)));
+      } else if (state.menu.settingsSelectedIndex == 4) {
         state.menu.nearestFilter = !state.menu.nearestFilter;
         bus.publish(Events::GameEvent::makeSimple(
             Events::EventType::VideoFilterChanged,
@@ -463,6 +474,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
       previous.loadSelectedIndex != current.loadSelectedIndex ||
       previous.settingsSelectedIndex != current.settingsSelectedIndex ||
       previous.bgmVolume != current.bgmVolume || previous.sfxVolume != current.sfxVolume ||
+      previous.ambientVolume != current.ambientVolume ||
       previous.scanlinesEnabled != current.scanlinesEnabled ||
       previous.nearestFilter != current.nearestFilter;
   if (changed && previous.currentScreen == current.currentScreen &&

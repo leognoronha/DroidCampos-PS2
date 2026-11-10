@@ -154,7 +154,9 @@ void GameApp::logSceneMemory(const char* phase) {
 void GameApp::updateSceneTransition() {
   auto& state = worldState_;
   auto& scene = state.scene;
-  if (state.menu.currentScreen == ScreenState::Paused) return;
+  if (state.menu.currentScreen == ScreenState::Paused ||
+      (state.menu.currentScreen == ScreenState::Settings &&
+       state.menu.settingsReturnScreen == ScreenState::Paused)) return;
   if (scene.accessFrames > 0 && --scene.accessFrames == 0) {
     scene.target = SceneId::Interior;
     scene.requested = true;

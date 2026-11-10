@@ -9,13 +9,15 @@ using namespace DroidCampos;
 int main(int argc,char**argv) {
   assert(argc>1);Tyra::FileUtils::root=argv[1];
   Core::WorldState state;state.resetToDefaults();
+  state.menu.ambientVolume = 0;
+  state.menu.bgmVolume = 0;
   state.menu.currentScreen=Core::ScreenState::GameplayFps;
   state.scene.resident=true;state.scene.presented=true;
   Tyra::Engine engine;Events::EventBus bus;Hardware::Ps2ScratchpadArena scratch;
   Systems::Input::InputSystem input;Systems::Audio::MenuAudioSystem audio;
   Systems::Ui::UiContextDrawer drawer;Systems::Narrative::RadioCodecSystem radio(drawer);
   radio.init(&engine,state,bus);audio.init(&engine,state,bus);
-  assert(HostAudio::loaded.size()==7);
+  assert(HostAudio::loaded.size()==9);
   audsrv_adpcm_t* alert=nullptr; audsrv_adpcm_t* confirmation=nullptr;
   for(auto& entry:HostAudio::loaded) {
     if(entry.second==32000)alert=entry.first;

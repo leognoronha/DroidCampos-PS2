@@ -16,7 +16,17 @@ class MenuAudioSystem final : public Core::ISubsystem {
   void shutdown(Tyra::Engine* engine) override;
 
  private:
-  bool loadSample(const char* path, audsrv_adpcm_t& sample, u8*& data);
+  bool loadSample(const char* path, audsrv_adpcm_t& sample, u8*& data, bool loop = false);
+  struct Loop {
+    audsrv_adpcm_t sample{};
+    u8* data = nullptr;
+    bool loaded = false;
+    bool playing = false;
+    int volume = -1;
+  };
+  void updateLoop(Tyra::Engine* engine, Loop& loop, s8 channel, int volume);
+  Loop ambience_;
+  Loop menuMusic_;
   audsrv_adpcm_t confirm_{};
   audsrv_adpcm_t back_{};
   void updateRadio(Tyra::Engine* engine, Core::WorldState& state);

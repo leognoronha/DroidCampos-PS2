@@ -89,9 +89,11 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       drawer_->drawBlueprintPanel(96, 144, 320, 160, menuInk(0, 0, 0), menuInk(0, 190, 210));
       drawer_->getFont().drawText("JOGO PAUSADO", 152, 164, menuInk(159, 239, 232));
       drawer_->getFont().drawText(state.menu.pauseSelectedIndex == 0
-          ? "> CONTINUAR" : "  CONTINUAR", 128, 214, menuInk(200, 225, 235));
+          ? "> CONTINUAR" : "  CONTINUAR", 128, 207, menuInk(200, 225, 235));
       drawer_->getFont().drawText(state.menu.pauseSelectedIndex == 1
-          ? "> MENU PRINCIPAL" : "  MENU PRINCIPAL", 128, 250, menuInk(200, 225, 235));
+          ? "> CONFIGURACOES" : "  CONFIGURACOES", 128, 237, menuInk(200, 225, 235));
+      drawer_->getFont().drawText(state.menu.pauseSelectedIndex == 2
+          ? "> MENU PRINCIPAL" : "  MENU PRINCIPAL", 128, 267, menuInk(200, 225, 235));
       drawer_->renderFooter("D-PAD: SELECIONAR  X: CONFIRMAR  START/O: VOLTAR");
       break;
     case Core::ScreenState::MainMenu:
@@ -226,30 +228,31 @@ void MenuSystem::renderSettingsScreen(const Core::WorldState& state) {
   drawer_->drawRect(28.0F, 136.0F, 456.0F, 2.0F,
                     menuInk(54, 112, 115, 128));
 
-  const char* optionNames[4] = {"BGM SYNTH VOLUME", "INDUSTRIAL SFX VOL",
-                                "OPTICAL SCANLINES", "GS TEXTURE FILTER"};
+  const char* optionNames[5] = {"BGM SYNTH VOLUME", "INDUSTRIAL SFX VOL",
+                                "VOLUME DO AMBIENTE", "OPTICAL SCANLINES", "GS TEXTURE FILTER"};
 
-  char valBuf[4][32];
-  std::snprintf(valBuf[0], sizeof(valBuf[0]), "%d%%", state.menu.bgmVolume);
-  std::snprintf(valBuf[1], sizeof(valBuf[1]), "%d%%", state.menu.sfxVolume);
-  std::snprintf(valBuf[2], sizeof(valBuf[2]), "%s",
-                state.menu.scanlinesEnabled ? "[ ENABLED ]" : "[ DISABLED ]");
+  const int volumes[] = {state.menu.bgmVolume, state.menu.sfxVolume, state.menu.ambientVolume};
+  char valBuf[5][32];
+  for (int i = 0; i < 3; ++i)
+    std::snprintf(valBuf[i], sizeof(valBuf[i]), "%d%%", volumes[i]);
   std::snprintf(valBuf[3], sizeof(valBuf[3]), "%s",
+                state.menu.scanlinesEnabled ? "[ ENABLED ]" : "[ DISABLED ]");
+  std::snprintf(valBuf[4], sizeof(valBuf[4]), "%s",
                 state.menu.nearestFilter ? "[ NEAREST / PIXEL ]"
                                          : "[ LINEAR / SMOOTH ]");
 
-  for (int i = 0; i < 4; i++) {
-    float rowY = 148.0F + static_cast<float>(i) * 56.0F;
+  for (int i = 0; i < 5; i++) {
+    float rowY = 148.0F + static_cast<float>(i) * 47.0F;
     bool selected = (state.menu.settingsSelectedIndex == i);
 
     if (selected) {
-      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, 46.0F,
+      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, 41.0F,
                          menuInk(8, 35, 36, 128),
                          menuInk(159, 239, 232, 128));
-      drawer_->drawRect(36.0F, rowY + 6.0F, 5.0F, 34.0F,
+      drawer_->drawRect(36.0F, rowY + 6.0F, 5.0F, 29.0F,
                         menuInk(159, 239, 232, 128));
     } else {
-      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, 46.0F,
+      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, 41.0F,
                          menuInk(0, 0, 0, 128),
                          menuInk(55.0F, 75.0F, 95.0F, 95.0F));
     }
@@ -259,8 +262,8 @@ void MenuSystem::renderSettingsScreen(const Core::WorldState& state) {
     drawer_->getFont().drawText(optionNames[i], 50,
                                 static_cast<int>(rowY + 14.0F), labelCol);
 
-    if (i == 0 || i == 1) {
-      int vol = (i == 0) ? state.menu.bgmVolume : state.menu.sfxVolume;
+    if (i < 3) {
+      const int vol = volumes[i];
       float barX = 245.0F;
       float barY = rowY + 15.0F;
       drawer_->drawRect(barX, barY, 140.0F, 14.0F,

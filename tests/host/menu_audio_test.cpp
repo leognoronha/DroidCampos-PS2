@@ -9,7 +9,7 @@ int main(int argc,char**argv) {
   Tyra::Engine engine;Events::EventBus bus;Hardware::Ps2ScratchpadArena scratch;
   Systems::Input::InputSystem input;Systems::Audio::MenuAudioSystem audio;
   audio.init(&engine,state,bus);audio.init(&engine,state,bus);
-  assert(HostAudio::loaded.size()==7&&HostAudio::resets==0);
+  assert(HostAudio::loaded.size()==9&&HostAudio::resets==0);
   auto* confirm=static_cast<audsrv_adpcm_t*>(nullptr);
   auto* back=confirm;
   auto* navigate=confirm;
@@ -66,7 +66,7 @@ int main(int argc,char**argv) {
     poll(screen,false,true);assert(HostAudio::played.size()==1&&HostAudio::played[0]==back);
     assert(state.menu.currentScreen==Core::ScreenState::MainMenu);
   }
-  state.menu.settingsSelectedIndex=2;
+  state.menu.settingsSelectedIndex=3;
   poll(Core::ScreenState::Settings,true,false);assert(HostAudio::played[0]==confirm);
   const bool scanlines=state.menu.scanlinesEnabled;
   poll(Core::ScreenState::Settings,true,true);assert(HostAudio::played.size()==1&&HostAudio::played[0]==back);
@@ -78,12 +78,64 @@ int main(int argc,char**argv) {
   state.menu.sfxVolume=0;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.empty());
   for(int volume:HostAudio::volumes)assert(volume==0);
   state.menu.sfxVolume=30;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.size()==1);
-  for(int volume:HostAudio::volumes)assert(volume==30);
+  for(int i=0;i<23;++i)assert(HostAudio::volumes[i]==(i==5?0:30));
   HostAudio::playResult=-1;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.size()==1);
   HostAudio::played.clear();audio.executeStage(Core::HardwareStage::Stage3_GifPath3Render2D,&engine,state,bus,scratch);assert(HostAudio::played.empty());
+  HostAudio::playResult = Tyra::ADPCM_OK;
+  state.menu.settingsSelectedIndex = 2;
+  engine.pad.clicked = {}; engine.pad.clicked.DpadRight = true;
+  state.menu.currentScreen = Core::ScreenState::Settings;
+  tick();
+  assert(state.menu.ambientVolume == 80 && state.menu.sfxVolume == 30);
+  HostAudio::played.clear();
+  state.radio.popupActive = false;
+  state.scene = {};
+  state.scene.resident = state.scene.presented = true;
+  state.menu.currentScreen = Core::ScreenState::GameplayFps;
+  auto simulate = [&]() {
+    audio.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&engine,state,bus,scratch);
+  };
+  simulate();
+  assert(HostAudio::played.empty() && HostAudio::volumes[23] == 0);
+  state.scene.active = Core::SceneId::Interior;
+  state.scene.presented = false;
+  simulate();
+  assert(HostAudio::played.empty());
+  state.scene.presented = true;
+  simulate();
+  assert(HostAudio::played.size() == 1 && HostAudio::channels.back() == 23);
+  assert(HostAudio::volumes[23] == 80);
+  state.menu.ambientVolume = 0;
+  simulate();
+  assert(HostAudio::played.size() == 1 && HostAudio::volumes[23] == 0);
+  state.menu.ambientVolume = 20;
+  state.menu.sfxVolume = 0;
+  state.scene.active = Core::SceneId::Exterior;
+  simulate();
+  assert(HostAudio::volumes[23] == 0);
+  state.scene.active = Core::SceneId::Interior;
+  simulate();
+  assert(HostAudio::played.size() == 1 && HostAudio::volumes[23] == 20);
+  state.menu.currentScreen = Core::ScreenState::MainMenu;
+  state.menu.bgmVolume = 40;
+  simulate();
+  assert(HostAudio::played.size() == 2 && HostAudio::channels.back() == 5);
+  assert(HostAudio::volumes[5] == 40 && HostAudio::volumes[23] == 0);
+  state.menu.currentScreen = Core::ScreenState::Settings;
+  state.menu.settingsReturnScreen = Core::ScreenState::MainMenu;
+  state.menu.bgmVolume = 60;
+  simulate();
+  assert(HostAudio::played.size() == 2 && HostAudio::volumes[5] == 60);
+  state.menu.settingsReturnScreen = Core::ScreenState::Paused;
+  simulate();
+  assert(HostAudio::volumes[5] == 0);
+  state.menu.currentScreen = Core::ScreenState::GameplayFps;
+  simulate();
+  assert(HostAudio::played.size() == 2 && HostAudio::volumes[5] == 0 &&
+         HostAudio::volumes[23] == 20);
   audio.shutdown(&engine);audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==1);
   // A complete second lifecycle must not retain samples in SPU2.
-  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==7);
+  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==9);
   audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==2);
   // Optional asset failure must leave menus usable, without touching shared banks.
   HostAudio::failLoad=true;audio.init(&engine,state,bus);poll(Core::ScreenState::MainMenu,true,false);

@@ -10,6 +10,9 @@ namespace DroidCampos {
 namespace Systems {
 namespace Audio {
 namespace {
+constexpr s8 kMenuMusicChannel = 5;
+constexpr s8 kAmbienceChannel = 23;
+
 u8* allocateSampleData(size_t size) {
 #ifdef _WIN32
   return static_cast<u8*>(_aligned_malloc(size, 64));
@@ -26,7 +29,7 @@ void freeSampleData(u8* data) {
 }
 }  // namespace
 
-bool MenuAudioSystem::loadSample(const char* path, audsrv_adpcm_t& sample, u8*& data) {
+bool MenuAudioSystem::loadSample(const char* path, audsrv_adpcm_t& sample, u8*& data, bool loop) {
   const auto fullPath = Tyra::FileUtils::fromCwd(path);
   FILE* file = std::fopen(fullPath.c_str(), "rb");
   if (!file) {
@@ -35,8 +38,8 @@ bool MenuAudioSystem::loadSample(const char* path, audsrv_adpcm_t& sample, u8*& 
   }
   if (std::fseek(file, 0, SEEK_END) != 0) { std::fclose(file); return false; }
   const long size = std::ftell(file);
-  // UI effects are small mono one-shots; bound allocations and DMA alignment.
-  if (size < 32 || size > 128 * 1024 || size % 16 != 0) {
+  const long maxSize = (loop ? 384 : 128) * 1024;
+  if (size < 32 || size > maxSize || size % 16 != 0) {
     std::fclose(file);
     return false;
   }
@@ -45,7 +48,7 @@ bool MenuAudioSystem::loadSample(const char* path, audsrv_adpcm_t& sample, u8*& 
   const bool read = data && std::fread(data, 1, size, file) == static_cast<size_t>(size);
   std::fclose(file);
   const bool valid = read && std::memcmp(data, "APCM", 4) == 0 &&
-      data[4] == 1 && data[5] == 1 && data[6] == 0;
+      data[4] == 1 && data[5] == 1 && data[6] == static_cast<u8>(loop);
   if (!valid || audsrv_load_adpcm(&sample, data, static_cast<int>(size)) != 0) {
     std::printf("[UI AUDIO] Invalid or failed sample: %s\n", path);
     freeSampleData(data);
@@ -65,6 +68,8 @@ void MenuAudioSystem::init(Tyra::Engine* engine, Core::WorldState&, Events::Even
   radioConfirmationLoaded_ = loadSample("audio/radio_confirmation.adpcm", radioConfirmation_, radioConfirmationData_);
   weaponShotLoaded_ = loadSample("audio/weapon_shot.adpcm", weaponShot_, weaponShotData_);
   weaponReloadLoaded_ = loadSample("audio/weapon_reload.adpcm", weaponReload_, weaponReloadData_);
+  ambience_.loaded = loadSample("audio/etip_ambient.adpcm", ambience_.sample, ambience_.data, true);
+  menuMusic_.loaded = loadSample("audio/menu_bgm.adpcm", menuMusic_.sample, menuMusic_.data, true);
   if (radioAlertLoaded_) {
     // APCM stores little-endian source samples and the actual SPU2 playback pitch.
     auto read32 = [](const u8* p) -> uint32_t {
@@ -110,15 +115,27 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
           engine->audio.adpcm.tryPlay(&weaponReload_,events[i].intParam>=0?6+events[i].intParam%4:21);
       }
     }
+    const auto screen = state.menu.currentScreen;
+    const auto& scene = state.scene;
+    const bool inside = screen == Core::ScreenState::GameplayFps &&
+        scene.active == Core::SceneId::Interior && scene.resident && scene.presented &&
+        !scene.requested && scene.accessFrames == 0;
+    const bool inMainMenu = screen == Core::ScreenState::MainMenu ||
+        screen == Core::ScreenState::NewGame || screen == Core::ScreenState::LoadGame ||
+        (screen == Core::ScreenState::Settings &&
+         state.menu.settingsReturnScreen == Core::ScreenState::MainMenu);
+    updateLoop(engine, ambience_, kAmbienceChannel, inside ? state.menu.ambientVolume : 0);
+    updateLoop(engine, menuMusic_, kMenuMusicChannel, inMainMenu ? state.menu.bgmVolume : 0);
     updateRadio(engine, state);
     return;
   }
   if (stage != Core::HardwareStage::Stage0_IopInputPoll) return;
   const int volume = std::max(0, std::min(100, state.menu.sfxVolume));
   if (volume != volume_) {
-    for (int channel = 0; channel < 24; ++channel)
-      engine->audio.adpcm.setVolume(static_cast<u8>(volume),
-                                    static_cast<s8>(channel));
+    for (int channel = 0; channel < kAmbienceChannel; ++channel) {
+      if (channel != kMenuMusicChannel)
+        engine->audio.adpcm.setVolume(static_cast<u8>(volume), static_cast<s8>(channel));
+    }
     volume_ = volume;
   }
   if (volume == 0) return;
@@ -146,10 +163,22 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
         engine->audio.adpcm.tryPlay(sample, 22);
       else {
         engine->audio.adpcm.tryPlay(sample, nextUiChannel_);
-        nextUiChannel_ = nextUiChannel_ == 5 ? 0 : nextUiChannel_ + 1;
+        nextUiChannel_ = nextUiChannel_ == kMenuMusicChannel - 1 ? 0 : nextUiChannel_ + 1;
       }
     }
   }
+}
+
+void MenuAudioSystem::updateLoop(Tyra::Engine* engine, Loop& loop, s8 channel, int volume) {
+  if (!loop.loaded) return;
+  volume = std::clamp(volume, 0, 100);
+  if (volume != loop.volume) {
+    engine->audio.adpcm.setVolume(static_cast<u8>(volume), channel);
+    loop.volume = volume;
+  }
+  // The SDK has no per-voice stop. Silence the reserved loop when inactive.
+  if (volume > 0 && !loop.playing)
+    loop.playing = engine->audio.adpcm.tryPlay(&loop.sample, channel) == Tyra::ADPCM_OK;
 }
 
 void MenuAudioSystem::updateRadio(Tyra::Engine* engine,
@@ -206,7 +235,13 @@ void MenuAudioSystem::shutdown(Tyra::Engine* engine) {
   // samples; reset its bank only at game shutdown, before releasing EE buffers.
   // reset() also stops active voices. Never call it on a menu screen transition.
   if (engine && (backLoaded_ || confirmLoaded_ || navigateLoaded_ ||
-                 radioAlertLoaded_ || radioConfirmationLoaded_ || weaponShotLoaded_ || weaponReloadLoaded_)) engine->audio.adpcm.reset();
+                 radioAlertLoaded_ || radioConfirmationLoaded_ || weaponShotLoaded_ ||
+                 weaponReloadLoaded_ || ambience_.loaded || menuMusic_.loaded))
+    engine->audio.adpcm.reset();
+  freeSampleData(ambience_.data);
+  freeSampleData(menuMusic_.data);
+  ambience_ = {};
+  menuMusic_ = {};
   freeSampleData(weaponShotData_);freeSampleData(weaponReloadData_);
   weaponShotData_ = weaponReloadData_ = nullptr;
   weaponShotLoaded_ = weaponReloadLoaded_ = false;

@@ -100,6 +100,16 @@ int main(){
   engine.pad.clicked={};engine.pad.clicked.DpadDown=true;poll();
   assert(s.menu.pauseSelectedIndex==1);
   engine.pad.clicked={};engine.pad.clicked.Cross=true;poll();
+  assert(s.menu.currentScreen==Core::ScreenState::Settings);
+  s.menu.settingsSelectedIndex=2;
+  const int ambientVolume=s.menu.ambientVolume;
+  engine.pad.clicked={};engine.pad.clicked.DpadRight=true;poll();tick();
+  assert(s.menu.ambientVolume==ambientVolume+10 && s.player.playerPos.y==pausedY);
+  engine.pad.clicked={};engine.pad.clicked.Circle=true;poll();
+  assert(s.menu.currentScreen==Core::ScreenState::Paused && s.menu.pauseSelectedIndex==1);
+  engine.pad.clicked={};engine.pad.clicked.DpadDown=true;poll();
+  assert(s.menu.pauseSelectedIndex==2);
+  engine.pad.clicked={};engine.pad.clicked.Cross=true;poll();
   assert(s.menu.currentScreen==Core::ScreenState::MainMenu);
   s.menu.currentScreen=Core::ScreenState::GameplayFps;
   s.scene.resident=s.scene.presented=true;engine.pad.clicked={};
