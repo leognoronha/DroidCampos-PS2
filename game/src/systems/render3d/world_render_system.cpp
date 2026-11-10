@@ -395,9 +395,17 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
 
     engine->renderer.renderer3D.usePipeline(stapip_);
 
-    const float shake=state.droid.shake(),t=state.droid.phaseTicks/15625.F;
-    const float light=1-shake*((std::sin(t*37.F)+std::sin(t*17.F)>.1F)?.78F:.18F);
-    for(const auto& base:interiorAmbient_)base.material->ambient.set(base.r*light,base.g*light,base.b*light,128);
+    const bool emergencyLighting = state.droid.phase == Core::DroidPhase::Release ||
+        state.droid.phase == Core::DroidPhase::Pursuit;
+    float light = 1.0F;
+    if (emergencyLighting) {
+      // One smooth pulse per second. Release lasts six full cycles.
+      const float cycle = (state.droid.phaseTicks % Core::kDroidSecond) /
+                          static_cast<float>(Core::kDroidSecond);
+      light = .50F + .10F * std::cos(2.0F * Core::kDefaultPi * cycle);
+    }
+    for (const auto& base : interiorAmbient_)
+      base.material->ambient.set(base.r * light, base.g * light, base.b * light, 128);
     for (auto& mesh : interiorMeshes_) stapip_.render(mesh.get(), scenarioOptions_);
     if(capsuleOccupantMesh_ && !state.droid.mobile())stapip_.render(capsuleOccupantMesh_.get(),scenarioOptions_);
     if(capsuleLocksMesh_) {

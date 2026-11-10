@@ -27,6 +27,8 @@ class MenuAudioSystem final : public Core::ISubsystem {
   void updateLoop(Tyra::Engine* engine, Loop& loop, s8 channel, int volume);
   Loop ambience_;
   Loop menuMusic_;
+  Loop droidAlarm_;
+  Loop droidSteps_;
   audsrv_adpcm_t confirm_{};
   audsrv_adpcm_t back_{};
   void updateRadio(Tyra::Engine* engine, Core::WorldState& state);

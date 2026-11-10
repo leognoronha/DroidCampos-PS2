@@ -11,6 +11,8 @@ namespace Systems {
 namespace Audio {
 namespace {
 constexpr s8 kMenuMusicChannel = 5;
+constexpr s8 kDroidAlarmChannel = 4;
+constexpr s8 kDroidStepsChannel = 3;
 constexpr s8 kAmbienceChannel = 23;
 
 u8* allocateSampleData(size_t size) {
@@ -70,6 +72,8 @@ void MenuAudioSystem::init(Tyra::Engine* engine, Core::WorldState&, Events::Even
   weaponReloadLoaded_ = loadSample("audio/weapon_reload.adpcm", weaponReload_, weaponReloadData_);
   ambience_.loaded = loadSample("audio/etip_ambient.adpcm", ambience_.sample, ambience_.data, true);
   menuMusic_.loaded = loadSample("audio/menu_bgm.adpcm", menuMusic_.sample, menuMusic_.data, true);
+  droidAlarm_.loaded = loadSample("audio/droid_alarm.adpcm", droidAlarm_.sample, droidAlarm_.data, true);
+  droidSteps_.loaded = loadSample("audio/droid_steps.adpcm", droidSteps_.sample, droidSteps_.data, true);
   if (radioAlertLoaded_) {
     // APCM stores little-endian source samples and the actual SPU2 playback pitch.
     auto read32 = [](const u8* p) -> uint32_t {
@@ -126,6 +130,14 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
          state.menu.settingsReturnScreen == Core::ScreenState::MainMenu);
     updateLoop(engine, ambience_, kAmbienceChannel, inside ? state.menu.ambientVolume : 0);
     updateLoop(engine, menuMusic_, kMenuMusicChannel, inMainMenu ? state.menu.bgmVolume : 0);
+    const bool alarmActive = (inside || screen == Core::ScreenState::Paused ||
+        (screen == Core::ScreenState::Settings &&
+         state.menu.settingsReturnScreen == Core::ScreenState::Paused)) &&
+        (state.droid.phase == Core::DroidPhase::Release ||
+         state.droid.phase == Core::DroidPhase::Pursuit);
+    updateLoop(engine, droidAlarm_, kDroidAlarmChannel, alarmActive ? state.menu.sfxVolume : 0);
+    const bool walking = inside && alarmActive && state.droid.moving;
+    updateLoop(engine, droidSteps_, kDroidStepsChannel, walking ? state.menu.sfxVolume : 0);
     updateRadio(engine, state);
     return;
   }
@@ -133,7 +145,8 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
   const int volume = std::max(0, std::min(100, state.menu.sfxVolume));
   if (volume != volume_) {
     for (int channel = 0; channel < kAmbienceChannel; ++channel) {
-      if (channel != kMenuMusicChannel)
+      if (channel != kMenuMusicChannel && channel != kDroidAlarmChannel &&
+          channel != kDroidStepsChannel)
         engine->audio.adpcm.setVolume(static_cast<u8>(volume), static_cast<s8>(channel));
     }
     volume_ = volume;
@@ -163,7 +176,7 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
         engine->audio.adpcm.tryPlay(sample, 22);
       else {
         engine->audio.adpcm.tryPlay(sample, nextUiChannel_);
-        nextUiChannel_ = nextUiChannel_ == kMenuMusicChannel - 1 ? 0 : nextUiChannel_ + 1;
+        nextUiChannel_ = nextUiChannel_ == kDroidStepsChannel - 1 ? 0 : nextUiChannel_ + 1;
       }
     }
   }
@@ -236,12 +249,17 @@ void MenuAudioSystem::shutdown(Tyra::Engine* engine) {
   // reset() also stops active voices. Never call it on a menu screen transition.
   if (engine && (backLoaded_ || confirmLoaded_ || navigateLoaded_ ||
                  radioAlertLoaded_ || radioConfirmationLoaded_ || weaponShotLoaded_ ||
-                 weaponReloadLoaded_ || ambience_.loaded || menuMusic_.loaded))
+                 weaponReloadLoaded_ || ambience_.loaded || menuMusic_.loaded || droidAlarm_.loaded ||
+                 droidSteps_.loaded))
     engine->audio.adpcm.reset();
   freeSampleData(ambience_.data);
   freeSampleData(menuMusic_.data);
+  freeSampleData(droidAlarm_.data);
+  freeSampleData(droidSteps_.data);
   ambience_ = {};
   menuMusic_ = {};
+  droidAlarm_ = {};
+  droidSteps_ = {};
   freeSampleData(weaponShotData_);freeSampleData(weaponReloadData_);
   weaponShotData_ = weaponReloadData_ = nullptr;
   weaponShotLoaded_ = weaponReloadLoaded_ = false;

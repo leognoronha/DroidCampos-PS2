@@ -9,7 +9,7 @@ int main(int argc,char**argv) {
   Tyra::Engine engine;Events::EventBus bus;Hardware::Ps2ScratchpadArena scratch;
   Systems::Input::InputSystem input;Systems::Audio::MenuAudioSystem audio;
   audio.init(&engine,state,bus);audio.init(&engine,state,bus);
-  assert(HostAudio::loaded.size()==9&&HostAudio::resets==0);
+  assert(HostAudio::loaded.size()==11&&HostAudio::resets==0);
   auto* confirm=static_cast<audsrv_adpcm_t*>(nullptr);
   auto* back=confirm;
   auto* navigate=confirm;
@@ -78,7 +78,7 @@ int main(int argc,char**argv) {
   state.menu.sfxVolume=0;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.empty());
   for(int volume:HostAudio::volumes)assert(volume==0);
   state.menu.sfxVolume=30;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.size()==1);
-  for(int i=0;i<23;++i)assert(HostAudio::volumes[i]==(i==5?0:30));
+  for(int i=0;i<23;++i)assert(HostAudio::volumes[i]==((i>=3&&i<=5)?0:30));
   HostAudio::playResult=-1;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.size()==1);
   HostAudio::played.clear();audio.executeStage(Core::HardwareStage::Stage3_GifPath3Render2D,&engine,state,bus,scratch);assert(HostAudio::played.empty());
   HostAudio::playResult = Tyra::ADPCM_OK;
@@ -133,9 +133,34 @@ int main(int argc,char**argv) {
   simulate();
   assert(HostAudio::played.size() == 2 && HostAudio::volumes[5] == 0 &&
          HostAudio::volumes[23] == 20);
+  state.menu.sfxVolume = 65;
+  state.droid.phase = Core::DroidPhase::ButtonReady;
+  simulate();
+  assert(HostAudio::played.size() == 2 && HostAudio::volumes[4] == 0);
+  state.droid.phase = Core::DroidPhase::Release;
+  simulate();
+  assert(HostAudio::played.size() == 3 && HostAudio::channels.back() == 4);
+  assert(HostAudio::volumes[4] == 65 && HostAudio::volumes[23] == 20);
+  state.droid.phase = Core::DroidPhase::Pursuit;
+  simulate();
+  assert(HostAudio::played.size() == 3 && HostAudio::volumes[4] == 65);
+  state.droid.moving = true;
+  simulate();
+  assert(HostAudio::played.size() == 4 && HostAudio::channels.back() == 3);
+  assert(HostAudio::volumes[3] == 65 && HostAudio::volumes[4] == 65);
+  state.droid.moving = false;
+  simulate();
+  assert(HostAudio::played.size() == 4 && HostAudio::volumes[3] == 0);
+  state.droid.moving = true;
+  simulate();
+  assert(HostAudio::played.size() == 4 && HostAudio::volumes[3] == 65);
+  state.droid.phase = Core::DroidPhase::GameOver;
+  state.menu.currentScreen = Core::ScreenState::Defeated;
+  simulate();
+  assert(HostAudio::played.size() == 4 && HostAudio::volumes[4] == 0 && HostAudio::volumes[3] == 0);
   audio.shutdown(&engine);audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==1);
   // A complete second lifecycle must not retain samples in SPU2.
-  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==9);
+  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==11);
   audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==2);
   // Optional asset failure must leave menus usable, without touching shared banks.
   HostAudio::failLoad=true;audio.init(&engine,state,bus);poll(Core::ScreenState::MainMenu,true,false);

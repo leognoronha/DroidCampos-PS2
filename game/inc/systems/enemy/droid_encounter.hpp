@@ -61,7 +61,9 @@ class DroidController {
         RayHit wall;wall.distance=std::sqrt(dot(sub(target,origin),sub(target,origin)));
         bool blocked=scene && scene->traceWeapon(s,origin,unit(sub(target,origin)),wall);
         if(range<=1.9F && facing>.65F && handY>=feet && handY<=s.player.playerPos.y+.5F && !blocked) {
-          s.playerHealth=std::max(0,s.playerHealth-20);s.damageFlashTicks=3125;
+          constexpr int damage = kPlayerHealth * 60 / 100;
+          s.playerHealth = std::max(0, s.playerHealth - damage);
+          s.damageFlashTicks = 3125;
           if(!s.playerHealth) {
             b.phase=DroidPhase::GameOver;s.menu.currentScreen=ScreenState::Defeated;
             s.menu.pauseSelectedIndex=0;s.inputCmd.clear();s.weapon.cancelTransient();

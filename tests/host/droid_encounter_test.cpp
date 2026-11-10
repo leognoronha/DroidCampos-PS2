@@ -22,9 +22,9 @@ int main(){
  boss.advance(s,bus,3*kDroidSecond+1,&scene);assert(s.droid.phase==DroidPhase::Pursuit && s.droid.position.y==0);
  s.droid.position=Tyra::Vec4(0,0,-29,1);s.droid.yaw=0;s.player.playerPos=Tyra::Vec4(0,1.7F,-27.5F,1);
  boss.advance(s,bus,1,&scene);assert(s.droid.attacking);
- boss.advance(s,bus,45*kDroidSecond/24,&scene);assert(s.playerHealth==80);
- boss.advance(s,bus,100,&scene);assert(s.playerHealth==80);
- s.playerHealth=20;s.droid.attacking=false;boss.advance(s,bus,1,&scene);boss.advance(s,bus,2*kDroidSecond,&scene);
+ boss.advance(s,bus,45*kDroidSecond/24,&scene);assert(s.playerHealth==40);
+ boss.advance(s,bus,100,&scene);assert(s.playerHealth==40);
+ s.droid.attacking=false;boss.advance(s,bus,1,&scene);boss.advance(s,bus,2*kDroidSecond,&scene);
  assert(s.playerHealth==0 && s.droid.phase==DroidPhase::GameOver && s.menu.currentScreen==ScreenState::Defeated);
  s=fixture();s.droid.phase=DroidPhase::Pursuit;s.droid.position=Tyra::Vec4(0,0,-29,1);s.player.playerPos=Tyra::Vec4(0,1.7F,-27.5F,1);scene.blocked=true;
  boss.advance(s,bus,1,&scene);boss.advance(s,bus,2*kDroidSecond,&scene);assert(s.playerHealth==100);

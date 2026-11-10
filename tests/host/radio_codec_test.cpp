@@ -17,7 +17,7 @@ int main(int argc,char**argv) {
   Systems::Input::InputSystem input;Systems::Audio::MenuAudioSystem audio;
   Systems::Ui::UiContextDrawer drawer;Systems::Narrative::RadioCodecSystem radio(drawer);
   radio.init(&engine,state,bus);audio.init(&engine,state,bus);
-  assert(HostAudio::loaded.size()==9);
+  assert(HostAudio::loaded.size()==11);
   audsrv_adpcm_t* alert=nullptr; audsrv_adpcm_t* confirmation=nullptr;
   for(auto& entry:HostAudio::loaded) {
     if(entry.second==32000)alert=entry.first;
