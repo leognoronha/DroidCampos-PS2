@@ -26,7 +26,8 @@ enum class EventType : u8 {
   PlayerDefeated = 17,
   WaveCompleted = 18,
   EncounterCompleted = 19,
-  EncounterRetryRequested = 20
+  EncounterRetryRequested = 20,
+  TerminalSecretUnlocked = 21
 };
 
 struct alignas(16) GameEvent {

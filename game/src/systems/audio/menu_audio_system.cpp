@@ -74,6 +74,8 @@ void MenuAudioSystem::init(Tyra::Engine* engine, Core::WorldState&, Events::Even
   menuMusic_.loaded = loadSample("audio/menu_bgm.adpcm", menuMusic_.sample, menuMusic_.data, true);
   droidAlarm_.loaded = loadSample("audio/droid_alarm.adpcm", droidAlarm_.sample, droidAlarm_.data, true);
   droidSteps_.loaded = loadSample("audio/droid_steps.adpcm", droidSteps_.sample, droidSteps_.data, true);
+  secretConfirmationLoaded_ =
+      loadSample("audio/terminal_secret.adpcm", secretConfirmation_, secretConfirmationData_);
   if (radioAlertLoaded_) {
     // APCM stores little-endian source samples and the actual SPU2 playback pitch.
     auto read32 = [](const u8* p) -> uint32_t {
@@ -159,6 +161,9 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
     if (events[i].type == Events::EventType::MenuConfirmRequested &&
         confirmLoaded_)
       sample = &confirm_;
+    else if (events[i].type == Events::EventType::TerminalSecretUnlocked &&
+             secretConfirmationLoaded_)
+      sample = &secretConfirmation_;
     else if (events[i].type == Events::EventType::MenuBackRequested &&
              backLoaded_)
       sample = &back_;
@@ -249,7 +254,7 @@ void MenuAudioSystem::shutdown(Tyra::Engine* engine) {
   // reset() also stops active voices. Never call it on a menu screen transition.
   if (engine && (backLoaded_ || confirmLoaded_ || navigateLoaded_ ||
                  radioAlertLoaded_ || radioConfirmationLoaded_ || weaponShotLoaded_ ||
-                 weaponReloadLoaded_ || ambience_.loaded || menuMusic_.loaded || droidAlarm_.loaded ||
+                 weaponReloadLoaded_ || secretConfirmationLoaded_ || ambience_.loaded || menuMusic_.loaded || droidAlarm_.loaded ||
                  droidSteps_.loaded))
     engine->audio.adpcm.reset();
   freeSampleData(ambience_.data);
@@ -260,6 +265,10 @@ void MenuAudioSystem::shutdown(Tyra::Engine* engine) {
   menuMusic_ = {};
   droidAlarm_ = {};
   droidSteps_ = {};
+  freeSampleData(secretConfirmationData_);
+  secretConfirmationData_ = nullptr;
+  secretConfirmationLoaded_ = false;
+  secretConfirmation_ = {};
   freeSampleData(weaponShotData_);freeSampleData(weaponReloadData_);
   weaponShotData_ = weaponReloadData_ = nullptr;
   weaponShotLoaded_ = weaponReloadLoaded_ = false;

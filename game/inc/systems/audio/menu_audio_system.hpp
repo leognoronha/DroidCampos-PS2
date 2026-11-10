@@ -16,6 +16,9 @@ class MenuAudioSystem final : public Core::ISubsystem {
   void shutdown(Tyra::Engine* engine) override;
 
  private:
+  audsrv_adpcm_t secretConfirmation_{};
+  u8* secretConfirmationData_ = nullptr;
+  bool secretConfirmationLoaded_ = false;
   bool loadSample(const char* path, audsrv_adpcm_t& sample, u8*& data, bool loop = false);
   struct Loop {
     audsrv_adpcm_t sample{};

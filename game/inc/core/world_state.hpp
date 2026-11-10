@@ -44,6 +44,10 @@ struct SceneState {
   int nearbyDoor = -1;
   bool terminalNearby = false;
   bool terminalActive = false;
+  int terminalCodeProgress = 0;
+  bool terminalSecretUnlocked = false;
+  bool terminalVideoActive = false;
+  bool terminalVideoError = false;
   int terminalTopic = 0;
   int terminalPage = 0;
   unsigned int terminalAnimationFrame = 0;

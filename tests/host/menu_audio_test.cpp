@@ -9,16 +9,22 @@ int main(int argc,char**argv) {
   Tyra::Engine engine;Events::EventBus bus;Hardware::Ps2ScratchpadArena scratch;
   Systems::Input::InputSystem input;Systems::Audio::MenuAudioSystem audio;
   audio.init(&engine,state,bus);audio.init(&engine,state,bus);
-  assert(HostAudio::loaded.size()==11&&HostAudio::resets==0);
+  assert(HostAudio::loaded.size()==12&&HostAudio::resets==0);
   auto* confirm=static_cast<audsrv_adpcm_t*>(nullptr);
   auto* back=confirm;
   auto* navigate=confirm;
+  auto* secret=confirm;
   for(auto& entry:HostAudio::loaded) {
     if(entry.second==50432)confirm=entry.first;
     else if(entry.second==10432)back=entry.first;
     else if(entry.second==2560)navigate=entry.first;
+    else if(entry.second==16256)secret=entry.first;
   }
   assert(confirm&&back&&navigate&&confirm!=back&&navigate!=back&&navigate!=confirm);
+  assert(secret);
+  bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalSecretUnlocked));
+  audio.executeStage(Core::HardwareStage::Stage0_IopInputPoll,&engine,state,bus,scratch);
+  assert(HostAudio::played.size()==1&&HostAudio::played[0]==secret);
   auto poll=[&](Core::ScreenState screen,bool x,bool circle) {
     bus.flushFrameEvents();HostAudio::played.clear();engine.pad.clicked={};
     engine.pad.clicked.Cross=x;engine.pad.clicked.Circle=circle;
@@ -160,7 +166,7 @@ int main(int argc,char**argv) {
   assert(HostAudio::played.size() == 4 && HostAudio::volumes[4] == 0 && HostAudio::volumes[3] == 0);
   audio.shutdown(&engine);audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==1);
   // A complete second lifecycle must not retain samples in SPU2.
-  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==11);
+  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==12);
   audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==2);
   // Optional asset failure must leave menus usable, without touching shared banks.
   HostAudio::failLoad=true;audio.init(&engine,state,bus);poll(Core::ScreenState::MainMenu,true,false);

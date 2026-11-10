@@ -37,6 +37,11 @@ class AudioSong {
   void load(const char* t_path);
   void load(const std::string& t_path);
 
+  // Frame-driven PCM stream for video. Pump it from the game thread.
+  bool tryLoadFrameStream(const std::string& path, long pcmOffset);
+  bool pumpFrameStream();
+  void stopAndUnload();
+
   void play();
 
   void stop();
@@ -70,16 +75,21 @@ class AudioSong {
  private:
   bool songLoaded, songPlaying, songFinished;
   u8 tyraVolume, audsrvVolume;
-  FILE* wav;
+  FILE* wav = nullptr;
+  long pcmOffset = 0x30;
+  bool frameStream = false;
   audsrv_fmt_t format;
   std::vector<AudioListenerRef*> songListeners;
 
   ee_sema_t sema;
   s32 fillbufferSema;
+  s32 streamSema;
   static const u16 chunkSize;
   char* chunk;
   s32 chunkReadStatus;
 
+  bool tryLoad(const char* path, long offset, bool frameDriven);
+  void pumpStream();
   void initSema();
   void initAUDSRV();
   void setSongFormat();

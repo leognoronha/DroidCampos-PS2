@@ -92,14 +92,16 @@ void GameApp::loop() {
     Tyra::CameraInfo3D camInfo(&worldState_.player.cameraPos,
                                &worldState_.player.cameraLookAt,
                                &worldState_.player.cameraUp);
-    renderer.beginFrame(camInfo);
-
-    // Stage 2: VU1 / GS 3D DMA Kick (StaticPipeline: Scenario, Mist, Viewmodel)
-    stageTimer_.prime();
-    scheduler_.runStage(HardwareStage::Stage2_Vu1GsRender3D, engine_,
-                        worldState_, eventBus_, scratchpad_);
-
-    renderTicks=stageTimer_.getTimeDelta();
+    if (worldState_.scene.terminalActive && worldState_.scene.terminalVideoActive) {
+      renderer.beginFrame();
+    } else {
+      renderer.beginFrame(camInfo);
+      // Stage 2: VU1 / GS 3D DMA Kick (StaticPipeline: Scenario, Mist, Viewmodel)
+      stageTimer_.prime();
+      scheduler_.runStage(HardwareStage::Stage2_Vu1GsRender3D, engine_,
+                          worldState_, eventBus_, scratchpad_);
+      renderTicks=stageTimer_.getTimeDelta();
+    }
     // Stage 3: GIF Path 3 2D HUD & Codec Overlay
     scheduler_.runStage(HardwareStage::Stage3_GifPath3Render2D, engine_,
                         worldState_, eventBus_, scratchpad_);

@@ -62,7 +62,7 @@ RendererCoreTextureBuffers RendererCoreTexture::updateTextureInfo(
   TYRA_ASSERT(t_tex != nullptr, "Provided nullptr texture!");
 
   auto allocated = getAllocatedBuffersByTextureId(t_tex->id);
-  TYRA_ASSERT(allocated.id != 0, "Can't update an unallocated texture!");
+  if (allocated.id == 0) return useTexture(t_tex);
 
   path3->sendTexture(t_tex, allocated);
   return allocated;

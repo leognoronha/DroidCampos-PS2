@@ -31,6 +31,20 @@ O controlador do jogador congela posicao e camera enquanto o terminal esta
 aberto; a arma cancela seus efeitos temporarios na entrada. A saida volta ao
 gameplay na mesma vista. Nao ha persistencia de leitura entre acessos.
 
+## Arquivo secreto
+
+Na lista, depois da inicializacao, pressione Baixo, Baixo, Esquerda, Direita
+e Cima no D-pad. O som de confirmacao toca uma vez e a aba ARQUIVO SECRETO
+fica disponivel ate fechar o terminal. X reproduz o video com audio. Circulo
+volta a lista a qualquer momento. Triangulo fecha o terminal.
+
+Os arquivos em `game/res/video` e `game/res/audio/terminal_secret.adpcm`
+seguem com os demais recursos no build. Para regenera-los, use
+`python tools/build_terminal_secret.py ClaudioDroid1.mp4 CAMINHO_DO_WAV --docker`
+com FFmpeg e a imagem local do Tyra. Sem Docker, disponibilize o `adpenc` do
+PS2SDK no PATH e omita `--docker`. O video usa leitura sequencial de RGB565
+a 240 x 240 e 15 fps, cerca de 1,73 MB/s antes do audio.
+
 ## Validacao
 
 `tests/host/terminal_test.cpp`, incluido em `tests/host/run.ps1`, cobre entrada,

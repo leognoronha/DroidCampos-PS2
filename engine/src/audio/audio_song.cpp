@@ -40,19 +40,53 @@ void AudioSong::init() {
   chunk = static_cast<char*>(memalign(sizeof(char), chunkSize));
 
   initSema();
-  initAUDSRV();
   setSongFormat();
 }
 
 void AudioSong::load(const char* t_path) {
-  if (songLoaded) unloadSong();
-  wav = fopen(t_path, "rb");
-  TYRA_ASSERT(wav != nullptr, "Failed to open wav file!");
-  rewindSongToStart();
-  songLoaded = true;
+  const bool loaded = tryLoad(t_path, 0x30, false);
+  TYRA_ASSERT(loaded, "Failed to open wav file!");
+  (void)loaded;
 }
 
 void AudioSong::load(const std::string& t_path) { load(t_path.c_str()); }
+
+bool AudioSong::tryLoadFrameStream(const std::string& path, long offset) {
+  return tryLoad(path.c_str(), offset, true);
+}
+
+bool AudioSong::tryLoad(const char* path, long offset, bool frameDriven) {
+  FILE* file = fopen(path, "rb");
+  if (!file) return false;
+  if (fseek(file, offset, SEEK_SET) != 0 || fgetc(file) == EOF) {
+    fclose(file);
+    return false;
+  }
+  if (songLoaded) stopAndUnload();
+  WaitSema(streamSema);
+  wav = file;
+  pcmOffset = offset;
+  frameStream = frameDriven;
+  if (frameStream) {
+    setSongFormat();
+  } else {
+    initAUDSRV();
+  }
+  rewindSongToStart();
+  songLoaded = true;
+  SignalSema(streamSema);
+  return true;
+}
+
+void AudioSong::stopAndUnload() {
+  WaitSema(streamSema);
+  if (songLoaded) {
+    stop();
+    if (frameStream) audsrv_stop_audio();
+    unloadSong();
+  }
+  SignalSema(streamSema);
+}
 
 void AudioSong::play() {
   TYRA_ASSERT(songLoaded, "Cant play song because was not loaded!");
@@ -94,6 +128,9 @@ void AudioSong::initSema() {
   sema.max_count = 1;
   sema.option = 0;
   fillbufferSema = CreateSema(&sema);
+  sema.init_count = 1;
+  streamSema = CreateSema(&sema);
+  TYRA_ASSERT(streamSema >= 0, "Could not create audio stream semaphore");
   TYRA_LOG("AudioSong semaphore created");
 }
 
@@ -104,11 +141,12 @@ void AudioSong::initSema() {
 void AudioSong::unloadSong() {
   songLoaded = false;
   fclose(wav);
+  wav = nullptr;
 }
 
 /** Fseek on wav. */
 void AudioSong::rewindSongToStart() {
-  if (wav != nullptr) fseek(wav, 0x30, SEEK_SET);
+  if (wav != nullptr) fseek(wav, pcmOffset, SEEK_SET);
   chunkReadStatus = 0;
   songFinished = false;
 }
@@ -134,6 +172,24 @@ void AudioSong::setVolume(const u8& t_vol) {
 }
 
 void AudioSong::work() {
+  if (PollSema(streamSema) < 0) return;
+  if (!frameStream) pumpStream();
+  SignalSema(streamSema);
+}
+
+bool AudioSong::pumpFrameStream() {
+  if (!frameStream || !songPlaying || songFinished) return true;
+  const int available = audsrv_available();
+  if (available < 0) return false;
+  if (available < 1024) return true;
+  const int bytes = (available < chunkSize ? available : chunkSize) & ~3;
+  const int read = fread(chunk, 1, bytes, wav);
+  if (ferror(wav)) return false;
+  if (read < bytes) songFinished = true;
+  return read == 0 || audsrv_play_audio(chunk, read) == read;
+}
+
+void AudioSong::pumpStream() {
   if (!songPlaying || !songLoaded) return;
   if (songFinished) {
     if (inLoop) {
@@ -141,13 +197,14 @@ void AudioSong::work() {
         songListeners[i]->listener->onAudioFinish();
       rewindSongToStart();
     } else {
-      stop();
+      // Let the last samples already queued in AUDSRV finish playing.
+      songPlaying = false;
       return;
     }
   }
 
   if (chunkReadStatus > 0) {
-    WaitSema(fillbufferSema);  // wait until previous chunk wasn't finished
+    if (PollSema(fillbufferSema) < 0) return;
     audsrv_wait_audio(chunkReadStatus);
     audsrv_play_audio(chunk, chunkReadStatus);
     for (u32 i = 0; i < getListenersCount(); i++)
@@ -156,7 +213,7 @@ void AudioSong::work() {
 
   chunkReadStatus = fread(chunk, 1, chunkSize, wav);
 
-  if (chunkReadStatus < (s32)chunkSize) songFinished = true;
+  if (chunkReadStatus <= 0) songFinished = true;
 }
 
 u32 AudioSong::addListener(AudioListener* t_listener) {

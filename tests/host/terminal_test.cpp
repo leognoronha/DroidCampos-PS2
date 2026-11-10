@@ -71,11 +71,56 @@ int main(int argc, char** argv) {
     e.pad.clicked = {}; e.pad.clicked.DpadDown = true; poll();
   }
   assert(s.scene.terminalTopic == 0);
+  e.pad.pressed = {};
+  e.pad.clicked = {};
+  for (int i = 0; i < 12; ++i) poll();
+  const int progressBeforeAnalog = s.scene.terminalCodeProgress;
+  e.pad.left.v = 255;
+  poll();
+  assert(s.scene.terminalTopic == 1 && s.scene.terminalCodeProgress == progressBeforeAnalog);
+  e.pad.left.v = 128;
+  auto direction = [&](int key) {
+    e.pad.clicked = {};
+    e.pad.pressed = {};
+    e.pad.clicked.DpadDown = key == 1;
+    e.pad.clicked.DpadLeft = key == 2;
+    e.pad.clicked.DpadRight = key == 3;
+    e.pad.clicked.DpadUp = key == 4;
+    e.pad.pressed = e.pad.clicked;
+    poll();
+  };
+  direction(4);
+  direction(1);
+  e.pad.clicked = {}; poll(); poll();
+  assert(s.scene.terminalCodeProgress == 1);
+  e.pad.clicked.DpadRight = e.pad.pressed.DpadRight = true;
+  poll();
+  assert(s.scene.terminalCodeProgress == 0);
+  direction(1); direction(1); direction(2); direction(4);
+  assert(!s.scene.terminalSecretUnlocked && s.scene.terminalCodeProgress == 0);
+  direction(1); direction(1); direction(1); direction(2); direction(3); direction(4);
+  assert(s.scene.terminalSecretUnlocked && s.scene.terminalTopic == Core::kSecretTopic);
+  u32 eventCount = 0;
+  const auto* events = bus.getFrameEvents(eventCount);
+  assert(eventCount == 1 && events[0].type == Events::EventType::TerminalSecretUnlocked);
+  render();
+  direction(1); direction(1); direction(2); direction(3); direction(4);
+  events = bus.getFrameEvents(eventCount);
+  for (u32 i = 0; i < eventCount; ++i)
+    assert(events[i].type != Events::EventType::TerminalSecretUnlocked);
+  s.scene.terminalTopic = Core::kSecretTopic;
+  e.pad.clicked = {}; e.pad.clicked.Cross = true; poll();
+  assert(s.scene.terminalVideoActive && !s.scene.terminalReading && !s.encounter.objectiveComplete);
+  e.pad.clicked = {}; e.pad.clicked.Circle = true; poll();
+  assert(!s.scene.terminalVideoActive && s.scene.terminalActive &&
+         s.scene.terminalTopic == Core::kSecretTopic);
+  e.pad.pressed = {};
   s.menu.scanlinesEnabled = false; render();
   e.pad.clicked = {}; e.pad.clicked.Circle = true; e.pad.clicked.R1 = true;
   poll(); assert(!s.scene.terminalActive);
   e.pad.clicked = {}; e.pad.clicked.Triangle = true; poll();
   assert(s.scene.terminalActive && s.scene.terminalBootFrames == 24);
+  assert(!s.scene.terminalSecretUnlocked && s.scene.terminalCodeProgress == 0);
   poll(); assert(!s.scene.terminalActive); // Exit even during boot.
   // The fourth tab is available only after the final wave.
   s.encounter.newEntryUnlocked = true;
