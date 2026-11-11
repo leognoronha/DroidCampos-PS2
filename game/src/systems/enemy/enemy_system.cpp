@@ -45,6 +45,7 @@ void EnemySystem::retry(WorldState& s) {
   s.radio.popupActive=false;s.radio.phase=RadioPhase::Idle;
   c.phase=EncounterPhase::Countdown;c.wave=0;c.remaining=0;
   c.countdownTicks=kEncounterDelay;c.attackTicks=0;c.attackCursor=0;
+  c.completionNoticeTicks = 0;
   c.newEntryUnlocked=c.objectiveComplete=c.finalRadioPending=false;
   s.menu.currentScreen=ScreenState::GameplayFps;
 }
@@ -87,6 +88,7 @@ void EnemySystem::executeStage(HardwareStage stage,Tyra::Engine*,WorldState& s,
                                Events::EventBus& bus,Hardware::Ps2ScratchpadArena&) {
   if(stage!=HardwareStage::Stage1_EeVu0Simulation)return;
   u32 elapsed=timer_.getTimeDelta();timer_.prime();
+  reduceTicks(s.encounter.completionNoticeTicks, elapsed);
   if(!s.simulationActive() || !wasActive_)elapsed=0;
   wasActive_=s.simulationActive();
   advance(s,bus,std::min(elapsed,3907U));
@@ -146,6 +148,7 @@ void EnemySystem::advance(WorldState& s,Events::EventBus& bus,u32 elapsed) {
     bus.publish(Events::GameEvent::makeSimple(Events::EventType::WaveCompleted,static_cast<s16>(c.wave)));
     if(c.wave==3) {
       c.phase=EncounterPhase::Complete;c.newEntryUnlocked=true;c.finalRadioPending=true;
+      c.completionNoticeTicks = 4 * kCombatTicksPerSecond;
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::EncounterCompleted));
     }else {
       s.playerHealth=std::min(kPlayerHealth,s.playerHealth+kWaveHealing);

@@ -69,13 +69,31 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       break;
     }
     case Core::ScreenState::Defeated:
-      if(state.droid.phase==Core::DroidPhase::GameOver) {
-        drawer_->drawBlueprintPanel(56,144,400,180,menuInk(0,0,0),menuInk(230,70,50));
-        drawer_->getFont().drawText("GAME OVER",176,158,menuInk(250,130,100));
-        drawer_->getFont().drawText("DROIDCAMPOS E INEVITAVEL",92,186,menuInk(250,130,100));
-        drawer_->getFont().drawText(state.menu.pauseSelectedIndex==0?"> NEW GAME":"  NEW GAME",144,224,menuInk(200,225,235));
-        drawer_->getFont().drawText(state.menu.pauseSelectedIndex==1?"> LOAD GAME":"  LOAD GAME",144,264,menuInk(200,225,235));
-        drawer_->renderFooter("D-PAD: SELECIONAR  X: CONFIRMAR");break;
+      if (state.droid.phase == Core::DroidPhase::GameOver) {
+        constexpr int panelX = 56;
+        constexpr int panelWidth = 400;
+        constexpr int centerX = panelX + panelWidth / 2;
+        drawer_->drawBlueprintPanel(panelX, 144, panelWidth, 180,
+                                    menuInk(0, 0, 0), menuInk(230, 70, 50));
+
+        auto& font = drawer_->getFont();
+        const auto drawCentered = [&](const char* label, int y, Color color,
+                                      bool selected = false) {
+          const int x = centerX - font.lineWidth(label) / 2;
+          font.drawText(label, x, y, color);
+          if (selected) {
+            font.drawText(">", x - font.lineWidth(">") - 4, y, color);
+          }
+        };
+
+        drawCentered("GAME OVER", 158, menuInk(250, 130, 100));
+        drawCentered("DROIDCAMPOS E INEVITAVEL", 186, menuInk(250, 130, 100));
+        drawCentered("NEW GAME", 224, menuInk(200, 225, 235),
+                     state.menu.pauseSelectedIndex == 0);
+        drawCentered("LOAD GAME", 264, menuInk(200, 225, 235),
+                     state.menu.pauseSelectedIndex == 1);
+        drawer_->renderFooter("D-PAD: SELECIONAR  X: CONFIRMAR");
+        break;
       }
       drawer_->drawBlueprintPanel(80,144,352,170,menuInk(0,0,0),menuInk(230,70,50));
       drawer_->getFont().drawText("VOCE FOI DERROTADO",120,168,menuInk(250,130,100));

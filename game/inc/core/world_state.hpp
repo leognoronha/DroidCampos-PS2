@@ -227,6 +227,7 @@ struct EncounterState {
   EncounterPhase phase = EncounterPhase::Dormant;
   int wave = 0, remaining = 0;
   u32 countdownTicks = 0, attackTicks = 0;
+  u32 completionNoticeTicks = 0;
   int attackCursor = 0;
   bool checkpointValid = false;
   bool newEntryUnlocked = false, objectiveComplete = false;

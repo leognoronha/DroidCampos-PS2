@@ -23,26 +23,39 @@ int main(int argc, char** argv) {
     hud.executeStage(Core::HardwareStage::Stage3_GifPath3Render2D, &e, s, bus,
                      spr);
     int slots = 0;
-    bool panel = false;
+    bool healthTop = false, kitTop = false, ammoTop = false;
+    bool healthBottom = false, kitBottom = false, ammoBottom = false;
     bool kitCrossVertical = false, kitCrossHorizontal = false;
     for (const auto& d : draws) {
       assert(d.position.x >= 0 && d.position.y >= 0);
       assert(d.position.x + d.size.x * d.scale <= 512 &&
              d.position.y + d.size.y * d.scale <= 448);
-      if (d.position.x == 380 && d.position.y == 352 && d.size.x == 120)
-        panel = true;
-      if (d.position.y == 381 && d.position.x >= 390 && d.size.x == 9 &&
+      if (d.position.y == 358 && d.size.y == 1) {
+        healthTop |= d.position.x == 20 && d.size.x == 122;
+        kitTop |= d.position.x == 166 && d.size.x == 28;
+        ammoTop |= d.position.x == 388 && d.size.x == 104;
+      }
+      if (d.position.y == 384 && d.position.x >= 390 && d.size.x == 9 &&
           d.size.y == 3)
         ++slots;
+      if (d.position.y == 403 && d.size.y == 1) {
+        healthBottom |= d.position.x == 20 && d.size.x == 122;
+        kitBottom |= d.position.x == 166 && d.size.x == 28;
+        ammoBottom |= d.position.x == 388 && d.size.x == 104;
+      }
       if (d.color.g > d.color.r && d.color.g > d.color.b) {
-        kitCrossVertical |= d.position.x == 200 && d.position.y == 110 &&
-                            d.size.x == 4 && d.size.y == 14;
-        kitCrossHorizontal |= d.position.x == 195 && d.position.y == 115 &&
-                              d.size.x == 14 && d.size.y == 4;
+        kitCrossVertical |= d.position.x == 169 && d.position.y == 368 &&
+                            d.size.x == 4 && d.size.y == 12;
+        kitCrossHorizontal |= d.position.x == 165 && d.position.y == 372 &&
+                              d.size.x == 12 && d.size.y == 4;
       }
     }
-    assert(panel == expected && slots == (expected ? 8 : 0));
-    assert(kitCrossVertical == !s.intro.active && kitCrossHorizontal == !s.intro.active);
+    const bool showVitals = !s.intro.active && !s.radio.popupActive;
+    assert(healthBottom == showVitals && kitBottom == showVitals);
+    assert(ammoBottom == expected);
+    assert(healthTop == showVitals && kitTop == showVitals);
+    assert(ammoTop == expected && slots == (expected ? 8 : 0));
+    assert(kitCrossVertical == showVitals && kitCrossHorizontal == showVitals);
     if (argc > 2) {
       std::ofstream out(std::string(argv[2]) + "/" + name + ".txt");
       assert(out);
@@ -71,7 +84,9 @@ int main(int argc, char** argv) {
   s.cardReader.isPlayerNearby = true;
   render("weapon_reader", true);
   s.radio.popupActive = true;
+  s.encounter.phase = Core::EncounterPhase::Complete;
   render("weapon_radio_hidden", false);
+  s.encounter.phase = Core::EncounterPhase::Dormant;
   s.radio.popupActive = false;
   s.scene.terminalNearby = true;
   render("weapon_near_terminal", true);
