@@ -35,7 +35,7 @@ Jogo low-poly industrial desenvolvido para **PlayStation 2** utilizando a engine
 ## Controles de gameplay
 
 - X: pular (um pulo por toque, apenas no chao).
-- Quadrado: interagir com portas e leitor de acesso.
+- Quadrado: pegar itens e interagir com portas e leitor de acesso.
 - O: fechar o radio quando a mensagem estiver aberta.
 - Triangulo: abrir/fechar a consulta ao terminal quando estiver proximo.
 - L1 segurado: correr; solte para voltar a andar.
@@ -45,23 +45,26 @@ O terminal apresenta uma consulta local de conexao; ainda nao executa objetivos
 ou comandos de missao. O pulo preserva as colisoes horizontais existentes.
 
 - Start: abrir/fechar pausa (Continuar ou Menu principal); O tambem retoma.
-- L2: consultar silenciosamente a mensagem do cenario atual. R2: sem comando.
+- L2: consultar silenciosamente a mensagem do cenario atual.
+- R2: usar um kit medico. Cada kit restaura ate 40 pontos de vida.
 - O: fechar a mensagem com o toque de confirmacao do radio.
 
 Portas e leitor de acesso: a mensagem e o Quadrado exigem proximidade e mira
 sobre o alvo. Olhar para o corredor, chao ou teto nao seleciona portas laterais.
 Com a porta aberta, mire na abertura para fecha-la.
+Pegue a pistola e o cartao junto a guarita antes de usar o leitor.
+Ha um kit medico no fundo do patio e outro na primeira sala lateral esquerda.
 
 ## Tiro a laser (teste)
 
 - R1: um disparo por toque; intervalo minimo de 0,25 s.
 - O em gameplay: recarga manual de 0,514 s, quando o pente nao esta cheio.
 - Pente de 8 tiros, reserva infinita; sem recarga automatica no vazio.
-- O com radio aberto fecha a mensagem sem recarregar. R1 ainda permite atirar.
+- O com radio aberto fecha a mensagem. O radio suspende tiro, recarga e uso de kit.
 - Pausa, menus, introducao e loading bloqueiam a arma; os temporizadores congelam.
 
 Feixe ciano de 50 m no maximo, impacto na geometria real, portas moveis e vidro.
-Nao inclui inimigos/dano. Municao preservada entre cenas; nova partida inicia em 8.
+A pistola recolhida perto da guarita vem com o pente cheio.
 Os WAV originais estao em `game/assets/audio`; converter com
 `python tools/build_weapon_audio.py --ffmpeg <ffmpeg> --adpenc <adpenc-do-PS2SDK>`.
 Sao 39.296 bytes adicionais de ADPCM mono 22.050 Hz. Canais 10–20: tiro;

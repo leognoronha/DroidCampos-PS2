@@ -32,8 +32,12 @@ tonalidade escura aos materiais não luminosos. Não depende de luzes do Blender
 
 ## Comportamento e ciclo de recursos
 
-- Quadrado perto do leitor, com rádio fechado, dispara o evento existente.
+- Quadrado perto do leitor, com rádio fechado, arma e cartão coletados,
+  dispara a abertura. Ambos os itens ficam no chão junto à guarita.
   O LED verde aparece por 20 frames; movimento e novas ações ficam suspensos.
+- A vida e o inventário seguem para o interior. Há um kit médico no fundo
+  do pátio e outro na primeira sala lateral esquerda. Quadrado recolhe o kit.
+  R2 restaura até 40 pontos e o jogador pode carregar dois kits.
 - `GameApp` apresenta o loading, sincroniza VIF/GIF/GS e libera cenário e névoa
   antes de carregar o destino. Uma parte é carregada por etapa entre frames.
   O parser OBJ continua síncrono: o indicador pode pausar durante uma etapa.

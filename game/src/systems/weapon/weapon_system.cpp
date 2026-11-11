@@ -18,7 +18,7 @@ void WeaponSystem::executeStage(Core::HardwareStage stage,Tyra::Engine*,
     expire(s.weapon);
     for(auto& enemy:s.enemies)expire(enemy.weapon);
   }
-  if(!s.simulationActive()){wasActive_=false;return;}
+  if(!s.simulationActive() || !s.inventory.armed()){wasActive_=false;return;}
   if(!wasActive_)elapsed=0;
   wasActive_=true;
   auto& w=s.weapon;tickWeapon(w,elapsed);

@@ -14,7 +14,7 @@ constexpr const char* kDefaultCodecMessage =
     "PM, ESTA NA ESCUTA?\n"
     "AQUI E O CJE. ESTAMOS NA LINHA.\n"
     "A ENTRADA DA ETIP ESTA BLOQUEADA.\n"
-    "SEU CARTAO DE ACESSO ESTA LIBERADO.\n"
+    "PEGUE A ARMA E O CARTAO NA GUARITA.\n"
     "LOCALIZE O LEITOR PERTO DA ENTRADA.\n"
     "E ENTRE NO COMPLEXO. CAMBIO";
 
@@ -137,6 +137,34 @@ struct SceneIntroState {
   u32 elapsedTicks = 0;
 };
 
+enum class Pickup : u8 { Pistol, AccessCard, RearMedkit, SideRoomMedkit, Count };
+constexpr int kMedkitCapacity = 2;
+constexpr int kMedkitHeal = kPlayerHealth * 40 / 100;
+
+struct InventoryState {
+  std::array<bool, static_cast<int>(Pickup::Count)> collected{};
+  int medkits = 0;
+
+  bool has(Pickup item) const { return collected[static_cast<int>(item)]; }
+  bool armed() const { return has(Pickup::Pistol); }
+  bool canEnter() const { return armed() && has(Pickup::AccessCard); }
+  bool collect(Pickup item) {
+    if (item == Pickup::Count || has(item)) return false;
+    if (item == Pickup::RearMedkit || item == Pickup::SideRoomMedkit) {
+      if (medkits >= kMedkitCapacity) return false;
+      ++medkits;
+    }
+    collected[static_cast<int>(item)] = true;
+    return true;
+  }
+  bool useMedkit(int& health) {
+    if (medkits <= 0 || health <= 0 || health >= kPlayerHealth) return false;
+    health = std::min(kPlayerHealth, health + kMedkitHeal);
+    --medkits;
+    return true;
+  }
+};
+
 constexpr int kMagazineSize = 8;
 constexpr u32 kShotIntervalTicks = 3907; // ceil(0.25 * 15625)
 constexpr u32 kReloadTicks = 8032; // ceil(0.514 * 15625)
@@ -205,6 +233,7 @@ struct EncounterState {
   bool finalRadioPending = false;
   PlayerKinematicsState checkpointPlayer{};
   DoorState checkpointDoors[4]{};
+  InventoryState checkpointInventory{};
 };
 
 struct alignas(64) WorldState {
@@ -217,6 +246,8 @@ struct alignas(64) WorldState {
   SceneState scene;
   SceneIntroState intro;
   WeaponState weapon;
+  InventoryState inventory;
+  Pickup nearbyPickup = Pickup::Count;
   int playerHealth = kPlayerHealth;
   u32 damageFlashTicks = 0;
   std::array<EnemyState,kMaxEnemies> enemies{};
@@ -258,6 +289,7 @@ struct alignas(64) WorldState {
 
     cardReader.isPlayerNearby = false;
     cardReader.isUnlocked = false;
+    nearbyPickup = Pickup::Count;
 
     radio.popupActive = true;
     radio.phase = RadioPhase::Waiting;
@@ -270,6 +302,7 @@ struct alignas(64) WorldState {
 
   void resetToDefaults() {
     weapon = WeaponState{};
+    inventory = InventoryState{};
     playerHealth = kPlayerHealth;
     damageFlashTicks = 0;
     enemies = {};

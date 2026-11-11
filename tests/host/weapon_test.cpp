@@ -86,6 +86,9 @@ int main(int argc, char** argv) {
     poll();
     sim(ticks);
   };
+  click(true, true, 0);
+  assert(s.weapon.ammo == 8 && !s.inputCmd.fireRequested && !s.inputCmd.reloadRequested);
+  s.inventory.collect(Core::Pickup::Pistol);
   click(true, false, 0);
   assert(s.weapon.ammo == 7 && s.weapon.beamTicks == Core::kBeamTicks &&
          !s.weapon.impact);
@@ -169,7 +172,7 @@ int main(int argc, char** argv) {
   e.pad.clicked = {};
   e.pad.clicked.Cross = true;
   poll();
-  assert(s.weapon.ammo == 8);
+  assert(s.weapon.ammo == 8 && !s.inventory.armed());
   s.menu.currentScreen=Core::ScreenState::Defeated;
   bus.clear();sounds=HostAudio::played.size();
   bus.publish(Events::GameEvent::makeSimple(Events::EventType::WeaponFired,1));
@@ -181,6 +184,7 @@ int main(int argc, char** argv) {
   NearWall nearWall;
   WeaponSystem blocked(&nearWall);
   s.resetToDefaults();
+  s.inventory.collect(Core::Pickup::Pistol);
   s.scene.resident = s.scene.presented = true;
   s.menu.currentScreen = Core::ScreenState::GameplayFps;
   s.radio.popupActive = false;

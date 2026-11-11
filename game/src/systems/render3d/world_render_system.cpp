@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <string>
 #include "core/interior_layout.hpp"
+#include "core/pickup_layout.hpp"
 #include "systems/render3d/spatial_order.hpp"
 
 namespace DroidCampos {
@@ -21,6 +22,7 @@ WorldRenderSystem::WorldRenderSystem()
 
 void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
                              Events::EventBus& bus) {
+  (void)bus;
   if (engine == nullptr) {
     return;
   }
@@ -37,10 +39,11 @@ void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
   capsuleGlassOptions_.blendingEnabled = true;
   capsuleGlassOptions_.zTestType = PipelineZTest_Standard;
   loadPistol3D(engine);
+  loadPickupMeshes();
   loadWeaponEffects();
   updatePistolViewmodelTransform(state);
   updateAbandonedSignFlicker(state);
-  updateCardReaderLight(state, bus);
+  updateCardReaderLight(state);
 }
 
 void WorldRenderSystem::loadScenario3D(Engine* engine) {
@@ -327,19 +330,7 @@ void WorldRenderSystem::updateAbandonedSignFlicker(
   }
 }
 
-void WorldRenderSystem::updateCardReaderLight(Core::WorldState& state,
-                                              Events::EventBus& bus) {
-  u32 eventCount = 0;
-  const Events::GameEvent* events = bus.getFrameEvents(eventCount);
-  for (u32 i = 0; i < eventCount; ++i) {
-    const auto& ev = events[i];
-    if (ev.type == Events::EventType::CardReaderInteracted) {
-      state.cardReader.isUnlocked = true;
-    } else if (ev.type == Events::EventType::PlayerSpawnResetRequested) {
-      state.cardReader.isUnlocked = false;
-    }
-  }
-
+void WorldRenderSystem::updateCardReaderLight(const Core::WorldState& state) {
   if (cardReaderLightMat_ == nullptr) {
     return;
   }
@@ -351,6 +342,43 @@ void WorldRenderSystem::updateCardReaderLight(Core::WorldState& state,
     // Glowing Crimson Red LED before interaction
     const float pulse = 0.92F + 0.08F * std::sin(state.anim.animTick * 3.5F);
     cardReaderLightMat_->ambient.set(225.0F * pulse, 18.0F, 18.0F, 128.0F);
+  }
+}
+
+void WorldRenderSystem::loadPickupMeshes() {
+  ObjLoaderOptions options;
+  options.scale = 1.0F;
+  options.flipUVs = false;
+  auto load = [&](const char* path) {
+    auto data = ObjLoader::load(FileUtils::fromCwd(path), options);
+    return std::make_unique<StaticMesh>(data.get());
+  };
+  accessCardMesh_ = load("pickups/access_card.obj");
+  medkitMesh_ = load("pickups/medkit.obj");
+  pickupMarkerMesh_ = load("pickups/pickup_marker.obj");
+}
+
+void WorldRenderSystem::renderPickups(const Core::WorldState& state) {
+  for (const auto& pickup : Core::kPickups) {
+    if (pickup.scene != state.scene.active || state.inventory.has(pickup.item)) continue;
+    pickupMarkerMesh_->translation.identity();
+    pickupMarkerMesh_->translation.translate(Vec4(pickup.x, .009F, pickup.z, 1));
+    stapip_.render(pickupMarkerMesh_.get(), scenarioOptions_);
+
+    StaticMesh* mesh = medkitMesh_.get();
+    float height = .004F;
+    if (pickup.item == Core::Pickup::AccessCard) mesh = accessCardMesh_.get();
+    if (pickup.item == Core::Pickup::Pistol) {
+      mesh = pistolMesh_.get();
+      mesh->rotation.identity();
+      mesh->rotation.rotateZ(Core::kDefaultPi * .5F);
+      mesh->scale.identity();
+      // Rotating the pistol onto its side puts its 26.5 mm half-width on Y.
+      height += .0265F;
+    }
+    mesh->translation.identity();
+    mesh->translation.translate(Vec4(pickup.x, height, pickup.z, 1));
+    stapip_.render(mesh, scenarioOptions_);
   }
 }
 
@@ -375,6 +403,7 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
                                      Events::EventBus& bus,
                                      Hardware::Ps2ScratchpadArena& scratchpad) {
   (void)scratchpad;
+  (void)bus;
 
 
   if (state.menu.currentScreen != Core::ScreenState::GameplayFps) {
@@ -384,7 +413,7 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
   if (stage == Core::HardwareStage::Stage1_EeVu0Simulation) {
     updatePistolViewmodelTransform(state);
     updateAbandonedSignFlicker(state);
-    updateCardReaderLight(state, bus);
+    updateCardReaderLight(state);
     return;
   }
 
@@ -426,6 +455,8 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       stapip_.render(scenarioMesh_.get(), scenarioOptions_);
     }
 
+    if (state.scene.resident) renderPickups(state);
+
     if (mistLoaded_ && mistMesh_ != nullptr) {
       renderTransparentPass(engine, mistMesh_.get(), mistOptions_);
     }
@@ -442,7 +473,7 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
 
     renderWeaponEffects(engine, state);
 
-    if (pistolLoaded_ && pistolMesh_ != nullptr) {
+    if (state.inventory.armed() && pistolLoaded_ && pistolMesh_ != nullptr) {
       stapip_.render(pistolMesh_.get(), pistolOptions_);
     }
   }
@@ -460,6 +491,9 @@ void WorldRenderSystem::shutdown(Engine* engine) {
   scenarioMesh_.reset();
   mistMesh_.reset();
   pistolMesh_.reset();
+  accessCardMesh_.reset();
+  medkitMesh_.reset();
+  pickupMarkerMesh_.reset();
   beamCore_.reset(); beamGlow_.reset(); impactMesh_.reset();
   etipLogoMat_ = nullptr;
   etipBoardMat_ = nullptr;

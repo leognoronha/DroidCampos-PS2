@@ -92,6 +92,7 @@ int main(int argc,char** argv) {
   // Full lifecycle and unique terminal trigger.
   s=fixture();bus.clear();bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalOpened));
   s.scene.terminalActive=true;ai.advance(s,bus,100000);assert(s.encounter.phase==Core::EncounterPhase::Armed);
+  s.inventory.collect(Core::Pickup::RearMedkit);
   bus.clear();bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalClosed));
   s.scene.terminalActive=false;ai.advance(s,bus,0);assert(s.encounter.countdownTicks==46875);
   auto checkpoint=s.player;auto doorSnapshot=s.scene.doors[0];
@@ -122,10 +123,15 @@ int main(int argc,char** argv) {
   ai.advance(s,bus,0);assert(s.encounter.phase==Core::EncounterPhase::Complete);
   // Retry restores camera/position/doors without replaying terminal or radio.
   s.player.playerPos.x=0;s.scene.doors[0].openAmount=1;s.playerHealth=10;
+  assert(s.inventory.useMedkit(s.playerHealth));
+  s.inventory.collect(Core::Pickup::SideRoomMedkit);
+  s.playerHealth=10;
   damageActor(s,bus,-1,0);assert(s.menu.currentScreen==Core::ScreenState::Defeated);
   bus.clear();bus.publish(Events::GameEvent::makeSimple(Events::EventType::EncounterRetryRequested));
   ai.advance(s,bus,99999);
   assert(s.playerHealth==100 && s.weapon.ammo==8 && !s.radio.popupActive);
+  assert(s.inventory.medkits==1 && s.inventory.has(Core::Pickup::RearMedkit) &&
+         !s.inventory.has(Core::Pickup::SideRoomMedkit));
   assert(s.player.playerPos.x==checkpoint.playerPos.x && s.player.cameraLookAt.z==checkpoint.cameraLookAt.z);
   assert(s.scene.doors[0].openAmount==doorSnapshot.openAmount && s.encounter.wave==0);
   assert(!s.encounter.newEntryUnlocked && s.encounter.countdownTicks==46875);

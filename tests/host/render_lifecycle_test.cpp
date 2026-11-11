@@ -37,19 +37,28 @@ int main(int argc,char** argv){
     for(const auto& event:Tyra::RendererCore::renderEvents)assert(event=="draw" || event=="P1");
     Tyra::StaticPipeline::visible=true;engine.renderer.core.gs.zBuffer.mask=0;
   };
+  s.scene.resident=true;
   for(int cycle=0;cycle<3;cycle++){
+    s.scene.active=Core::SceneId::Exterior;
+    s.inventory=Core::InventoryState{};
     render.loadSceneStep(&engine,Core::SceneId::Exterior,0);render.loadSceneStep(&engine,Core::SceneId::Exterior,1);
-    checkPass(3); // Exterior, mist and weapon.
+    checkPass(8); // Exterior, mist, three items and three markers.
+    s.inventory.collect(Core::Pickup::Pistol);
+    s.inventory.collect(Core::Pickup::AccessCard);
+    s.inventory.collect(Core::Pickup::RearMedkit);
+    render.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&engine,s,bus,spr);
+    checkPass(3); // Exterior, mist and held weapon.
     assert(repo.getTexturesCount()>1);render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
     for(int step=0;step<Core::kInsideLoadStepCount;step++)assert(render.loadSceneStep(&engine,Core::SceneId::Interior,step));
     assert(repo.getTexturesCount()==17); // 12 scene textures, two enemies, two preview textures and persistent pistol.
-    checkPass(18); // Shell, static occupant and locks are separate; mobile actor is hidden.
-    s.scene.active=Core::SceneId::Interior;s.resetPlayerToSpawn();s.menu.currentScreen=Core::ScreenState::GameplayFps;
+    s.scene.active=Core::SceneId::Interior;
+    checkPass(20); // Existing interior geometry plus kit and marker.
+    s.resetPlayerToSpawn();s.menu.currentScreen=Core::ScreenState::GameplayFps;
     s.scene.doors[0]={1,false};
     render.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&engine,s,bus,spr);
     assert(s.scene.doors[0].openAmount==1 && !s.scene.doors[0].targetOpen);
     Tyra::StaticPipeline::draws.clear();render.executeStage(Core::HardwareStage::Stage2_Vu1GsRender3D,&engine,s,bus,spr);
-    assert(Tyra::StaticPipeline::draws.size()==18);
+    assert(Tyra::StaticPipeline::draws.size()==20);
     assert(engine.renderer.core.gs.zBuffer.mask==0); // Restore depth writes after glass.
     render.unloadScene(&engine);assert(repo.getTexturesCount()==1);
   }

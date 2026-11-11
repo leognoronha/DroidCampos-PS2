@@ -1,0 +1,8 @@
+newmtl Case
+Kd 0.94 0.97 0.95
+
+newmtl Base
+Kd 0.14 0.24 0.21
+
+newmtl Cross
+Kd 0.06 0.78 0.25

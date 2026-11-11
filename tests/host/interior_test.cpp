@@ -6,6 +6,7 @@
 #include "systems/player/player_controller_system.hpp"
 #include "systems/physics/collision_system.hpp"
 #include "core/interior_layout.hpp"
+#include "core/pickup_layout.hpp"
 using namespace DroidCampos;
 int main(){
   Core::WorldState s{}; s.resetToDefaults(); Tyra::Engine engine;
@@ -24,7 +25,24 @@ int main(){
   aim(2.48F,1.3F,3.25F);
   engine.pad.clicked.Square=true;
   poll(); assert(bus.size()==0); // Radio blocks entry.
-  s.radio.popupActive=false; poll(); assert(bus.size()==1);
+  s.radio.popupActive=false; poll(); assert(bus.size()==0 && s.cardReader.isPlayerNearby);
+  auto atPickup = [&](Core::Pickup item) {
+    const auto& p = Core::kPickups[static_cast<int>(item)];
+    float x=p.x, z=p.z;
+    resolve(x,z);
+    assert(x==p.x && z==p.z);
+    s.player.playerPos.set(p.x, 1.7F, p.z, 1);
+  };
+  atPickup(Core::Pickup::AccessCard); poll();
+  assert(s.inventory.has(Core::Pickup::AccessCard) && !s.inventory.armed());
+  s.player.playerPos.set(2.48F,1.7F,3.8F);
+  aim(2.48F,1.3F,3.25F); poll(); assert(bus.size()==0); // Card alone.
+  atPickup(Core::Pickup::Pistol); poll(); assert(s.inventory.armed());
+  s.player.playerPos.set(2.48F,1.7F,3.8F);
+  aim(2.48F,1.3F,3.25F); poll(); assert(bus.size()==1);
+  s.inventory.collected[static_cast<int>(Core::Pickup::AccessCard)]=false;
+  poll(); assert(bus.size()==0); // Pistol alone.
+  s.inventory.collect(Core::Pickup::AccessCard);
   aim(2.48F,1.7F,10.0F);poll();assert(bus.size()==0 && !s.cardReader.isPlayerNearby);
   aim(2.48F,4.0F,3.25F);poll();assert(bus.size()==0 && !s.cardReader.isPlayerNearby);
   aim(2.48F,1.3F,3.25F);
@@ -32,10 +50,40 @@ int main(){
   engine.pad.clicked.Square=true; engine.pad.clicked.L2=true; poll();
   u32 n=0; auto* ev=bus.getFrameEvents(n); assert(n==1 && ev[0].type==Events::EventType::RadioReviewRequested);
   engine.pad.clicked={}; engine.pad.pressed={};
+  atPickup(Core::Pickup::RearMedkit);
+  engine.pad.clicked.Square=true; poll(); poll();
+  assert(s.inventory.medkits==1); // Same placement cannot be collected twice.
+  engine.pad.clicked={};
   s.scene.active=Core::SceneId::Interior; s.resetPlayerToSpawn();
   assert(std::fabs(s.player.playerPos.z+1.8F)<.001F && s.radio.popupActive &&
          s.radio.phase==Core::RadioPhase::Waiting);
   s.radio.popupActive=false; // Simulate dismissal before testing door input.
+  assert(s.inventory.canEnter() && s.inventory.medkits==1);
+  // The room kit remains out of reach from the hall until the player enters.
+  s.player.playerPos.set(-1.0F, 1.7F, -8.0F, 1);
+  aim(-1.6F, 1.3F, -8.0F);
+  engine.pad.clicked.Square=true; poll();
+  assert(s.inventory.medkits==1 && s.scene.doors[0].targetOpen);
+  s.scene.doors[0].openAmount=1;
+  atPickup(Core::Pickup::SideRoomMedkit);
+  poll();
+  assert(s.inventory.medkits==2);
+  s.scene.doors[0]={};
+  auto full=s.inventory;
+  full.collected[static_cast<int>(Core::Pickup::SideRoomMedkit)]=false;
+  assert(!full.collect(Core::Pickup::SideRoomMedkit));
+  assert(!full.has(Core::Pickup::SideRoomMedkit) && full.medkits==2);
+  engine.pad.clicked={}; engine.pad.clicked.R2=true; poll();
+  assert(s.inventory.medkits==2); // Full health keeps the kit.
+  s.playerHealth=35; s.radio.popupActive=true; poll();
+  assert(s.playerHealth==35 && s.inventory.medkits==2);
+  s.radio.popupActive=false; poll();
+  assert(s.playerHealth==75 && s.inventory.medkits==1);
+  engine.pad.clicked={}; engine.pad.pressed.R2=true; poll();
+  assert(s.playerHealth==75 && s.inventory.medkits==1);
+  engine.pad.clicked.R2=true; poll();
+  assert(s.playerHealth==100 && s.inventory.medkits==0);
+  engine.pad.clicked={}; engine.pad.pressed={};
   for(int d=0;d<4;d++){
     const float sign=Core::kInsideDoorX[d]<0?-1:1;
     float x=0,z=Core::kInsideDoorZ[d];
@@ -66,10 +114,10 @@ int main(){
   for(int i=0;i<60;i++){poll();tick();peak=std::max(peak,s.player.playerPos.y);}
   assert(peak>2.5F && peak<3.0F && s.player.grounded);
   assert(std::fabs(s.player.cameraPos.y-1.7F)<.001F);
-  // Radio freezes locomotion; X never dismisses the message.
+  // Radio permits movement and jumping. X never dismisses the message.
   s.radio.popupActive=true;s.radio.phase=Core::RadioPhase::Message;
   engine.pad.clicked.Cross=true;poll();tick();
-  assert(s.player.grounded && s.player.playerPos.y==1.7F && s.radio.popupActive);
+  assert(!s.player.grounded && s.player.playerPos.y>1.7F && s.radio.popupActive);
   assert(bus.size()==0 && s.inputCmd.jumpRequested);
   engine.pad.clicked={};
   for(int i=0;i<60;i++){poll();tick();}
@@ -85,7 +133,7 @@ int main(){
   engine.pad.clicked={};poll();assert(s.scene.terminalActive);
   engine.pad.clicked.Triangle=true;poll();assert(!s.scene.terminalActive);
   engine.pad.clicked={};
-  // R2 is unassigned; L2 silently reviews the current scene message.
+  // R2 with no kit leaves gameplay alone. L2 reviews the scene message.
   engine.pad.clicked.R2=true;poll();assert(bus.size()==0 && !s.inputCmd.jumpRequested);
   engine.pad.clicked={};engine.pad.clicked.L2=true;poll();assert(bus.size()==1);
   {u32 count=0;const auto* events=bus.getFrameEvents(count);assert(count==1 && events[0].type==Events::EventType::RadioReviewRequested);}
@@ -125,5 +173,13 @@ int main(){
   engine.pad.clicked.Square=true;engine.pad.pressed.DpadUp=true;poll();assert(bus.size()==0 && s.inputCmd.moveForward==0);
   s.menu.currentScreen=Core::ScreenState::NewGame;engine.pad.clicked={};engine.pad.clicked.Cross=true;poll();
   assert(s.scene.requested && s.scene.target==Core::SceneId::Exterior);
-  std::cout<<"PASS: reader/radio/held input, 4 closed/open doors, room traversal, walls, sealed entrance, terminal, spawn, loading, new game\n";
+  assert(!s.inventory.armed() && !s.inventory.has(Core::Pickup::AccessCard) &&
+         !s.inventory.has(Core::Pickup::RearMedkit) && !s.inventory.has(Core::Pickup::SideRoomMedkit));
+  s.inventory.collect(Core::Pickup::Pistol);
+  s.inventory.collect(Core::Pickup::RearMedkit);
+  s.menu.currentScreen=Core::ScreenState::LoadGame;
+  poll();
+  assert(s.scene.requested && s.scene.target==Core::SceneId::Exterior &&
+         !s.inventory.armed() && s.inventory.medkits==0);
+  std::cout<<"PASS: pickups, four reader states, medkits, doors, terminal, spawn, loading and fresh inventory\n";
 }

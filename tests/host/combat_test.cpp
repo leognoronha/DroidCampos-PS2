@@ -64,6 +64,9 @@ int main() {
   Tyra::Engine engine;Hardware::Ps2ScratchpadArena arena;WeaponSystem weapon(&scene);
   weapon.init(&engine,s,bus);s.inputCmd.fireRequested=true;scene.muzzleWall=true;
   weapon.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&engine,s,bus,arena);
+  assert(s.weapon.ammo==8 && !s.weapon.beamTicks);
+  s.inventory.collect(Core::Pickup::Pistol);
+  weapon.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&engine,s,bus,arena);
   assert(s.enemies[0].health==30 && s.weapon.impact && s.weapon.beamStart.x==0);
   scene.muzzleWall=false;
   for(int i=0;i<3;++i) {

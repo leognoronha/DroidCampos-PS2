@@ -167,9 +167,10 @@ void GameApp::updateSceneTransition() {
   const auto* events = eventBus_.getFrameEvents(count);
   for (u32 i = 0; i < count; ++i) {
     if (events[i].type == Events::EventType::CardReaderInteracted &&
-        scene.active == SceneId::Exterior && scene.resident &&
-        scene.accessFrames == 0 && !scene.requested && !state.radio.popupActive) {
+        scene.active == SceneId::Exterior && state.simulationActive() &&
+        state.inventory.canEnter()) {
       scene.accessFrames = 20;
+      state.cardReader.isUnlocked = true;
       state.inputCmd.clear();
     }
   }
@@ -212,7 +213,9 @@ void GameApp::advanceLoading() {
     worldState_.intro = SceneIntroState{true, 0};
     scene.nearbyDoor = -1;
     for (auto& door : scene.doors) door = DoorState{};
+    const int health = worldState_.playerHealth;
     Systems::Enemy::EnemySystem::reset(worldState_);
+    if (scene.active == SceneId::Interior) worldState_.playerHealth = health;
     worldState_.resetPlayerToSpawn();
     worldState_.menu.currentScreen = ScreenState::GameplayFps;
     logSceneMemory("scene ready");

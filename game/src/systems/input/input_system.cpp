@@ -2,6 +2,7 @@
 #include "core/terminal_documents.hpp"
 #include <cmath>
 #include "core/interior_layout.hpp"
+#include "core/pickup_layout.hpp"
 #include "systems/physics/interior_geometry.hpp"
 
 namespace DroidCampos {
@@ -54,6 +55,7 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
 
   state.inputCmd.clear();
   state.droid.buttonNearby=false;
+  state.nearbyPickup = Core::Pickup::Count;
 
   if (state.menu.padCooldown > 0) {
     state.menu.padCooldown--;
@@ -198,6 +200,28 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   if (clicked.L3 || clicked.R3) {
     bus.publish(Events::GameEvent::makeSimple(
         Events::EventType::PlayerSpawnResetRequested));
+    return;
+  }
+
+  bool pickupInteraction = false;
+  if (state.simulationActive()) {
+    if (clicked.R2) state.inventory.useMedkit(state.playerHealth);
+    const auto& player = state.player.playerPos;
+    float nearestSq = Core::kPickupRadius * Core::kPickupRadius;
+    for (const auto& pickup : Core::kPickups) {
+      if (pickup.scene != state.scene.active || state.inventory.has(pickup.item)) continue;
+      const float dx = player.x - pickup.x, dz = player.z - pickup.z;
+      const float distanceSq = dx * dx + dz * dz;
+      if (distanceSq >= nearestSq) continue;
+      if (pickup.scene == Core::SceneId::Interior &&
+          !Physics::interiorSegmentFree(state, player,
+              Tyra::Vec4(pickup.x, 0, pickup.z, 1), .02F)) continue;
+      state.nearbyPickup = pickup.item;
+      nearestSq = distanceSq;
+    }
+    pickupInteraction = clicked.Square && state.nearbyPickup != Core::Pickup::Count;
+    if (pickupInteraction && state.inventory.collect(state.nearbyPickup))
+      state.nearbyPickup = Core::Pickup::Count;
   }
 
   // Check proximity to Card Reader pedestal (X = 2.48m, Z_tyra = 3.25m)
@@ -212,8 +236,9 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
       ((dxReader * dxReader + dzReader * dzReader) <= kInteractRadiusSq) &&
       reticleHits(state, 2.2665F, 1.0F, 3.0365F, 2.7027F, 1.4766F, 3.5508F, readerHit);
 
-  if (state.cardReader.isPlayerNearby && !state.radio.popupActive &&
-      !state.cardReader.isUnlocked && clicked.Square) {
+  if (state.cardReader.isPlayerNearby && !state.cardReader.isUnlocked &&
+      state.simulationActive() && state.inventory.canEnter() &&
+      clicked.Square && !pickupInteraction) {
     bus.publish(Events::GameEvent::makeSimple(
         Events::EventType::CardReaderInteracted));
   }
@@ -252,7 +277,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
         state.scene.nearbyDoor = i;
       }
     }
-    if (state.scene.nearbyDoor >= 0 && clicked.Square) {
+    if (state.scene.nearbyDoor >= 0 && clicked.Square && !pickupInteraction) {
       auto& door = state.scene.doors[state.scene.nearbyDoor];
       door.targetOpen = !door.targetOpen;
     }
@@ -328,8 +353,9 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   state.inputCmd.lookPitchDelta = lookPitchDelta;
   state.inputCmd.isRunning = pressed.L1;
   state.inputCmd.jumpRequested = clicked.Cross;
-  state.inputCmd.fireRequested = clicked.R1;
-  state.inputCmd.reloadRequested = clicked.Circle && !state.radio.popupActive;
+  state.inputCmd.fireRequested = clicked.R1 && state.inventory.armed();
+  state.inputCmd.reloadRequested = clicked.Circle && !state.radio.popupActive &&
+                                  state.inventory.armed();
 }
 
 void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
@@ -415,6 +441,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
     if (clicked.Cross || clicked.Start) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
       state.weapon = Core::WeaponState{};
+      state.inventory = Core::InventoryState{};
       state.menu.activeSaveSlot = 0;
       state.scene.target = Core::SceneId::Exterior;
       state.scene.requested = true;
@@ -440,6 +467,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
       if (state.menu.loadSelectedIndex < 2) {
         bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
         state.menu.activeSaveSlot = state.menu.loadSelectedIndex + 1;
+        state.inventory = Core::InventoryState{};
         state.scene.target = Core::SceneId::Exterior;
         state.scene.requested = true;
         state.menu.currentScreen = Core::ScreenState::GameplayFps;

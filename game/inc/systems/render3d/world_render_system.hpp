@@ -38,6 +38,8 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
   void loadScenario3D(Tyra::Engine* engine);
   void loadMist3D(Tyra::Engine* engine);
   void loadPistol3D(Tyra::Engine* engine);
+  void loadPickupMeshes();
+  void renderPickups(const Core::WorldState&);
   void loadWeaponEffects();
   void renderWeaponEffects(Tyra::Engine*,const Core::WorldState&);
   void renderOneWeaponEffect(Tyra::Engine*,const Core::WeaponState&);
@@ -49,7 +51,7 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
                              const Tyra::StaPipOptions& options);
   void updatePistolViewmodelTransform(const Core::WorldState& state);
   void updateAbandonedSignFlicker(const Core::WorldState& state);
-  void updateCardReaderLight(Core::WorldState& state, Events::EventBus& bus);
+  void updateCardReaderLight(const Core::WorldState& state);
 
   Tyra::StaticPipeline stapip_;
   Enemy::EnemyRenderSystem enemyRenderer_;
@@ -67,6 +69,7 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
   bool mistLoaded_;
 
   std::unique_ptr<Tyra::StaticMesh> pistolMesh_;
+  std::unique_ptr<Tyra::StaticMesh> accessCardMesh_, medkitMesh_, pickupMarkerMesh_;
   Tyra::StaPipOptions pistolOptions_;
   bool pistolLoaded_;
   std::vector<std::unique_ptr<Tyra::StaticMesh>> interiorMeshes_;

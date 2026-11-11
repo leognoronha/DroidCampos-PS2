@@ -1,4 +1,5 @@
 #include "systems/ui/hud_system.hpp"
+#include "core/pickup_layout.hpp"
 #include <cstdio>
 #if defined(_EE)
 #include <dma.h>
@@ -259,6 +260,15 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   font.drawText(health,22,107,life,.9F);
   drawer_->drawRect(22,129,152,4,dim);
   if(state.playerHealth>0)drawer_->drawRect(22,129,152.F*state.playerHealth/Core::kPlayerHealth,4,life);
+  const Color kitGreen(34, 120, 60, 128);
+  drawer_->drawBlueprintPanel(190, 100, 82, 42, Color(2,7,10,112), cyan);
+  drawer_->drawRect(200, 110, 4, 14, kitGreen);
+  drawer_->drawRect(195, 115, 14, 4, kitGreen);
+  char medkits[8];
+  std::snprintf(medkits, sizeof(medkits), "%d/%d", state.inventory.medkits,
+                Core::kMedkitCapacity);
+  font.drawText(medkits, 216, 106, kitGreen, .9F);
+  font.drawText("R2", 216, 123, cyan, .75F);
   const auto& encounter=state.encounter;
   char wave[64]{};
   if(encounter.phase==Core::EncounterPhase::Countdown)
@@ -314,8 +324,14 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   drawer_->getFont().drawText(posBuf, 350, 16,
                               Color(140.0F, 235.0F, 255.0F, 128.0F), 1.0F);
 
-  // Contextual Card Reader Interaction Prompt
-  if (state.cardReader.isPlayerNearby && !state.radio.popupActive) {
+  if (state.nearbyPickup != Core::Pickup::Count && state.simulationActive()) {
+    const auto item = state.nearbyPickup;
+    const bool medkit = item == Core::Pickup::RearMedkit || item == Core::Pickup::SideRoomMedkit;
+    const char* prompt = medkit && state.inventory.medkits >= Core::kMedkitCapacity
+        ? "KIT MEDICO // INVENTARIO CHEIO" : Core::kPickups[static_cast<int>(item)].prompt;
+    drawer_->drawPanel(12, 376, 356, 26, Color(8,16,22,112), cyan);
+    font.drawText(prompt, 24, 382, cyan, .9F);
+  } else if (state.cardReader.isPlayerNearby && !state.radio.popupActive) {
     if (state.cardReader.isUnlocked) {
       drawer_->drawPanel(12.0F, 376.0F, 356.0F, 26.0F,
                          Color(8.0F, 26.0F, 14.0F, 102.0F),
@@ -327,8 +343,15 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
       drawer_->drawPanel(12.0F, 376.0F, 356.0F, 26.0F,
                          Color(28.0F, 10.0F, 12.0F, 102.0F),
                          Color(235.0F, 50.0F, 50.0F, 115.0F));
+      const char* prompt = "[QUADRADO] USAR CARTAO";
+      if (!state.inventory.has(Core::Pickup::AccessCard)) {
+        prompt = state.inventory.armed() ? "ACESSO BLOQUEADO // PEGUE O CARTAO"
+                                         : "ACESSO BLOQUEADO // PEGUE A ARMA E O CARTAO";
+      } else if (!state.inventory.armed()) {
+        prompt = "ACESSO BLOQUEADO // PEGUE A ARMA";
+      }
       drawer_->getFont().drawText(
-          "[QUADRADO] INTERAGIR LEITOR (LUZ VERMELHA)", 24, 382,
+          prompt, 24, 382,
           Color(255.0F, 140.0F, 140.0F, 128.0F), .85F);
     }
   }
@@ -343,7 +366,7 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
                                   Color(160, 240, 240, 128));
   }
 
-  if (!state.radio.popupActive) {
+  if (!state.radio.popupActive && state.inventory.armed()) {
     const auto& w = state.weapon;
     const Color cyan(40, 120, 128, 128), dim(18, 48, 54, 128);
     const Color ink = w.ammo ? cyan : Color(128, 70, 30, 128);
@@ -367,7 +390,8 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   }
 
   // Bottom Controls Bar
-  if (state.scene.nearbyDoor >= 0 && !state.radio.popupActive) {
+  if (state.scene.nearbyDoor >= 0 && !state.radio.popupActive &&
+      state.nearbyPickup == Core::Pickup::Count) {
     const auto& door = state.scene.doors[state.scene.nearbyDoor];
     drawer_->drawPanel(12, 376, 356, 26, Color(8, 16, 22, 112),
                        Color(0, 190, 210, 128));
@@ -385,8 +409,10 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
                                 20, 417, Color(80, 120, 116, 128), 1.0F);
   } else {
     drawer_->getFont().drawText(
-        "R1: TIRO  O: RECARGA  X: PULO  L1: CORRER  L2: RADIO  START: PAUSA",
-        20, 417, Color(190.0F, 215.0F, 230.0F, 128.0F), 0.95F);
+        state.inventory.armed()
+            ? "R1: TIRO  O: RECARGA  R2: KIT  X: PULO  L1: CORRER  L2: RADIO  START: PAUSA"
+            : "QUADRADO: PEGAR  R2: KIT  X: PULO  L1: CORRER  L2: RADIO  START: PAUSA",
+        20, 417, Color(190.0F, 215.0F, 230.0F, 128.0F), .85F);
   }
 }
 

@@ -38,6 +38,7 @@ void EnemySystem::reset(WorldState& s) {
 void EnemySystem::retry(WorldState& s) {
   auto& c=s.encounter;if(!c.checkpointValid)return;
   s.player=c.checkpointPlayer;
+  s.inventory=c.checkpointInventory;
   for(int i=0;i<4;++i)s.scene.doors[i]=c.checkpointDoors[i];
   s.playerHealth=kPlayerHealth;s.damageFlashTicks=0;s.weapon=WeaponState{};
   s.enemies={};s.inputCmd.clear();s.scene.terminalActive=false;
@@ -109,6 +110,7 @@ void EnemySystem::advance(WorldState& s,Events::EventBus& bus,u32 elapsed) {
         }
         if(c.phase==EncounterPhase::Armed) {
           c.checkpointValid=true;c.checkpointPlayer=s.player;
+          c.checkpointInventory=s.inventory;
           for(int d=0;d<4;++d)c.checkpointDoors[d]=s.scene.doors[d];
           c.phase=EncounterPhase::Countdown;c.countdownTicks=kEncounterDelay;
           elapsed=0;

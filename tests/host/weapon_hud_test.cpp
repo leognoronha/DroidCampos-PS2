@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
                      spr);
     int slots = 0;
     bool panel = false;
+    bool kitCrossVertical = false, kitCrossHorizontal = false;
     for (const auto& d : draws) {
       assert(d.position.x >= 0 && d.position.y >= 0);
       assert(d.position.x + d.size.x * d.scale <= 512 &&
@@ -33,8 +34,15 @@ int main(int argc, char** argv) {
       if (d.position.y == 381 && d.position.x >= 390 && d.size.x == 9 &&
           d.size.y == 3)
         ++slots;
+      if (d.color.g > d.color.r && d.color.g > d.color.b) {
+        kitCrossVertical |= d.position.x == 200 && d.position.y == 110 &&
+                            d.size.x == 4 && d.size.y == 14;
+        kitCrossHorizontal |= d.position.x == 195 && d.position.y == 115 &&
+                              d.size.x == 14 && d.size.y == 4;
+      }
     }
     assert(panel == expected && slots == (expected ? 8 : 0));
+    assert(kitCrossVertical == !s.intro.active && kitCrossHorizontal == !s.intro.active);
     if (argc > 2) {
       std::ofstream out(std::string(argv[2]) + "/" + name + ".txt");
       assert(out);
@@ -48,6 +56,8 @@ int main(int argc, char** argv) {
       }
     }
   };
+  render("weapon_uncollected", false);
+  s.inventory.collect(Core::Pickup::Pistol);
   render("weapon_full", true);
   s.weapon.ammo = 0;
   render("weapon_empty", true);

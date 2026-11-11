@@ -148,7 +148,7 @@ void MenuSystem::renderNewGameScreen(const Core::WorldState& state) {
       "NO COMPLEXO INDUSTRIAL DA ETIP.\n\n"
       "OBJETIVOS\n"
       "- AVANCE ATE O PORTAO PRINCIPAL.\n"
-      "- LOCALIZE A GUARITA DE SEGURANCA.\n"
+      "- PEGUE A ARMA E O CARTAO NA GUARITA.\n"
       "- UTILIZE O LEITOR DE CARTAO PARA ENTRAR.",
       32, 148, menuInk(200.0F, 225.0F, 235.0F, 128.0F), .9F);
 
