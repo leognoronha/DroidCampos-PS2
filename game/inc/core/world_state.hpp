@@ -37,7 +37,7 @@ struct SceneState {
   bool resident = false;
   bool presented = false;
   bool requested = false;
-  int accessFrames = 0;
+  u32 accessTicks = 0;
   int loadStep = 0;
   int totalSteps = 0;
   const char* error = nullptr;
@@ -256,7 +256,7 @@ struct alignas(64) WorldState {
 
   bool playerMovementActive() const {
     return menu.currentScreen == ScreenState::GameplayFps && scene.resident &&
-        scene.presented && !scene.requested && !scene.accessFrames &&
+        scene.presented && !scene.requested && !scene.accessTicks &&
         !intro.active && !scene.terminalActive && playerHealth>0;
   }
   bool simulationActive() const {

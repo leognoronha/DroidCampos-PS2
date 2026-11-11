@@ -159,9 +159,16 @@ void GameApp::updateSceneTransition() {
   if (state.menu.currentScreen == ScreenState::Paused ||
       (state.menu.currentScreen == ScreenState::Settings &&
        state.menu.settingsReturnScreen == ScreenState::Paused)) return;
-  if (scene.accessFrames > 0 && --scene.accessFrames == 0) {
-    scene.target = SceneId::Interior;
-    scene.requested = true;
+  if (scene.accessTicks > 0) {
+    const u32 elapsed = accessTimer_.getTimeDelta();
+    accessTimer_.prime();
+    if (elapsed < scene.accessTicks) {
+      scene.accessTicks -= elapsed;
+    } else {
+      scene.accessTicks = 0;
+      scene.target = SceneId::Interior;
+      scene.requested = true;
+    }
   }
   u32 count = 0;
   const auto* events = eventBus_.getFrameEvents(count);
@@ -169,7 +176,8 @@ void GameApp::updateSceneTransition() {
     if (events[i].type == Events::EventType::CardReaderInteracted &&
         scene.active == SceneId::Exterior && state.simulationActive() &&
         state.inventory.canEnter()) {
-      scene.accessFrames = 20;
+      scene.accessTicks = menuAudioSystem_.playCardReader(engine_, state.menu.sfxVolume);
+      accessTimer_.prime();
       state.cardReader.isUnlocked = true;
       state.inputCmd.clear();
     }

@@ -64,6 +64,7 @@ class DroidController {
           constexpr int damage = kPlayerHealth * 60 / 100;
           s.playerHealth = std::max(0, s.playerHealth - damage);
           s.damageFlashTicks = 3125;
+          bus.publish(Events::GameEvent::makeSimple(Events::EventType::DroidPunchLanded));
           if(!s.playerHealth) {
             b.phase=DroidPhase::GameOver;s.menu.currentScreen=ScreenState::Defeated;
             s.menu.pauseSelectedIndex=0;s.inputCmd.clear();s.weapon.cancelTransient();

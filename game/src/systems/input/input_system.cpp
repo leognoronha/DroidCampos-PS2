@@ -65,7 +65,7 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
     if (state.scene.error && (engine->pad.getClicked().Cross || engine->pad.getClicked().Circle)) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
       state.scene.requested = false;
-      state.scene.accessFrames = 0;
+      state.scene.accessTicks = 0;
       state.menu.currentScreen = Core::ScreenState::MainMenu;
     }
     return;
@@ -152,6 +152,7 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
       }
       return; // Closing must consume this frame's Circle/Cross/R1 too.
     }
+    if (state.scene.accessTicks > 0) return;
     if (engine->pad.getClicked().Start) {
       state.menu.currentScreen = Core::ScreenState::Paused;
       state.menu.pauseSelectedIndex = 0;
@@ -175,8 +176,6 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   const auto& pressed = pad.getPressed();
   const auto& leftJoy = pad.getLeftJoyPad();
   const auto& rightJoy = pad.getRightJoyPad();
-
-  if (state.scene.accessFrames > 0) return;
 
   if (state.radio.popupActive && clicked.Circle) {
     if (state.radio.phase == Core::RadioPhase::Message)
@@ -205,7 +204,8 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
 
   bool pickupInteraction = false;
   if (state.simulationActive()) {
-    if (clicked.R2) state.inventory.useMedkit(state.playerHealth);
+    if (clicked.R2 && state.inventory.useMedkit(state.playerHealth))
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MedkitUsed));
     const auto& player = state.player.playerPos;
     float nearestSq = Core::kPickupRadius * Core::kPickupRadius;
     for (const auto& pickup : Core::kPickups) {
@@ -220,8 +220,13 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
       nearestSq = distanceSq;
     }
     pickupInteraction = clicked.Square && state.nearbyPickup != Core::Pickup::Count;
-    if (pickupInteraction && state.inventory.collect(state.nearbyPickup))
+    if (pickupInteraction && state.inventory.collect(state.nearbyPickup)) {
+      if (state.nearbyPickup == Core::Pickup::Pistol)
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::WeaponPickedUp));
+      else if (state.nearbyPickup != Core::Pickup::AccessCard)
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::MedkitPickedUp));
       state.nearbyPickup = Core::Pickup::Count;
+    }
   }
 
   // Check proximity to Card Reader pedestal (X = 2.48m, Z_tyra = 3.25m)

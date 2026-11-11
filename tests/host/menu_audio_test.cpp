@@ -1,4 +1,6 @@
 #include <cassert>
+#include <cstring>
+#include <fstream>
 #include <iostream>
 #include "systems/audio/menu_audio_system.hpp"
 #include "systems/input/input_system.hpp"
@@ -9,19 +11,53 @@ int main(int argc,char**argv) {
   Tyra::Engine engine;Events::EventBus bus;Hardware::Ps2ScratchpadArena scratch;
   Systems::Input::InputSystem input;Systems::Audio::MenuAudioSystem audio;
   audio.init(&engine,state,bus);audio.init(&engine,state,bus);
-  assert(HostAudio::loaded.size()==12&&HostAudio::resets==0);
+  assert(HostAudio::loaded.size()==18&&HostAudio::resets==0);
   auto* confirm=static_cast<audsrv_adpcm_t*>(nullptr);
   auto* back=confirm;
   auto* navigate=confirm;
   auto* secret=confirm;
+  auto* defeat=confirm;
+  std::ifstream defeatFile(std::string(argv[1]) + "audio/game_over.adpcm", std::ios::binary);
+  const std::vector<char> defeatBytes((std::istreambuf_iterator<char>(defeatFile)), {});
+  assert(!defeatBytes.empty());
   for(auto& entry:HostAudio::loaded) {
-    if(entry.second==50432)confirm=entry.first;
+    if(static_cast<size_t>(entry.second)==defeatBytes.size() &&
+       std::memcmp(entry.first->buffer, defeatBytes.data(), defeatBytes.size())==0)
+      defeat=entry.first;
+    else if(entry.second==50432)confirm=entry.first;
     else if(entry.second==10432)back=entry.first;
     else if(entry.second==2560)navigate=entry.first;
     else if(entry.second==16256)secret=entry.first;
   }
   assert(confirm&&back&&navigate&&confirm!=back&&navigate!=back&&navigate!=confirm);
   assert(secret);
+  state.menu.currentScreen=Core::ScreenState::Defeated;
+  bus.publish(Events::GameEvent::makeSimple(Events::EventType::DroidPunchLanded));
+  bus.publish(Events::GameEvent::makeSimple(Events::EventType::PlayerDefeated));
+  audio.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&engine,state,bus,scratch);
+  assert(defeat && HostAudio::played.size()==2 && HostAudio::played[1]==defeat);
+  const auto* punch=HostAudio::played[0];
+  HostAudio::played.clear();
+  bus.clear();
+  state.menu.currentScreen=Core::ScreenState::GameplayFps;
+  bus.publish(Events::GameEvent::makeSimple(Events::EventType::MedkitUsed));
+  audio.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&engine,state,bus,scratch);
+  assert(HostAudio::played.size()==1 && HostAudio::played[0]!=punch &&
+         HostAudio::played[0]!=defeat);
+  HostAudio::played.clear();
+  bus.clear();
+  state.menu.currentScreen=Core::ScreenState::MainMenu;
+  const u32 readerTicks = audio.playCardReader(&engine, 80);
+  assert(readerTicks >= 56600 && readerTicks <= 56800);
+  assert(HostAudio::played.size() == 1 && HostAudio::channels.back() == 6);
+  assert(audio.playCardReader(&engine, 0) == readerTicks && HostAudio::played.size() == 1);
+  HostAudio::played.clear();
+  bus.publish(Events::GameEvent::makeSimple(Events::EventType::WeaponPickedUp));
+  bus.publish(Events::GameEvent::makeSimple(Events::EventType::MedkitPickedUp));
+  audio.executeStage(Core::HardwareStage::Stage0_IopInputPoll,&engine,state,bus,scratch);
+  assert(HostAudio::played.size() == 2 && HostAudio::played[0] != HostAudio::played[1]);
+  HostAudio::played.clear();
+  bus.clear();
   bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalSecretUnlocked));
   audio.executeStage(Core::HardwareStage::Stage0_IopInputPoll,&engine,state,bus,scratch);
   assert(HostAudio::played.size()==1&&HostAudio::played[0]==secret);
@@ -166,7 +202,7 @@ int main(int argc,char**argv) {
   assert(HostAudio::played.size() == 4 && HostAudio::volumes[4] == 0 && HostAudio::volumes[3] == 0);
   audio.shutdown(&engine);audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==1);
   // A complete second lifecycle must not retain samples in SPU2.
-  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==12);
+  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==18);
   audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==2);
   // Optional asset failure must leave menus usable, without touching shared banks.
   HostAudio::failLoad=true;audio.init(&engine,state,bus);poll(Core::ScreenState::MainMenu,true,false);

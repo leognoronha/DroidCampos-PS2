@@ -34,7 +34,8 @@ tonalidade escura aos materiais não luminosos. Não depende de luzes do Blender
 
 - Quadrado perto do leitor, com rádio fechado, arma e cartão coletados,
   dispara a abertura. Ambos os itens ficam no chão junto à guarita.
-  O LED verde aparece por 20 frames; movimento e novas ações ficam suspensos.
+  O LED fica verde e os controles ficam suspensos até o som do leitor terminar.
+  Recolher a pistola ou um kit médico reproduz o efeito correspondente.
 - A vida e o inventário seguem para o interior. Há um kit médico no fundo
   do pátio e outro na primeira sala lateral esquerda. Quadrado recolhe o kit.
   R2 restaura até 40 pontos e o jogador pode carregar dois kits.

@@ -1,4 +1,4 @@
-"""Regenerate weapon effects with FFmpeg and the official PS2SDK adpenc."""
+"""Regenerate weapon and item effects with FFmpeg and the official PS2SDK adpenc."""
 import argparse
 from pathlib import Path
 import struct
@@ -11,7 +11,13 @@ parser.add_argument('--ffmpeg', default='ffmpeg')
 parser.add_argument('--adpenc', default='adpenc')
 args = parser.parse_args()
 with tempfile.TemporaryDirectory(prefix='droid-menu-audio-') as scratch:
-    for source, name in [('laser-weapon-shot.wav', 'weapon_shot'), ('reload-weapon.wav', 'weapon_reload')]:
+    for source, name in [('laser-weapon-shot.wav', 'weapon_shot'), ('reload-weapon.wav', 'weapon_reload'),
+                         ('inserindo-cartao-leitor.wav', 'card_reader'),
+                         ('pegando-arma.wav', 'pickup_weapon'),
+                         ('pegando-kitmedic.wav', 'pickup_medkit'),
+                         ('impact-punch.mp3', 'impact_punch'),
+                         ('heal-up.mp3', 'heal_up'),
+                         ('sci-fi-game-over.wav', 'game_over')]:
         pcm = Path(scratch) / (name + '.wav')
         encoded = Path(scratch) / (name + '.adpcm')
         subprocess.run([args.ffmpeg, '-hide_banner', '-loglevel', 'error', '-y',

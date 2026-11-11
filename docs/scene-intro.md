@@ -22,7 +22,7 @@ cobrir a imagem inteira. HUD, radio e comandos de gameplay aguardam a abertura.
 
 A regressao da chamada prematura foi corrigida em dois pontos: GameApp converte
 pedidos para Loading antes do estagio de simulacao/audio; updateRadio verifica
-resident, presented, requested, accessFrames e intro.active antes de iniciar a
+resident, presented, requested, accessTicks e intro.active antes de iniciar a
 chamada. Assim o estado GameplayFps temporario escolhido pelo input nao pode
 iniciar o som enquanto o cenario ainda esta sendo preparado.
 
