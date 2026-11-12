@@ -42,7 +42,7 @@ void EnemySystem::retry(WorldState& s) {
   for(int i=0;i<4;++i)s.scene.doors[i]=c.checkpointDoors[i];
   s.playerHealth=kPlayerHealth;s.damageFlashTicks=0;s.weapon=WeaponState{};
   s.enemies={};s.inputCmd.clear();s.scene.terminalActive=false;
-  s.radio.popupActive=false;s.radio.phase=RadioPhase::Idle;
+  s.radio.popupActive=false;s.radio.reviewing=false;s.radio.phase=RadioPhase::Idle;
   c.phase=EncounterPhase::Countdown;c.wave=0;c.remaining=0;
   c.countdownTicks=kEncounterDelay;c.attackTicks=0;c.attackCursor=0;
   c.completionNoticeTicks = 0;

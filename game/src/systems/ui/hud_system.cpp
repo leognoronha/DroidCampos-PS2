@@ -468,7 +468,9 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
                      Color(80.0F, 100.0F, 120.0F, 85.0F));
   if (state.radio.popupActive) {
     drawer_->getFont().drawText(state.radio.phase == Core::RadioPhase::Message
-                                    ? "O: CLOSE RADIO // START: PAUSA"
+                                    ? (state.radio.reviewing
+                                           ? "L2: FECHAR RADIO // O: RECARGA // START: PAUSA"
+                                           : "O: CLOSE RADIO // START: PAUSA")
                                     : "RADIO // INCOMING TRANSMISSION...",
                                 20, 417, Color(80, 120, 116, 128), 1.0F);
   } else {

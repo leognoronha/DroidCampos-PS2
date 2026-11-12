@@ -100,6 +100,9 @@ enum class RadioPhase : u8 { Idle, Waiting, Alert, Message };
 struct RadioCodecState {
   RadioPhase phase = RadioPhase::Idle;
   bool popupActive;
+  bool reviewing = false;
+
+  bool blocksGameplay() const { return popupActive && !reviewing; }
   int visibleChars;
   u32 revealTicks = 0;
   const char* currentMessage;
@@ -261,7 +264,7 @@ struct alignas(64) WorldState {
         !intro.active && !scene.terminalActive && playerHealth>0;
   }
   bool simulationActive() const {
-    return playerMovementActive() && !radio.popupActive;
+    return playerMovementActive() && !radio.blocksGameplay();
   }
 
   void resetPlayerToSpawn() {
@@ -293,6 +296,7 @@ struct alignas(64) WorldState {
     nearbyPickup = Pickup::Count;
 
     radio.popupActive = true;
+    radio.reviewing = false;
     radio.phase = RadioPhase::Waiting;
     radio.visibleChars = 0;
     radio.revealTicks = 0;

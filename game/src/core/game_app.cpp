@@ -193,6 +193,7 @@ void GameApp::updateSceneTransition() {
   state.inputCmd.clear();
   state.weapon.cancelTransient();
   state.radio.popupActive = false;
+  state.radio.reviewing = false;
   state.radio.phase = RadioPhase::Idle;
 }
 

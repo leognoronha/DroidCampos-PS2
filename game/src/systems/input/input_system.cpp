@@ -177,16 +177,16 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   const auto& leftJoy = pad.getLeftJoyPad();
   const auto& rightJoy = pad.getRightJoyPad();
 
-  if (state.radio.popupActive && clicked.Circle) {
+  if (state.radio.blocksGameplay() && clicked.Circle) {
     if (state.radio.phase == Core::RadioPhase::Message)
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::RadioDismissRequested));
     return;
   }
 
-  if (!state.radio.popupActive && clicked.L2) {
+  if (clicked.L2 && !state.radio.blocksGameplay()) {
     bus.publish(Events::GameEvent::makeSimple(
-        Events::EventType::RadioReviewRequested));
-    return;
+        state.radio.popupActive ? Events::EventType::RadioDismissRequested
+                                : Events::EventType::RadioReviewRequested));
   }
 
   if (clicked.Select) {
@@ -237,7 +237,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   const float dzReader = state.player.playerPos.z - kCardReaderZ;
   float readerHit = 2.55F;
   state.cardReader.isPlayerNearby = state.scene.active == Core::SceneId::Exterior &&
-      !state.radio.popupActive &&
+      !state.radio.blocksGameplay() &&
       ((dxReader * dxReader + dzReader * dzReader) <= kInteractRadiusSq) &&
       reticleHits(state, 2.2665F, 1.0F, 3.0365F, 2.7027F, 1.4766F, 3.5508F, readerHit);
 
@@ -249,7 +249,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   }
 
   state.droid.buttonNearby=false;
-  if(state.scene.active==Core::SceneId::Interior && !state.radio.popupActive &&
+  if(state.scene.active==Core::SceneId::Interior && !state.radio.blocksGameplay() &&
      state.droid.phase==Core::DroidPhase::ButtonReady) {
     float hit=1.5F;
     Tyra::Vec4 post(0,0,-26,1);
@@ -266,7 +266,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
     }
   }
   state.scene.nearbyDoor = -1;
-  if (state.scene.active == Core::SceneId::Interior && !state.radio.popupActive) {
+  if (state.scene.active == Core::SceneId::Interior && !state.radio.blocksGameplay()) {
     float nearestHit = 1.8F;
     for (int i = 0; i < 4; ++i) {
       const float dx = state.player.playerPos.x - Core::kInsideDoorX[i];
@@ -294,7 +294,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   state.scene.terminalNearby = state.scene.active == Core::SceneId::Interior &&
       terminalDx * terminalDx + terminalDz * terminalDz <= 1.8F * 1.8F;
   if (!state.scene.terminalNearby) state.scene.terminalActive = false;
-  if (state.scene.terminalNearby && !state.radio.popupActive && clicked.Triangle) {
+  if (state.scene.terminalNearby && !state.radio.blocksGameplay() && clicked.Triangle) {
     state.scene.terminalActive = true;
     state.scene.terminalCodeProgress = 0;
     state.scene.terminalSecretUnlocked = false;
@@ -359,7 +359,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   state.inputCmd.isRunning = pressed.L1;
   state.inputCmd.jumpRequested = clicked.Cross;
   state.inputCmd.fireRequested = clicked.R1 && state.inventory.armed();
-  state.inputCmd.reloadRequested = clicked.Circle && !state.radio.popupActive &&
+  state.inputCmd.reloadRequested = clicked.Circle && !state.radio.blocksGameplay() &&
                                   state.inventory.armed();
 }
 

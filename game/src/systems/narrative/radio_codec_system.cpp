@@ -27,7 +27,7 @@ void RadioCodecSystem::executeStage(Core::HardwareStage stage, Engine*,
     updateSimulation(state, bus);
   } else if (stage == Core::HardwareStage::Stage3_GifPath3Render2D && drawer_ &&
              state.menu.currentScreen == Core::ScreenState::GameplayFps &&
-             state.radio.popupActive && !state.intro.active) {
+             state.radio.popupActive && !state.intro.active && !state.scene.terminalActive) {
     currentAnimTick_ = state.anim.animTick;
     if (state.radio.phase == Core::RadioPhase::Alert) renderIncomingIndicator();
     else if (state.radio.phase == Core::RadioPhase::Message) renderRadioPopup(state);
@@ -45,16 +45,20 @@ void RadioCodecSystem::updateSimulation(Core::WorldState& state, Events::EventBu
     if (events[i].type == Events::EventType::RadioDismissRequested &&
         state.radio.phase == Core::RadioPhase::Message) {
       state.radio.popupActive = false;
+      state.radio.reviewing = false;
       state.radio.phase = Core::RadioPhase::Idle;
-    } else if (events[i].type == Events::EventType::RadioReviewRequested) {
+    } else if (events[i].type == Events::EventType::RadioReviewRequested &&
+               !state.radio.popupActive) {
       // Review the scene's retained message without restarting the call/audio.
       state.radio.popupActive = true;
+      state.radio.reviewing = true;
       state.radio.phase = Core::RadioPhase::Message;
       if (!state.radio.currentMessage) state.radio.currentMessage = Core::kDefaultCodecMessage;
       state.radio.visibleChars = static_cast<int>(std::strlen(state.radio.currentMessage));
       state.radio.revealTicks = 0;
     } else if (events[i].type == Events::EventType::RadioTransmissionTriggered) {
       state.radio.popupActive = true;
+      state.radio.reviewing = false;
       state.radio.phase = Core::RadioPhase::Waiting;
       state.radio.visibleChars = 0;
       state.radio.revealTicks = 0;
@@ -157,7 +161,10 @@ void RadioCodecSystem::renderRadioPopup(const Core::WorldState& state) {
   }
   drawer_->getFont().drawText(std::string(message + start, visible - start), 34, 269, cyan);
   drawer_->drawRect(28, 376, 336, 1, dim);
-  drawer_->getFont().drawText("O: CLOSE // ENCRYPTED CHANNEL", 34, 383, cyan);
+  drawer_->getFont().drawText(state.radio.reviewing
+                                  ? "L2: FECHAR RADIO // ENCRYPTED CHANNEL"
+                                  : "O: CLOSE // ENCRYPTED CHANNEL",
+                              34, 383, cyan);
   // Short layered brackets reinforce the blueprint frame without a full grid.
   drawer_->drawRect(22, 244, 1, 134, dim);
   drawer_->drawRect(30, 398, 42, 1, dim);

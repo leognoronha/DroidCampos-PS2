@@ -36,7 +36,7 @@ Jogo low-poly industrial desenvolvido para **PlayStation 2** utilizando a engine
 
 - X: pular (um pulo por toque, apenas no chao).
 - Quadrado: pegar itens e interagir com portas e leitor de acesso.
-- O: fechar o radio quando a mensagem estiver aberta.
+- L2: abrir ou fechar a revisao do radio durante a gameplay. O fecha as transmissoes automaticas.
 - Triangulo: abrir/fechar a consulta ao terminal quando estiver proximo.
 - L1 segurado: correr; solte para voltar a andar.
 - Analogico direito: camera. Analogico esquerdo/direcional: movimento.
@@ -60,7 +60,7 @@ Ha um kit medico no fundo do patio e outro na primeira sala lateral esquerda.
 - R1: um disparo por toque; intervalo minimo de 0,25 s.
 - O em gameplay: recarga manual de 0,514 s, quando o pente nao esta cheio.
 - Pente de 8 tiros, reserva infinita; sem recarga automatica no vazio.
-- O com radio aberto fecha a mensagem. O radio suspende tiro, recarga e uso de kit.
+- Transmissoes automaticas suspendem tiro, recarga e uso de kit ate fechar com O. Na revisao por L2, a gameplay continua e O recarrega.
 - Pausa, menus, introducao e loading bloqueiam a arma; os temporizadores congelam.
 
 Feixe ciano de 50 m no maximo, impacto na geometria real, portas moveis e vidro.

@@ -7,7 +7,7 @@ struct EmptyScene:Weapon::WeaponScene {
  bool traceWeapon(const WorldState&,const Tyra::Vec4&,const Tyra::Vec4&,Weapon::RayHit&)const override{return blocked;}
  Tyra::Vec4 weaponMuzzle(const WorldState& s)override{return s.player.cameraPos;}
 };
-WorldState fixture(){WorldState s{};s.resetToDefaults();s.scene.active=SceneId::Interior;s.scene.resident=s.scene.presented=true;s.menu.currentScreen=ScreenState::GameplayFps;s.radio.popupActive=false;s.intro.active=false;s.encounter.phase=EncounterPhase::Complete;return s;}
+WorldState fixture(){WorldState s{};s.resetToDefaults();s.scene.active=SceneId::Interior;s.scene.resident=s.scene.presented=true;s.menu.currentScreen=ScreenState::GameplayFps;s.radio.popupActive=true;s.radio.reviewing=true;s.radio.phase=RadioPhase::Message;s.intro.active=false;s.encounter.phase=EncounterPhase::Complete;return s;}
 int main(){
  EmptyScene scene;Events::EventBus bus;Enemy::EnemySystem enemies(&scene);Tyra::Engine engine;
  auto s=fixture();enemies.init(&engine,s,bus);

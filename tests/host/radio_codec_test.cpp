@@ -71,16 +71,29 @@ int main(int argc,char**argv) {
   engine.pad.clicked.Circle=true;bus.flushFrameEvents();stage0();step(0);
   assert(!state.radio.popupActive&&state.radio.phase==Core::RadioPhase::Idle);
   assert(HostAudio::played.size()==3 && HostAudio::played.back()==confirmation);
-  engine.pad.clicked={};engine.pad.clicked.L2=true;bus.flushFrameEvents();stage0();step(0);
-  assert(state.radio.popupActive && state.radio.phase==Core::RadioPhase::Message);
+  state.inventory.collect(Core::Pickup::Pistol);
+  engine.pad.clicked={};engine.pad.clicked.L2=true;engine.pad.clicked.R1=true;
+  bus.flushFrameEvents();stage0();step(0);
+  assert(state.radio.popupActive && state.radio.reviewing && state.simulationActive());
+  assert(state.inputCmd.fireRequested);
   assert(state.radio.visibleChars==static_cast<int>(std::strlen(state.radio.currentMessage)));
-  assert(HostAudio::played.size()==3); // Manual review never plays alert/confirmation.
-  engine.pad.clicked={};engine.pad.clicked.Circle=true;bus.flushFrameEvents();stage0();step(0);
-  assert(!state.radio.popupActive && HostAudio::played.size()==4);
+  assert(HostAudio::played.size()==3);
+  state.playerHealth=60;
+  state.inventory.medkits=1;
+  engine.pad.clicked={};engine.pad.clicked.Circle=true;engine.pad.clicked.R2=true;
+  bus.flushFrameEvents();stage0();step(0);
+  assert(state.radio.popupActive && state.inputCmd.reloadRequested);
+  assert(state.playerHealth>60 && state.inventory.medkits==0);
+  const auto beforeReviewDismiss = HostAudio::played.size();
+  engine.pad.clicked={};engine.pad.clicked.L2=true;bus.flushFrameEvents();stage0();step(0);
+  assert(!state.radio.popupActive && !state.radio.reviewing && HostAudio::played.size()==beforeReviewDismiss+1);
   engine.pad.clicked={};bus.flushFrameEvents();
   engine.renderer.renderer2D.draws.clear();radio.executeStage(Core::HardwareStage::Stage3_GifPath3Render2D,&engine,state,bus,scratch);assert(engine.renderer.renderer2D.draws.empty());
-  // New messages restart the sequence and carry their own text.
+  // An automatic transmission takes over a manual review.
+  engine.pad.clicked.L2=true;stage0();step(0);bus.flushFrameEvents();
+  assert(state.radio.reviewing && state.simulationActive());
   bus.publish(Events::GameEvent::makeSimple(Events::EventType::RadioTransmissionTriggered,0,0,"CUSTOM RADIO MESSAGE"));step(0);
+  assert(!state.radio.reviewing && !state.simulationActive());
   assert(state.radio.phase==Core::RadioPhase::Alert&&std::strcmp(state.radio.currentMessage,"CUSTOM RADIO MESSAGE")==0);
   engine.pad.clicked.Circle=true;bus.flushFrameEvents();stage0();step(0);
   assert(state.radio.phase==Core::RadioPhase::Alert); // O cannot close an unopened message.
@@ -101,6 +114,13 @@ int main(int argc,char**argv) {
   assert(std::strstr(state.radio.currentMessage,"DENTRO DA ETIP"));
   assert(HostAudio::played.empty()); // Interior review also stays silent, even muted.
   render("radio_interior",false);
+  state.player.playerPos.set(-3.58F, Core::kDefaultEyeHeight, -28.0F, 1.0F);
+  engine.pad.clicked={};engine.pad.clicked.Triangle=true;bus.flushFrameEvents();stage0();
+  assert(state.scene.terminalActive && state.radio.reviewing);
+  engine.renderer.renderer2D.draws.clear();
+  radio.executeStage(Core::HardwareStage::Stage3_GifPath3Render2D,&engine,state,bus,scratch);
+  assert(engine.renderer.renderer2D.draws.empty());
+  state.scene.terminalActive=false;
   audio.shutdown(&engine);assert(HostAudio::loaded.empty());
   Tyra::FileUtils::root="missing-radio-assets/";audio.init(&engine,state,bus);
   bus.flushFrameEvents();state.radio.phase=Core::RadioPhase::Waiting;state.menu.sfxVolume=90;
