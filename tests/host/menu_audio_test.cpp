@@ -78,7 +78,7 @@ int main(int argc,char**argv) {
   assert(state.menu.mainSelectedIndex==0); // Wrap still counts as navigation.
   engine.pad.clicked={};engine.pad.clicked.DpadUp=true;tick();click();
   assert(state.menu.mainSelectedIndex==2);
-  state.menu.currentScreen=Core::ScreenState::LoadGame;tick();click();
+  state.menu.currentScreen=Core::ScreenState::LoadGame;tick();assert(HostAudio::played.empty());
   state.menu.currentScreen=Core::ScreenState::Settings;tick();click();
   engine.pad.clicked={};engine.pad.clicked.DpadLeft=true;
   state.menu.settingsSelectedIndex=0;state.menu.bgmVolume=0;tick();assert(HostAudio::played.empty());
@@ -99,11 +99,23 @@ int main(int argc,char**argv) {
     state.menu.mainSelectedIndex=i;poll(Core::ScreenState::MainMenu,true,false);
     assert(HostAudio::played.size()==1&&HostAudio::played[0]==confirm);
   }
+  state.menu.saveStatus = Core::SaveStatus::Empty;
   poll(Core::ScreenState::NewGame,true,false);assert(HostAudio::played[0]==confirm);
-  for(int i=0;i<3;++i) {
-    state.menu.loadSelectedIndex=i;poll(Core::ScreenState::LoadGame,true,false);
-    assert(HostAudio::played.size()==(i==2?0U:1U));
+  for (auto status : {Core::SaveStatus::Ready, Core::SaveStatus::Empty, Core::SaveStatus::Corrupt}) {
+    state.menu.saveStatus = status;
+    poll(Core::ScreenState::LoadGame,true,false);
+    assert(HostAudio::played.size() == (status == Core::SaveStatus::Ready ? 1U : 0U));
   }
+  state.menu.saveStatus = Core::SaveStatus::Ready;
+  state.menu.confirmNewGame = false;
+  poll(Core::ScreenState::NewGame,true,false);
+  assert(state.menu.confirmNewGame);
+  u32 count = 0;
+  const auto* events = bus.getFrameEvents(count);
+  for (u32 i = 0; i < count; ++i)
+    assert(events[i].type != Events::EventType::NewCampaignRequested);
+  poll(Core::ScreenState::NewGame,false,true);
+  assert(!state.menu.confirmNewGame && state.menu.currentScreen == Core::ScreenState::MainMenu);
   for(auto screen:{Core::ScreenState::NewGame,Core::ScreenState::LoadGame,Core::ScreenState::Settings}) {
     poll(screen,false,true);assert(HostAudio::played.size()==1&&HostAudio::played[0]==back);
     assert(state.menu.currentScreen==Core::ScreenState::MainMenu);

@@ -13,6 +13,7 @@ int main(int argc,char**argv) {
   Systems::Ui::UiContextDrawer drawer;Systems::Ui::SceneIntroSystem intro(&drawer);Systems::Ui::HudSystem hud(drawer);
   Systems::Narrative::RadioCodecSystem radio(drawer);Systems::Audio::MenuAudioSystem audio;Systems::Input::InputSystem input;
   radio.init(&e,s,bus);audio.init(&e,s,bus);intro.init(&e,s,bus);
+  s.menu.bgmVolume = s.menu.ambientVolume = 0;  // Isolate the radio cues.
   auto step=[&](u32 delta){Tyra::Timer::ticks+=delta;
     radio.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&e,s,bus,spr);
     audio.executeStage(Core::HardwareStage::Stage1_EeVu0Simulation,&e,s,bus,spr);
@@ -25,8 +26,11 @@ int main(int argc,char**argv) {
   step(0);assert(HostAudio::played.empty()); // No resident scene yet.
   s.scene.resident=true;s.scene.presented=true; // Previously loaded scene still exists.
   s.menu.currentScreen=Core::ScreenState::NewGame;e.pad.clicked.Cross=true;
+  s.menu.saveStatus=Core::SaveStatus::Empty;
   input.executeStage(Core::HardwareStage::Stage0_IopInputPoll,&e,s,bus,spr);
-  assert(s.menu.currentScreen==Core::ScreenState::GameplayFps&&s.scene.requested);
+  assert(s.menu.currentScreen==Core::ScreenState::NewGame && !s.scene.requested);
+  // The menu confirm click has its own sound. Isolate scene radio from menu effects.
+  bus.flushFrameEvents();
   step(0);assert(HostAudio::played.empty()&&s.radio.phase==Core::RadioPhase::Waiting);
   bus.flushFrameEvents();e.pad.clicked={};s.menu.currentScreen=Core::ScreenState::Loading;s.scene.requested=false;
   step(60000);assert(HostAudio::played.empty());

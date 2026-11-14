@@ -389,7 +389,10 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
     } else if(clicked.Cross) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
       if(state.droid.phase==Core::DroidPhase::GameOver) {
-        state.menu.currentScreen=state.menu.pauseSelectedIndex==0?Core::ScreenState::NewGame:Core::ScreenState::LoadGame;
+        state.menu.saveMenuReturnScreen = Core::ScreenState::Defeated;
+        state.menu.confirmNewGame = false;
+        state.menu.currentScreen = state.menu.pauseSelectedIndex == 0
+            ? Core::ScreenState::NewGame : Core::ScreenState::LoadGame;
         bus.publish(Events::GameEvent::makeScreenTransition(static_cast<u8>(state.menu.currentScreen)));
       } else if(state.menu.pauseSelectedIndex==0)
         bus.publish(Events::GameEvent::makeSimple(Events::EventType::EncounterRetryRequested));
@@ -427,6 +430,10 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
 
     if (clicked.Cross || clicked.Start) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
+      if (state.menu.mainSelectedIndex < 2) {
+        state.menu.saveMenuReturnScreen = Core::ScreenState::MainMenu;
+        state.menu.confirmNewGame = false;
+      }
       if (state.menu.mainSelectedIndex == 0) {
         state.menu.currentScreen = Core::ScreenState::NewGame;
         bus.publish(Events::GameEvent::makeScreenTransition(
@@ -442,50 +449,25 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
             static_cast<u8>(Core::ScreenState::Settings)));
       }
     }
-  } else if (state.menu.currentScreen == Core::ScreenState::NewGame) {
-    if (clicked.Cross || clicked.Start) {
+  } else if (state.menu.currentScreen == Core::ScreenState::NewGame ||
+             state.menu.currentScreen == Core::ScreenState::LoadGame) {
+    auto& menu = state.menu;
+    const bool newGame = menu.currentScreen == Core::ScreenState::NewGame;
+    if (clicked.Circle || clicked.Select) {
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
+      menu.currentScreen = menu.saveMenuReturnScreen;
+      menu.confirmNewGame = false;
+      bus.publish(Events::GameEvent::makeScreenTransition(static_cast<u8>(menu.currentScreen)));
+    } else if ((clicked.Cross || clicked.Start) && menu.saveStatus != Core::SaveStatus::Checking) {
+      if (!newGame && menu.saveStatus != Core::SaveStatus::Ready) return;
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
-      state.weapon = Core::WeaponState{};
-      state.inventory = Core::InventoryState{};
-      state.menu.activeSaveSlot = 0;
-      state.scene.target = Core::SceneId::Exterior;
-      state.scene.requested = true;
-      state.menu.currentScreen = Core::ScreenState::GameplayFps;
-      bus.publish(Events::GameEvent::makeSimple(
-          Events::EventType::PlayerSpawnResetRequested));
-      bus.publish(Events::GameEvent::makeScreenTransition(
-          static_cast<u8>(Core::ScreenState::GameplayFps)));
-    } else if (clicked.Circle || clicked.Select) {
-      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
-      state.menu.currentScreen = Core::ScreenState::MainMenu;
-      bus.publish(Events::GameEvent::makeScreenTransition(
-          static_cast<u8>(Core::ScreenState::MainMenu)));
-    }
-  } else if (state.menu.currentScreen == Core::ScreenState::LoadGame) {
-    if (upPressed) {
-      state.menu.loadSelectedIndex = (state.menu.loadSelectedIndex + 2) % 3;
-    } else if (downPressed) {
-      state.menu.loadSelectedIndex = (state.menu.loadSelectedIndex + 1) % 3;
-    }
-
-    if (clicked.Cross || clicked.Start) {
-      if (state.menu.loadSelectedIndex < 2) {
-        bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
-        state.menu.activeSaveSlot = state.menu.loadSelectedIndex + 1;
-        state.inventory = Core::InventoryState{};
-        state.scene.target = Core::SceneId::Exterior;
-        state.scene.requested = true;
-        state.menu.currentScreen = Core::ScreenState::GameplayFps;
-        bus.publish(Events::GameEvent::makeSimple(
-            Events::EventType::PlayerSpawnResetRequested));
-        bus.publish(Events::GameEvent::makeScreenTransition(
-            static_cast<u8>(Core::ScreenState::GameplayFps)));
+      if (newGame && (menu.saveStatus == Core::SaveStatus::Ready ||
+                      menu.saveStatus == Core::SaveStatus::Corrupt) && !menu.confirmNewGame) {
+        menu.confirmNewGame = true;
+      } else {
+        bus.publish(Events::GameEvent::makeSimple(newGame
+            ? Events::EventType::NewCampaignRequested : Events::EventType::LoadCheckpointRequested));
       }
-    } else if (clicked.Circle || clicked.Select) {
-      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
-      state.menu.currentScreen = Core::ScreenState::MainMenu;
-      bus.publish(Events::GameEvent::makeScreenTransition(
-          static_cast<u8>(Core::ScreenState::MainMenu)));
     }
   } else if (state.menu.currentScreen == Core::ScreenState::Settings) {
     if (clicked.Circle || clicked.Select) {
@@ -545,7 +527,6 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
   // Confirm and back keep their own sounds when pressed with a direction.
   const auto& current = state.menu;
   const bool changed = previous.mainSelectedIndex != current.mainSelectedIndex ||
-      previous.loadSelectedIndex != current.loadSelectedIndex ||
       previous.settingsSelectedIndex != current.settingsSelectedIndex ||
       previous.bgmVolume != current.bgmVolume || previous.sfxVolume != current.sfxVolume ||
       previous.ambientVolume != current.ambientVolume ||

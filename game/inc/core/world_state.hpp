@@ -4,6 +4,7 @@
 #include <array>
 #include <algorithm>
 #include "core/combat_config.hpp"
+#include "core/checkpoint.hpp"
 
 namespace DroidCampos {
 namespace Core {
@@ -111,7 +112,6 @@ struct RadioCodecState {
 struct MenuNavigationState {
   ScreenState currentScreen;
   int mainSelectedIndex;
-  int loadSelectedIndex;
   int settingsSelectedIndex;
   ScreenState settingsReturnScreen = ScreenState::MainMenu;
   int bgmVolume;
@@ -120,7 +120,11 @@ struct MenuNavigationState {
   bool scanlinesEnabled;
   bool nearestFilter;
   int padCooldown;
-  int activeSaveSlot;
+  ScreenState saveMenuReturnScreen = ScreenState::MainMenu;
+  SaveStatus saveStatus = SaveStatus::Checking;
+  Checkpoint savedStage = Checkpoint::None;
+  SaveNotice saveNotice = SaveNotice::None;
+  bool confirmNewGame = false;
   int pauseSelectedIndex = 0;
 };
 
@@ -322,7 +326,6 @@ struct alignas(64) WorldState {
 
     menu.currentScreen = ScreenState::MainMenu;
     menu.mainSelectedIndex = 0;
-    menu.loadSelectedIndex = 0;
     menu.settingsSelectedIndex = 0;
     menu.settingsReturnScreen = ScreenState::MainMenu;
     menu.bgmVolume = 80;
@@ -331,7 +334,11 @@ struct alignas(64) WorldState {
     menu.scanlinesEnabled = true;
     menu.nearestFilter = true;
     menu.padCooldown = 0;
-    menu.activeSaveSlot = 1;
+    menu.saveMenuReturnScreen = ScreenState::MainMenu;
+    menu.saveStatus = SaveStatus::Checking;
+    menu.savedStage = Checkpoint::None;
+    menu.saveNotice = SaveNotice::None;
+    menu.confirmNewGame = false;
 
     droid = DroidEncounterState{};
     anim.animTick = 0.0F;

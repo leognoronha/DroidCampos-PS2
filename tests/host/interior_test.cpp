@@ -171,15 +171,14 @@ int main(){
   x=0;z=-12;for(int i=0;i<50;i++){x+=.11F;resolve(x,z);} assert(x<1.1F);
   s.menu.currentScreen=Core::ScreenState::Loading;s.scene.error=nullptr;
   engine.pad.clicked.Square=true;engine.pad.pressed.DpadUp=true;poll();assert(bus.size()==0 && s.inputCmd.moveForward==0);
-  s.menu.currentScreen=Core::ScreenState::NewGame;engine.pad.clicked={};engine.pad.clicked.Cross=true;poll();
-  assert(s.scene.requested && s.scene.target==Core::SceneId::Exterior);
-  assert(!s.inventory.armed() && !s.inventory.has(Core::Pickup::AccessCard) &&
-         !s.inventory.has(Core::Pickup::RearMedkit) && !s.inventory.has(Core::Pickup::SideRoomMedkit));
-  s.inventory.collect(Core::Pickup::Pistol);
-  s.inventory.collect(Core::Pickup::RearMedkit);
+  s.scene.requested=false;
+  s.menu.currentScreen=Core::ScreenState::NewGame;
+  s.menu.saveStatus=Core::SaveStatus::Empty;
+  engine.pad.clicked={};engine.pad.clicked.Cross=true;poll();
+  assert(!s.scene.requested && s.menu.currentScreen==Core::ScreenState::NewGame);
   s.menu.currentScreen=Core::ScreenState::LoadGame;
+  s.menu.saveStatus=Core::SaveStatus::Ready;
   poll();
-  assert(s.scene.requested && s.scene.target==Core::SceneId::Exterior &&
-         !s.inventory.armed() && s.inventory.medkits==0);
+  assert(!s.scene.requested && s.menu.currentScreen==Core::ScreenState::LoadGame);
   std::cout<<"PASS: pickups, four reader states, medkits, doors, terminal, spawn, loading and fresh inventory\n";
 }

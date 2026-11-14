@@ -55,6 +55,19 @@ Com a porta aberta, mire na abertura para fecha-la.
 Pegue a pistola e o cartao junto a guarita antes de usar o leitor.
 Ha um kit medico no fundo do patio e outro na primeira sala lateral esquerda.
 
+## Progresso no Memory Card
+
+O jogo guarda uma partida automaticamente no Memory Card PS2 da entrada 1.
+O primeiro save ocorre ao entrar na ETIP. O jogo grava de novo ao iniciar
+a contagem das ondas e apos vencer a terceira onda. **Load Game** retoma
+o ultimo checkpoint valido, inclusive apos desligar o console.
+
+**New Game** avisa antes de substituir uma partida. O progresso anterior
+fica no cartao ate a nova partida gravar seu primeiro checkpoint. O jogo
+pode ser jogado sem cartao, inclusive com o retry das ondas em RAM.
+Se o cartao for retirado ou trocado, inicie ou carregue uma partida pelo
+menu para voltar a usar o autosave.
+
 ## Tiro a laser (teste)
 
 - R1: um disparo por toque; intervalo minimo de 0,25 s.

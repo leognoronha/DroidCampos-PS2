@@ -38,6 +38,7 @@ EXTERN_IRX(usbmass_bd_irx);
 namespace Tyra {
 
 bool IrxLoader::isLoaded = false;
+bool IrxLoader::memoryCardLoaded = false;
 
 IrxLoader::IrxLoader() {
   SifInitRpc(0);
@@ -63,6 +64,7 @@ void IrxLoader::loadAll(const bool& withUsb, const bool& isLoggingToFile) {
   loadIO(!isLoggingToFile);
   loadSio2man(!isLoggingToFile);
   loadPadman(!isLoggingToFile);
+  loadMemoryCard();
   loadLibsd(!isLoggingToFile);
 
   if (withUsb) {
@@ -160,11 +162,25 @@ void IrxLoader::loadAudsrv(const bool& verbose) {
 void IrxLoader::loadSio2man(const bool& verbose) {
   if (verbose) TYRA_LOG("IRX: Loading sio2man...");
 
-  int ret;
-  SifExecModuleBuffer(&sio2man_irx, size_sio2man_irx, 0, nullptr, &ret);
-  TYRA_ASSERT(ret >= 0, "Failed to load module: sio2man_irx");
+  if (SifLoadModule("rom0:XSIO2MAN", 0, nullptr) < 0) {
+    int ret;
+    SifExecModuleBuffer(&sio2man_irx, size_sio2man_irx, 0, nullptr, &ret);
+    TYRA_ASSERT(ret >= 0, "Failed to load module: sio2man_irx");
+  }
 
   if (verbose) TYRA_LOG("IRX: Sio2man loaded!");
+}
+
+void IrxLoader::loadMemoryCard() {
+  // Use the console's SIF Memory Card server. The SDK's homebrew IRX
+  // pair may expose a different RPC protocol than the EE libmc build.
+  const int manager = SifLoadModule("rom0:XMCMAN", 0, nullptr);
+  if (manager < 0) {
+    TYRA_LOG("IRX: Memory Card manager unavailable");
+    return;
+  }
+  memoryCardLoaded = SifLoadModule("rom0:XMCSERV", 0, nullptr) >= 0;
+  if (!memoryCardLoaded) TYRA_LOG("IRX: Memory Card server unavailable");
 }
 
 void IrxLoader::loadPadman(const bool& verbose) {

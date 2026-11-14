@@ -169,10 +169,12 @@ int main(int argc, char** argv) {
   assert(s.weapon.ammo == 6);
   HostAudio::playResult = 0;
   s.menu.currentScreen = Core::ScreenState::NewGame;
+  s.menu.saveStatus = Core::SaveStatus::Empty;
   e.pad.clicked = {};
   e.pad.clicked.Cross = true;
   poll();
-  assert(s.weapon.ammo == 8 && !s.inventory.armed());
+  // The verified menu request is applied by GameApp, after the card scan.
+  assert(s.weapon.ammo == 6 && s.inventory.armed());
   s.menu.currentScreen=Core::ScreenState::Defeated;
   bus.clear();sounds=HostAudio::played.size();
   bus.publish(Events::GameEvent::makeSimple(Events::EventType::WeaponFired,1));

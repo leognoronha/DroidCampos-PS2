@@ -3,7 +3,8 @@
 O primeiro acesso ao terminal arma o encontro. Fechar o terminal registra o
 checkpoint e inicia uma contagem de três segundos. As ondas têm 2, 3 e 5 inimigos;
 as duas primeiras concedem até 25 pontos de vida e cinco segundos de intervalo.
-Novo jogo e reset de debug apagam o encontro. O progresso não é salvo em disco.
+Novo jogo e reset de debug reiniciam o encontro. O Memory Card grava no início
+da contagem e após a terceira onda. O retry durante as ondas usa a cópia em RAM.
 
 ## Comportamento e balanceamento
 

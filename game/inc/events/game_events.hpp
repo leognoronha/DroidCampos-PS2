@@ -31,7 +31,9 @@ enum class EventType : u8 {
   WeaponPickedUp = 22,
   MedkitPickedUp = 23,
   DroidPunchLanded = 24,
-  MedkitUsed = 25
+  MedkitUsed = 25,
+  NewCampaignRequested,
+  LoadCheckpointRequested
 };
 
 struct alignas(16) GameEvent {

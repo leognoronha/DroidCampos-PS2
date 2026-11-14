@@ -14,6 +14,18 @@ Color menuInk(float r, float g, float b, float a = 128.0F) {
   return Color(r * (128.0F / 255.0F), g * (128.0F / 255.0F),
                b * (128.0F / 255.0F), a);
 }
+const char* cardStatusText(Core::SaveStatus status) {
+  switch (status) {
+    case Core::SaveStatus::Checking: return "VERIFICANDO MEMORY CARD...";
+    case Core::SaveStatus::Empty: return "NENHUM PROGRESSO SALVO";
+    case Core::SaveStatus::NoCard: return "MEMORY CARD AUSENTE";
+    case Core::SaveStatus::InvalidCard: return "USE UM MEMORY CARD PS2 FORMATADO";
+    case Core::SaveStatus::Corrupt: return "PROGRESSO ILEGIVEL";
+    case Core::SaveStatus::Incompatible: return "VERSAO DE SAVE INCOMPATIVEL";
+    case Core::SaveStatus::Error: return "FALHA AO LER O MEMORY CARD";
+    default: return "";
+  }
+}
 }  // namespace
 
 MenuSystem::MenuSystem(UiContextDrawer* drawer) : drawer_(drawer) {}
@@ -121,12 +133,13 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       break;
     case Core::ScreenState::NewGame:
       renderNewGameScreen(state);
-      drawer_->renderFooter("X: ENTRAR NA ETIP  O: VOLTAR");
+      drawer_->renderFooter(state.menu.saveStatus == Core::SaveStatus::Checking ? "O: VOLTAR"
+          : state.menu.confirmNewGame ? "X: CONFIRMAR  O: CANCELAR" : "X: INICIAR  O: VOLTAR");
       break;
     case Core::ScreenState::LoadGame:
       renderLoadGameScreen(state);
-      drawer_->renderFooter(
-          "X: CARREGAR  O: VOLTAR");
+      drawer_->renderFooter(state.menu.saveStatus == Core::SaveStatus::Ready
+          ? "X: CARREGAR  O: VOLTAR" : "O: VOLTAR");
       break;
     case Core::ScreenState::Settings:
       renderSettingsScreen(state);
@@ -157,6 +170,15 @@ void MenuSystem::renderNewGameScreen(const Core::WorldState& state) {
   drawer_->drawRect(28.0F, 136.0F, 456.0F, 2.0F,
                     menuInk(54, 112, 115, 128));
 
+  if (state.menu.confirmNewGame && state.menu.saveStatus != Core::SaveStatus::Checking) {
+    auto& font = drawer_->getFont();
+    font.drawText("INICIAR NOVA PARTIDA?", 32, 163, menuInk(240, 190, 95));
+    font.drawText("O PROGRESSO ANTERIOR SERA SUBSTITUIDO\n"
+                  "QUANDO A NOVA PARTIDA FOR SALVA.", 32, 205, menuInk(200, 225, 235));
+    font.drawText(Core::checkpointName(state.menu.savedStage), 32, 270, menuInk(159, 239, 232));
+    return;
+  }
+
   drawer_->getFont().drawText(
       "ANO 2066 - DISTRITO INDUSTRIAL DE UTINGA.\n"
       "A CORPORACAO ETIP MANTEM SUAS INSTALACOES\n"
@@ -170,6 +192,17 @@ void MenuSystem::renderNewGameScreen(const Core::WorldState& state) {
       "- UTILIZE O LEITOR DE CARTAO PARA ENTRAR.",
       32, 148, menuInk(200.0F, 225.0F, 235.0F, 128.0F), .9F);
 
+  const auto status = state.menu.saveStatus;
+  if (status != Core::SaveStatus::Ready && status != Core::SaveStatus::Empty &&
+      status != Core::SaveStatus::Corrupt) {
+    auto& font = drawer_->getFont();
+    font.drawText(cardStatusText(status), 32, 337, menuInk(240, 190, 95), .9F);
+    if (status != Core::SaveStatus::Checking)
+      font.drawText("A PARTIDA SERA INICIADA SEM AUTOSAVE", 32, 361, menuInk(200, 225, 235), .9F);
+    return;
+  }
+  if (status == Core::SaveStatus::Corrupt)
+    drawer_->getFont().drawText(cardStatusText(status), 32, 327, menuInk(240, 190, 95), .9F);
   float pulse = (std::sin(state.anim.animTick * 4.0F) + 1.0F) * 0.5F;
   drawer_->drawBlueprintPanel(86.0F, 350.0F, 340.0F, 32.0F,
                      menuInk(145 + pulse * 14, 225 + pulse * 14, 218 + pulse * 14, 128),
@@ -188,51 +221,12 @@ void MenuSystem::renderLoadGameScreen(const Core::WorldState& state) {
   drawer_->drawRect(28.0F, 136.0F, 456.0F, 2.0F,
                     menuInk(54, 112, 115, 128));
 
-  const char* slotTitles[3] = {
-      "SLOT 01 // ETIP PERIMETER GATE (ZONA A)",
-      "SLOT 02 // ETIP QUANTUM RESEARCH LAB",
-      "SLOT 03 // [ EMPTY / UNFORMATTED DATA BLOCK ]"};
-  const char* slotDetails[3] = {
-      "PM LVL 01 // TIME: 00:05:12",
-      "PM LVL 02 // TIME: 00:54:09",
-      "NO TELEMETRY CHECKSUM FOUND IN THIS MEMORY SECTOR"};
-
-  for (int i = 0; i < 3; i++) {
-    float slotY = 148.0F + static_cast<float>(i) * 74.0F;
-    bool selected = (state.menu.loadSelectedIndex == i);
-
-    if (selected) {
-      drawer_->drawBlueprintPanel(32.0F, slotY, 448.0F, 60.0F,
-                         menuInk(8, 35, 36, 128),
-                         menuInk(159, 239, 232, 128));
-      drawer_->drawRect(36.0F, slotY + 6.0F, 6.0F, 48.0F,
-                        menuInk(159, 239, 232, 128));
-      drawer_->getFont().drawText(slotTitles[i], 52,
-                                  static_cast<int>(slotY + 12.0F),
-                                  menuInk(255.0F, 255.0F, 255.0F, 128.0F), 1.1F);
-      drawer_->getFont().drawText(slotDetails[i], 52,
-                                  static_cast<int>(slotY + 36.0F),
-                                  menuInk(140.0F, 235.0F, 255.0F, 128.0F), 1.0F);
-    } else {
-      drawer_->drawBlueprintPanel(32.0F, slotY, 448.0F, 60.0F,
-                         menuInk(0, 0, 0, 128),
-                         menuInk(60.0F, 80.0F, 100.0F, 95.0F));
-      drawer_->getFont().drawText(slotTitles[i], 52,
-                                  static_cast<int>(slotY + 12.0F),
-                                  menuInk(160.0F, 175.0F, 190.0F, 128.0F), 1.0F);
-      drawer_->getFont().drawText(slotDetails[i], 52,
-                                  static_cast<int>(slotY + 36.0F),
-                                  menuInk(100.0F, 115.0F, 130.0F, 128.0F), 1.0F);
-    }
-  }
-
-  if (state.menu.loadSelectedIndex == 2) {
-    drawer_->getFont().drawText("STATUS: CANNOT LOAD EMPTY DATA BLOCK", 32, 366,
-                                menuInk(240.0F, 80.0F, 60.0F, 128.0F));
-  } else {
-    drawer_->getFont().drawText("STATUS: CHECKSUM VALID - PRESS CROSS TO LOAD",
-                                32, 366, menuInk(80.0F, 230.0F, 130.0F, 128.0F));
-  }
+  const auto status = state.menu.saveStatus;
+  const char* label = status == Core::SaveStatus::Ready
+      ? Core::checkpointName(state.menu.savedStage) : cardStatusText(status);
+  auto& font = drawer_->getFont();
+  font.drawText("MEMORY CARD PS2 // ENTRADA 1", 32, 169, menuInk(159, 239, 232));
+  font.drawText(label, 32, 218, menuInk(220, 238, 245));
 }
 
 void MenuSystem::renderSettingsScreen(const Core::WorldState& state) {

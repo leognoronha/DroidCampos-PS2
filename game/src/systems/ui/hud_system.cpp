@@ -383,6 +383,21 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   drawer_->getFont().drawText(posBuf, 350, 16,
                               Color(140.0F, 235.0F, 255.0F, 128.0F), 1.0F);
 
+  const char* saveText = nullptr;
+  switch (state.menu.saveNotice) {
+    case Core::SaveNotice::Writing: saveText = "SALVANDO..."; break;
+    case Core::SaveNotice::Saved: saveText = "PROGRESSO SALVO"; break;
+    case Core::SaveNotice::Full: saveText = "MEMORY CARD CHEIO"; break;
+    case Core::SaveNotice::Failed: saveText = "CHECKPOINT NAO SALVO"; break;
+    case Core::SaveNotice::Disabled: saveText = "AUTOSAVE INDISPONIVEL"; break;
+    default: break;
+  }
+  if (saveText) {
+    const int width = font.lineWidth(saveText) + 16;
+    drawer_->drawPanel(500 - width, 42, width, 20, Color(8, 16, 22, 112), cyan);
+    font.drawText(saveText, 508 - width, 46, Color(160, 240, 240, 128));
+  }
+
   if (!state.radio.popupActive && state.nearbyPickup != Core::Pickup::Count &&
       state.simulationActive()) {
     const auto item = state.nearbyPickup;
