@@ -10,6 +10,10 @@ enum class Checkpoint : std::uint8_t { None, EnteredEtip, WavesStarted, WavesCle
 enum class SaveStatus : std::uint8_t {
   Checking, Empty, Ready, NoCard, InvalidCard, Corrupt, Incompatible, Error
 };
+inline bool canEnableAutosave(SaveStatus status) {
+  return status == SaveStatus::Ready || status == SaveStatus::Empty || status == SaveStatus::Corrupt;
+}
+
 enum class SaveNotice : std::uint8_t { None, Writing, Saved, Failed, Full, Disabled };
 
 struct CheckpointData {

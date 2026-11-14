@@ -43,6 +43,8 @@ class GameApp final : public Tyra::Game {
   WorldState worldState_;
   MemoryCard memoryCard_;
   CheckpointData pendingLoad_{};
+  CheckpointData sessionCheckpoint_{};
+  bool autosaveEnabled_ = false;
   Events::EventType pendingSaveMenuAction_ = Events::EventType::None;
   std::uint32_t menuMediaEpoch_ = 0;
   std::uint32_t menuSaveSequence_ = 0;

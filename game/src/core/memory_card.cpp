@@ -79,10 +79,9 @@ void MemoryCard::refresh() {
   status_ = SaveStatus::Checking;
 }
 
-void MemoryCard::bindSession() {
-  bound_ = status_ == SaveStatus::Ready || status_ == SaveStatus::Empty ||
-      status_ == SaveStatus::Corrupt;
-  notice_ = bound_ ? SaveNotice::None : SaveNotice::Disabled;
+void MemoryCard::bindSession(bool enabled) {
+  bound_ = enabled && canEnableAutosave(status_);
+  notice_ = SaveNotice::None;
 }
 
 void MemoryCard::queueSave(const CheckpointData& data) {

@@ -222,6 +222,20 @@ int main() {
   afterBoot.init(true);
   settle(afterBoot);
   assert(afterBoot.saved().data.stage == Checkpoint::WavesCleared);
+  const auto priorFiles = files;
+  afterBoot.bindSession(false);
+  present = false;
+  afterBoot.refresh();
+  settle(afterBoot);
+  assert(afterBoot.status() == SaveStatus::NoCard);
+  present = true;
+  changed = true;
+  const auto epochBeforeInsertion = afterBoot.mediaEpoch();
+  afterBoot.refresh();
+  settle(afterBoot);
+  assert(afterBoot.status() == SaveStatus::Ready && afterBoot.mediaEpoch() != epochBeforeInsertion);
+  settle(afterBoot);
+  assert(afterBoot.notice() == SaveNotice::None && files == priorFiles);
   afterBoot.bindSession();  // Starting again alone must not modify the previous save.
   assert(files.at(kCopyB).size() == kSaveRecordSize);
 

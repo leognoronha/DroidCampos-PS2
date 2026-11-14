@@ -32,6 +32,9 @@ enum class EventType : u8 {
   MedkitPickedUp = 23,
   DroidPunchLanded = 24,
   MedkitUsed = 25,
+  CheckCardRequested,
+  NewCampaignWithoutSaveRequested,
+  BossRetryRequested,
   NewCampaignRequested,
   LoadCheckpointRequested
 };

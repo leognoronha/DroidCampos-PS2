@@ -115,7 +115,34 @@ int main(int argc,char**argv) {
   for (u32 i = 0; i < count; ++i)
     assert(events[i].type != Events::EventType::NewCampaignRequested);
   poll(Core::ScreenState::NewGame,false,true);
-  assert(!state.menu.confirmNewGame && state.menu.currentScreen == Core::ScreenState::MainMenu);
+  assert(!state.menu.confirmNewGame && state.menu.saveDialog);
+  poll(Core::ScreenState::NewGame,true,false);
+  assert(state.menu.confirmNewGame);
+  poll(Core::ScreenState::NewGame,true,false);
+  const auto hasEvent = [&](Events::EventType type) {
+    u32 eventCount = 0;
+    const auto* frame = bus.getFrameEvents(eventCount);
+    for (u32 i = 0; i < eventCount; ++i)
+      if (frame[i].type == type) return true;
+    return false;
+  };
+  assert(hasEvent(Events::EventType::NewCampaignRequested));
+  poll(Core::ScreenState::NewGame,false,true);
+  poll(Core::ScreenState::NewGame,false,true);
+  assert(!state.menu.saveDialog && state.menu.currentScreen == Core::ScreenState::NewGame);
+  poll(Core::ScreenState::NewGame,true,false);
+  assert(hasEvent(Events::EventType::CheckCardRequested));
+  state.menu.saveStatus = Core::SaveStatus::NoCard;
+  poll(Core::ScreenState::NewGame,true,false);
+  assert(hasEvent(Events::EventType::CheckCardRequested));
+  state.menu.saveStatus = Core::SaveStatus::NoCard;
+  engine.pad.clicked = {};
+  engine.pad.clicked.DpadDown = true;
+  tick();
+  assert(state.menu.saveChoice == 1);
+  poll(Core::ScreenState::NewGame,true,false);
+  assert(hasEvent(Events::EventType::NewCampaignWithoutSaveRequested));
+  state.menu.saveDialog = false;
   for(auto screen:{Core::ScreenState::NewGame,Core::ScreenState::LoadGame,Core::ScreenState::Settings}) {
     poll(screen,false,true);assert(HostAudio::played.size()==1&&HostAudio::played[0]==back);
     assert(state.menu.currentScreen==Core::ScreenState::MainMenu);

@@ -85,7 +85,7 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
         constexpr int panelX = 56;
         constexpr int panelWidth = 400;
         constexpr int centerX = panelX + panelWidth / 2;
-        drawer_->drawBlueprintPanel(panelX, 144, panelWidth, 180,
+        drawer_->drawBlueprintPanel(panelX, 130, panelWidth, 207,
                                     menuInk(0, 0, 0), menuInk(230, 70, 50));
 
         auto& font = drawer_->getFont();
@@ -100,10 +100,12 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
 
         drawCentered("GAME OVER", 158, menuInk(250, 130, 100));
         drawCentered("DROIDCAMPOS E INEVITAVEL", 186, menuInk(250, 130, 100));
-        drawCentered("NEW GAME", 224, menuInk(200, 225, 235),
+        drawCentered("TENTAR NOVAMENTE", 220, menuInk(200, 225, 235),
                      state.menu.pauseSelectedIndex == 0);
-        drawCentered("LOAD GAME", 264, menuInk(200, 225, 235),
+        drawCentered("NEW GAME", 255, menuInk(200, 225, 235),
                      state.menu.pauseSelectedIndex == 1);
+        drawCentered("LOAD GAME", 290, menuInk(200, 225, 235),
+                     state.menu.pauseSelectedIndex == 2);
         drawer_->renderFooter("D-PAD: SELECIONAR  X: CONFIRMAR");
         break;
       }
@@ -133,8 +135,10 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       break;
     case Core::ScreenState::NewGame:
       renderNewGameScreen(state);
-      drawer_->renderFooter(state.menu.saveStatus == Core::SaveStatus::Checking ? "O: VOLTAR"
-          : state.menu.confirmNewGame ? "X: CONFIRMAR  O: CANCELAR" : "X: INICIAR  O: VOLTAR");
+      drawer_->renderFooter(!state.menu.saveDialog ? "X: INICIAR  O: VOLTAR"
+          : state.menu.saveStatus == Core::SaveStatus::Checking ? "O: VOLTAR"
+          : state.menu.confirmNewGame ? "X: CONFIRMAR  O: CANCELAR"
+          : "D-PAD: SELECIONAR  X: CONFIRMAR  O: VOLTAR");
       break;
     case Core::ScreenState::LoadGame:
       renderLoadGameScreen(state);
@@ -170,15 +174,6 @@ void MenuSystem::renderNewGameScreen(const Core::WorldState& state) {
   drawer_->drawRect(28.0F, 136.0F, 456.0F, 2.0F,
                     menuInk(54, 112, 115, 128));
 
-  if (state.menu.confirmNewGame && state.menu.saveStatus != Core::SaveStatus::Checking) {
-    auto& font = drawer_->getFont();
-    font.drawText("INICIAR NOVA PARTIDA?", 32, 163, menuInk(240, 190, 95));
-    font.drawText("O PROGRESSO ANTERIOR SERA SUBSTITUIDO\n"
-                  "QUANDO A NOVA PARTIDA FOR SALVA.", 32, 205, menuInk(200, 225, 235));
-    font.drawText(Core::checkpointName(state.menu.savedStage), 32, 270, menuInk(159, 239, 232));
-    return;
-  }
-
   drawer_->getFont().drawText(
       "ANO 2066 - DISTRITO INDUSTRIAL DE UTINGA.\n"
       "A CORPORACAO ETIP MANTEM SUAS INSTALACOES\n"
@@ -192,17 +187,31 @@ void MenuSystem::renderNewGameScreen(const Core::WorldState& state) {
       "- UTILIZE O LEITOR DE CARTAO PARA ENTRAR.",
       32, 148, menuInk(200.0F, 225.0F, 235.0F, 128.0F), .9F);
 
-  const auto status = state.menu.saveStatus;
-  if (status != Core::SaveStatus::Ready && status != Core::SaveStatus::Empty &&
-      status != Core::SaveStatus::Corrupt) {
+  if (state.menu.saveDialog) {
+    const auto status = state.menu.saveStatus;
     auto& font = drawer_->getFont();
-    font.drawText(cardStatusText(status), 32, 337, menuInk(240, 190, 95), .9F);
-    if (status != Core::SaveStatus::Checking)
-      font.drawText("A PARTIDA SERA INICIADA SEM AUTOSAVE", 32, 361, menuInk(200, 225, 235), .9F);
+    drawer_->drawRect(0, 0, 512, 448, menuInk(0, 0, 0, 88));
+    drawer_->drawBlueprintPanel(28, 101, 456, 248, menuInk(5, 15, 23),
+                                menuInk(99, 180, 179));
+    font.drawText("MEMORY CARD PS2 / ENTRADA 1", 52, 123, menuInk(159, 239, 232));
+    if (status == Core::SaveStatus::Checking) {
+      font.drawText("VERIFICANDO MEMORY CARD...", 52, 185, menuInk(200, 225, 235));
+    } else if (state.menu.confirmNewGame) {
+      font.drawText("SUBSTITUIR O PROGRESSO ANTERIOR?", 52, 175, menuInk(240, 190, 95));
+      font.drawText("O SAVE ANTERIOR SERA PRESERVADO ATE\nO PRIMEIRO AUTOSAVE DA NOVA PARTIDA.",
+                    52, 218, menuInk(200, 225, 235));
+    } else {
+      const bool ready = Core::canEnableAutosave(status);
+      font.drawText(ready ? "DESEJA SALVAR O PROGRESSO NO\nMEMORY CARD?" : cardStatusText(status),
+                    52, 170, menuInk(200, 225, 235));
+      font.drawText(state.menu.saveChoice == 0 ? ">" : " ", 52, 250, menuInk(159, 239, 232));
+      font.drawText(ready ? "SALVAR AUTOMATICAMENTE" : "VERIFICAR NOVAMENTE",
+                    76, 250, menuInk(200, 225, 235));
+      font.drawText(state.menu.saveChoice == 1 ? ">" : " ", 52, 292, menuInk(159, 239, 232));
+      font.drawText("JOGAR SEM SALVAR", 76, 292, menuInk(200, 225, 235));
+    }
     return;
   }
-  if (status == Core::SaveStatus::Corrupt)
-    drawer_->getFont().drawText(cardStatusText(status), 32, 327, menuInk(240, 190, 95), .9F);
   float pulse = (std::sin(state.anim.animTick * 4.0F) + 1.0F) * 0.5F;
   drawer_->drawBlueprintPanel(86.0F, 350.0F, 340.0F, 32.0F,
                      menuInk(145 + pulse * 14, 225 + pulse * 14, 218 + pulse * 14, 128),

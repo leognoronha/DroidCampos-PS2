@@ -13,7 +13,7 @@ class MemoryCard {
   const SaveRecord& saved() const { return latest_; }
   std::uint32_t mediaEpoch() const { return mediaEpoch_; }
   void refresh();
-  void bindSession();
+  void bindSession(bool enabled = true);
   void queueSave(const CheckpointData& data);
   SaveNotice notice() const { return notice_; }
 

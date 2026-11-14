@@ -71,7 +71,8 @@ void GameApp::loop() {
 
   auto& state = worldState_;
   const auto previousScreen = state.menu.currentScreen;
-  const bool inSaveMenu = previousScreen == ScreenState::NewGame || previousScreen == ScreenState::LoadGame;
+  const bool inSaveMenu = (previousScreen == ScreenState::NewGame && state.menu.saveDialog) ||
+      previousScreen == ScreenState::LoadGame;
   memoryCard_.update(inSaveMenu);
   const auto status = memoryCard_.status();
   const auto epoch = memoryCard_.mediaEpoch();
@@ -194,36 +195,83 @@ void GameApp::logSceneMemory(const char* phase) {
 }
 
 void GameApp::queueCheckpoint(Checkpoint stage) {
-  memoryCard_.queueSave(captureCheckpoint(worldState_, stage));
-  saveNoticeTicks_ = 300;
+  sessionCheckpoint_ = captureCheckpoint(worldState_, stage);
+  if (autosaveEnabled_) {
+    memoryCard_.queueSave(sessionCheckpoint_);
+    saveNoticeTicks_ = 300;
+  }
 }
 
 void GameApp::updateSaveMenu(ScreenState previousScreen) {
   auto& state = worldState_;
-  const auto screen = state.menu.currentScreen;
-  if (screen != ScreenState::NewGame && screen != ScreenState::LoadGame) {
+  auto& menu = state.menu;
+  const auto screen = menu.currentScreen;
+  const auto requestScene = [&](CheckpointData checkpoint) {
+    pendingLoad_ = checkpoint;
+    state.inventory = InventoryState{};
+    state.scene.accessTicks = 0;
+    state.scene.target = checkpoint.stage == Checkpoint::None ? SceneId::Exterior : SceneId::Interior;
+    state.scene.requested = true;
+    eventBus_.publish(Events::GameEvent::makeSimple(Events::EventType::PlayerSpawnResetRequested));
+  };
+
+  u32 count = 0;
+  const auto* events = eventBus_.getFrameEvents(count);
+  if (screen == ScreenState::Defeated && sessionCheckpoint_.stage == Checkpoint::WavesCleared) {
+    for (u32 i = 0; i < count; ++i) {
+      if (events[i].type == Events::EventType::BossRetryRequested) {
+        requestScene(sessionCheckpoint_);
+        return;
+      }
+    }
+  }
+
+  if (screen != ScreenState::LoadGame && !(screen == ScreenState::NewGame && menu.saveDialog)) {
     pendingSaveMenuAction_ = Events::EventType::None;
     if (screen == ScreenState::MainMenu) pendingLoad_ = {};
     return;
   }
-  if (screen != previousScreen) {
-    memoryCard_.refresh();
-    if (memoryCard_.busy()) state.menu.saveStatus = SaveStatus::Checking;
-    return;
+
+  for (u32 i = 0; i < count; ++i) {
+    if (events[i].type == Events::EventType::MenuBackRequested) {
+      pendingSaveMenuAction_ = Events::EventType::None;
+      return;
+    }
   }
 
+  const auto startCampaign = [&](bool autosave, CheckpointData checkpoint) {
+    autosaveEnabled_ = autosave;
+    memoryCard_.bindSession(autosave);
+    lastSaveNotice_ = SaveNotice::None;
+    saveNoticeTicks_ = 0;
+    sessionCheckpoint_ = checkpoint;
+    menu.saveDialog = menu.confirmNewGame = false;
+    requestScene(checkpoint);
+  };
+
+  if (screen == ScreenState::LoadGame && screen != previousScreen) {
+    memoryCard_.refresh();
+    menu.saveStatus = memoryCard_.status();
+    return;
+  }
   if (pendingSaveMenuAction_ == Events::EventType::None) {
-    u32 count = 0;
-    const auto* events = eventBus_.getFrameEvents(count);
     for (u32 i = 0; i < count; ++i) {
       const auto type = events[i].type;
-      if (type != Events::EventType::LoadCheckpointRequested &&
-          type != Events::EventType::NewCampaignRequested) continue;
-      pendingSaveMenuAction_ = type;
-      // Recheck the card on confirmation, even between periodic card probes.
-      memoryCard_.refresh();
-      if (memoryCard_.busy()) state.menu.saveStatus = SaveStatus::Checking;
-      return;
+      if (type == Events::EventType::NewCampaignWithoutSaveRequested) {
+        startCampaign(false, {});
+        return;
+      }
+      if (type == Events::EventType::CheckCardRequested) {
+        memoryCard_.refresh();
+        return;
+      }
+      if (type == Events::EventType::LoadCheckpointRequested ||
+          type == Events::EventType::NewCampaignRequested) {
+        pendingSaveMenuAction_ = type;
+        memoryCard_.refresh();
+        menu.saveStatus = SaveStatus::Checking;
+        return;
+      }
     }
     return;
   }
@@ -232,26 +280,16 @@ void GameApp::updateSaveMenu(ScreenState previousScreen) {
   const bool loading = pendingSaveMenuAction_ == Events::EventType::LoadCheckpointRequested;
   pendingSaveMenuAction_ = Events::EventType::None;
   const auto status = memoryCard_.status();
-  state.menu.saveStatus = status;
-  const bool hasProgress = status == SaveStatus::Ready || status == SaveStatus::Corrupt;
+  menu.saveStatus = status;
   const bool sameRecord = menuCardStatus_ == status && menuMediaEpoch_ == memoryCard_.mediaEpoch() &&
       menuSaveSequence_ == memoryCard_.saved().sequence;
-  if ((loading && (status != SaveStatus::Ready || !sameRecord)) ||
-      (!loading && hasProgress && (!sameRecord || !state.menu.confirmNewGame))) {
-    state.menu.confirmNewGame = false;
+  if (!sameRecord || (loading ? status != SaveStatus::Ready : !canEnableAutosave(status))) {
+    menu.confirmNewGame = false;
+    menu.saveChoice = 0;
     return;
   }
 
-  memoryCard_.bindSession();
-  lastSaveNotice_ = SaveNotice::None;
-  saveNoticeTicks_ = 0;
-  pendingLoad_ = loading ? memoryCard_.saved().data : CheckpointData{};
-  state.inventory = InventoryState{};
-  state.scene.accessTicks = 0;
-  state.scene.target = loading ? SceneId::Interior : SceneId::Exterior;
-  state.scene.requested = true;
-  state.menu.confirmNewGame = false;
-  eventBus_.publish(Events::GameEvent::makeSimple(Events::EventType::PlayerSpawnResetRequested));
+  startCampaign(true, loading ? memoryCard_.saved().data : CheckpointData{});
 }
 
 void GameApp::updateSceneTransition() {

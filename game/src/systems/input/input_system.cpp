@@ -384,14 +384,21 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
 
   if (state.menu.currentScreen == Core::ScreenState::Defeated) {
     if(upPressed || downPressed) {
-      state.menu.pauseSelectedIndex=1-state.menu.pauseSelectedIndex;
+      const int count = state.droid.phase == Core::DroidPhase::GameOver ? 3 : 2;
+      state.menu.pauseSelectedIndex =
+          (state.menu.pauseSelectedIndex + (upPressed ? count - 1 : 1)) % count;
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
     } else if(clicked.Cross) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
       if(state.droid.phase==Core::DroidPhase::GameOver) {
+        if (state.menu.pauseSelectedIndex == 0) {
+          bus.publish(Events::GameEvent::makeSimple(Events::EventType::BossRetryRequested));
+          return;
+        }
         state.menu.saveMenuReturnScreen = Core::ScreenState::Defeated;
+        state.menu.saveDialog = false;
         state.menu.confirmNewGame = false;
-        state.menu.currentScreen = state.menu.pauseSelectedIndex == 0
+        state.menu.currentScreen = state.menu.pauseSelectedIndex == 1
             ? Core::ScreenState::NewGame : Core::ScreenState::LoadGame;
         bus.publish(Events::GameEvent::makeScreenTransition(static_cast<u8>(state.menu.currentScreen)));
       } else if(state.menu.pauseSelectedIndex==0)
@@ -432,6 +439,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
       if (state.menu.mainSelectedIndex < 2) {
         state.menu.saveMenuReturnScreen = Core::ScreenState::MainMenu;
+        state.menu.saveDialog = false;
         state.menu.confirmNewGame = false;
       }
       if (state.menu.mainSelectedIndex == 0) {
@@ -453,21 +461,48 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
              state.menu.currentScreen == Core::ScreenState::LoadGame) {
     auto& menu = state.menu;
     const bool newGame = menu.currentScreen == Core::ScreenState::NewGame;
+    const auto send = [&](Events::EventType type) {
+      bus.publish(Events::GameEvent::makeSimple(type));
+    };
     if (clicked.Circle || clicked.Select) {
-      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
-      menu.currentScreen = menu.saveMenuReturnScreen;
-      menu.confirmNewGame = false;
-      bus.publish(Events::GameEvent::makeScreenTransition(static_cast<u8>(menu.currentScreen)));
-    } else if ((clicked.Cross || clicked.Start) && menu.saveStatus != Core::SaveStatus::Checking) {
-      if (!newGame && menu.saveStatus != Core::SaveStatus::Ready) return;
-      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
-      if (newGame && (menu.saveStatus == Core::SaveStatus::Ready ||
-                      menu.saveStatus == Core::SaveStatus::Corrupt) && !menu.confirmNewGame) {
-        menu.confirmNewGame = true;
+      send(Events::EventType::MenuBackRequested);
+      if (menu.confirmNewGame) {
+        menu.confirmNewGame = false;
+      } else if (newGame && menu.saveDialog) {
+        menu.saveDialog = false;
       } else {
-        bus.publish(Events::GameEvent::makeSimple(newGame
-            ? Events::EventType::NewCampaignRequested : Events::EventType::LoadCheckpointRequested));
+        menu.currentScreen = menu.saveMenuReturnScreen;
+        bus.publish(Events::GameEvent::makeScreenTransition(static_cast<u8>(menu.currentScreen)));
       }
+    } else if (clicked.Cross || (clicked.Start && !menu.saveDialog)) {
+      if (newGame && !menu.saveDialog) {
+        send(Events::EventType::MenuConfirmRequested);
+        menu.saveDialog = true;
+        menu.saveChoice = 0;
+        menu.saveStatus = Core::SaveStatus::Checking;
+        send(Events::EventType::CheckCardRequested);
+      } else if (menu.saveStatus != Core::SaveStatus::Checking) {
+        if (!newGame && menu.saveStatus != Core::SaveStatus::Ready) return;
+        send(Events::EventType::MenuConfirmRequested);
+        if (!newGame) {
+          send(Events::EventType::LoadCheckpointRequested);
+        } else if (menu.confirmNewGame) {
+          send(Events::EventType::NewCampaignRequested);
+        } else if (menu.saveChoice == 1) {
+          send(Events::EventType::NewCampaignWithoutSaveRequested);
+        } else if (!Core::canEnableAutosave(menu.saveStatus)) {
+          menu.saveStatus = Core::SaveStatus::Checking;
+          send(Events::EventType::CheckCardRequested);
+        } else if (menu.saveStatus != Core::SaveStatus::Empty) {
+          menu.confirmNewGame = true;
+        } else {
+          send(Events::EventType::NewCampaignRequested);
+        }
+      }
+    } else if (newGame && menu.saveDialog && !menu.confirmNewGame &&
+               menu.saveStatus != Core::SaveStatus::Checking && (upPressed || downPressed)) {
+      menu.saveChoice = 1 - menu.saveChoice;
+      send(Events::EventType::MenuNavigateRequested);
     }
   } else if (state.menu.currentScreen == Core::ScreenState::Settings) {
     if (clicked.Circle || clicked.Select) {

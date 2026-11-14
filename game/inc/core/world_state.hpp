@@ -124,7 +124,9 @@ struct MenuNavigationState {
   SaveStatus saveStatus = SaveStatus::Checking;
   Checkpoint savedStage = Checkpoint::None;
   SaveNotice saveNotice = SaveNotice::None;
+  bool saveDialog = false;
   bool confirmNewGame = false;
+  int saveChoice = 0;
   int pauseSelectedIndex = 0;
 };
 
@@ -338,7 +340,9 @@ struct alignas(64) WorldState {
     menu.saveStatus = SaveStatus::Checking;
     menu.savedStage = Checkpoint::None;
     menu.saveNotice = SaveNotice::None;
+    menu.saveDialog = false;
     menu.confirmNewGame = false;
+    menu.saveChoice = 0;
 
     droid = DroidEncounterState{};
     anim.animTick = 0.0F;

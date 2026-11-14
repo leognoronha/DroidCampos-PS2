@@ -16,8 +16,11 @@ int main(){
  s.droid.phase=DroidPhase::ButtonReady;aim(2,1,-26);poll();assert(!s.droid.buttonNearby && s.droid.phase==DroidPhase::ButtonReady);
  aim(0,.99F,-26);engine.pad.clicked.R1=true;poll();assert(s.droid.phase==DroidPhase::Release && !s.inputCmd.fireRequested);
  s.droid.phase=DroidPhase::ButtonReady;s.player.playerPos.z=s.player.cameraPos.z=-24.4F;aim(0,.99F,-26);poll();assert(s.droid.phase==DroidPhase::ButtonReady);
- s.droid.phase=DroidPhase::GameOver;s.menu.currentScreen=ScreenState::Defeated;engine.pad.clicked={};engine.pad.clicked.Cross=true;s.menu.pauseSelectedIndex=0;poll();assert(s.menu.currentScreen==ScreenState::NewGame);
- s.menu.currentScreen=ScreenState::Defeated;s.menu.pauseSelectedIndex=1;poll();assert(s.menu.currentScreen==ScreenState::LoadGame);
+ s.droid.phase=DroidPhase::GameOver;s.menu.currentScreen=ScreenState::Defeated;engine.pad.clicked={};engine.pad.clicked.Cross=true;s.menu.pauseSelectedIndex=0;poll();assert(s.menu.currentScreen==ScreenState::Defeated);
+ u32 count=0;const auto* events=bus.getFrameEvents(count);
+ assert(count==2 && events[1].type==Events::EventType::BossRetryRequested);
+ s.menu.pauseSelectedIndex=1;poll();assert(s.menu.currentScreen==ScreenState::NewGame);
+ s.menu.currentScreen=ScreenState::Defeated;s.menu.pauseSelectedIndex=2;poll();assert(s.menu.currentScreen==ScreenState::LoadGame);
  s=WorldState{};s.resetToDefaults();s.droid.phase=DroidPhase::Release;s.droid.phaseTicks=2*15625;s.player.yaw=.1F;s.player.pitch=.2F;
  Systems::Player::PlayerControllerSystem::updateCameraVectors(s);auto camera=s.player.cameraLookAt;auto physical=s.player.playerPos;
  for(int i=0;i<100;++i)Systems::Player::PlayerControllerSystem::updateCameraVectors(s);
