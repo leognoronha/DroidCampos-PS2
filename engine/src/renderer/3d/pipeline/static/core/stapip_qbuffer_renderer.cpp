@@ -53,6 +53,8 @@ StaPipQBufferRenderer::StaPipQBufferRenderer() {
 
   qbuffersPacketSize = 4 * buffersCount;
   programsPacket = nullptr;
+  maxVertCount = 0;
+  inFlightHalf = -1;
 }
 
 void StaPipQBufferRenderer::allocateOnUse() {
@@ -75,6 +77,8 @@ void StaPipQBufferRenderer::allocateOnUse() {
 }
 
 void StaPipQBufferRenderer::deallocateOnUse() {
+  dma_channel_wait(DMA_CHANNEL_VIF1, 0);
+  inFlightHalf = -1;
   packet2_free(staticDataPacket);
   packet2_free(objectDataPacket);
 
@@ -233,6 +237,13 @@ void StaPipQBufferRenderer::setDoubleBuffer() {
 }
 
 StaPipQBuffer* StaPipQBufferRenderer::getBuffer() {
+  // A partial flush can restart at buffer zero while DMA still references it.
+  // Only wait when reusing the half that was actually submitted; preparation
+  // of the other half remains overlapped with the transfer.
+  if (inFlightHalf == nextBufferIndex / (buffersCount / 2)) {
+    dma_channel_wait(DMA_CHANNEL_VIF1, 0);
+    inFlightHalf = -1;
+  }
   currentBufferIndex = nextBufferIndex++;
   Verbose("Proposing buffer: ", currentBufferIndex);
   auto* result = buffers[currentBufferIndex];
@@ -307,9 +318,24 @@ void StaPipQBufferRenderer::clip(StaPipQBuffer* buffer) {
     return;
   }
 
-  dBufferPrograms[getQBufferIndex(buffer)] = getAsIsProgramByBag(buffer->bag);
-
+  auto* bag = buffer->bag;
   clipper.clip(buffer);
+  const u32 batchLimit = (maxVertCount / 3) * 3;
+  TYRA_ASSERT(batchLimit >= 3, "VU1 must hold at least one triangle");
+  u32 offset = 0;
+  do {
+    const u32 remaining = clipper.getVertexCount() - offset;
+    const u32 count = remaining < batchLimit ? remaining : batchLimit;
+    buffer->bag = bag;
+    clipper.fillBuffer(buffer, offset, count);
+    submitClippedBuffer(buffer);
+    offset += count;
+    if (offset < clipper.getVertexCount()) buffer = getBuffer();
+  } while (offset < clipper.getVertexCount());
+}
+
+void StaPipQBufferRenderer::submitClippedBuffer(StaPipQBuffer* buffer) {
+  dBufferPrograms[getQBufferIndex(buffer)] = getAsIsProgramByBag(buffer->bag);
 
   Verbose("Add clip[", getQBufferIndex(buffer), "]: ", buffer->size);
 
@@ -370,12 +396,14 @@ void StaPipQBufferRenderer::sendPacket() {
   // dma_wait_fast(); // This have no impact on performance
 
   dma_channel_send_packet2(currentPacket, DMA_CHANNEL_VIF1, true);
+  inFlightHalf = currentBufferIndex / (buffersCount / 2);
 
   // Switch packet, so we can proceed during DMA transfer
   context = !context;
 }
 
 void StaPipQBufferRenderer::setMaxVertCount(const u32& count) {
+  maxVertCount = count;
   for (u32 i = 0; i < buffersCount; i++) {
     buffers[i]->setMaxVertCount(count);
   }

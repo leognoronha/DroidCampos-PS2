@@ -1,14 +1,17 @@
-version: "3.9"
-volumes:
-  tyra-volume:
 services:
   compiler:
-    environment:
-      TERM: xterm-256color
-    network_mode: host
-    image: "h4570/tyra"
-    tty: true
-    container_name: tyra-compiler
+    image: h4570/tyra@sha256:1fa117cbd140b3e6506a41654fb1476c73c568ed1522a6470744eee50fab525f
+    network_mode: none
+    working_dir: /build
     volumes:
-      - tyra-volume:/src
-      - ./:/host
+      - ./:/source:ro
+      - ./build/ps2:/output
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        rsync -a --exclude=bin --exclude=obj /source/engine /source/game /source/Makefile.base ./
+        make -C game -j2 build-engine
+        make -C game -j2
+        test -s game/bin/droid_campos.elf
+        rsync -a --delete game/bin/ /output/

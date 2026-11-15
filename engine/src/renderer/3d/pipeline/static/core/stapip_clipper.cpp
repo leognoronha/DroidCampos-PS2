@@ -10,6 +10,8 @@
 
 #include "renderer/3d/pipeline/static/core/stapip_clipper.hpp"
 
+#include "renderer/3d/pipeline/static/core/bag/stapip_bag.hpp"
+
 namespace Tyra {
 
 StaPipClipper::StaPipClipper() {}
@@ -31,7 +33,7 @@ void StaPipClipper::clip(StaPipQBuffer* buffer) {
                                           buffer->bag->texture != nullptr,
                                           buffer->bag->color->many != nullptr};
 
-  std::vector<PlanesClipVertex> clippedVertices;
+  clippedVertices.clear();
 
   for (u32 i = 0; i < buffer->size / 3; i++) {
     for (u8 j = 0; j < 3; j++) {
@@ -47,7 +49,7 @@ void StaPipClipper::clip(StaPipQBuffer* buffer) {
     u8 clippedSize =
         algorithm.clip(clippedTriangle, inputTriangle, algoSettings);
 
-    if (clippedSize == 0) continue;
+    if (clippedSize < 3) continue;
 
     auto va = clippedTriangle[0];
     for (u8 j = 1; j <= clippedSize - 2; j++) {
@@ -60,7 +62,7 @@ void StaPipClipper::clip(StaPipQBuffer* buffer) {
   }
 
   perspectiveDivide(&clippedVertices);
-  moveDataToBuffer(clippedVertices, buffer);
+
 }
 
 void StaPipClipper::perspectiveDivide(std::vector<PlanesClipVertex>* vertices) {
@@ -69,14 +71,16 @@ void StaPipClipper::perspectiveDivide(std::vector<PlanesClipVertex>* vertices) {
   }
 }
 
-void StaPipClipper::moveDataToBuffer(
-    const std::vector<PlanesClipVertex>& vertices, StaPipQBuffer* buffer) {
-  buffer->reallocateManually(vertices.size());
-
-  for (u32 i = 0; i < vertices.size(); i++) {
-    auto& vertex = vertices.at(i);
+void StaPipClipper::fillBuffer(StaPipQBuffer* buffer, u32 offset, u32 count) {
+  TYRA_ASSERT(count <= maxVertCount && count % 3 == 0 && offset % 3 == 0,
+              "Clipped batch exceeds VU1 capacity or splits a triangle");
+  TYRA_ASSERT(offset <= clippedVertices.size() &&
+                  count <= clippedVertices.size() - offset,
+              "Clipped batch is out of range");
+  buffer->reallocateManually(count);
+  for (u32 i = 0; i < count; ++i) {
+    const auto& vertex = clippedVertices[offset + i];
     buffer->vertices[i] = vertex.position;
-
     if (buffer->bag->texture) buffer->sts[i] = vertex.st;
     if (buffer->bag->color->many) buffer->colors[i] = vertex.color;
     if (buffer->bag->lighting) buffer->normals[i] = vertex.normal;

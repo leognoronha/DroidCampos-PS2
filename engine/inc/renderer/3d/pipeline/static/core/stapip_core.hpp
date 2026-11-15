@@ -29,6 +29,8 @@ class StaPipCore {
   void init(RendererCore* t_core);
 
   void onFrameEnd();
+  // Call only after render synchronization, before destroying mesh arrays.
+  void clearGeometryCache() { cacher.clear(); }
 
   /** Render 3D via "bags" */
   void render(StaPipBag* bag);
@@ -65,6 +67,9 @@ class StaPipCore {
 
   void setMaxVertCount(const u32& count);
   StaPipBagPackager packager;
+  // Separate levels: splitting a package must not invalidate its parent array.
+  std::vector<StaPipBagPackage> packageStorage, subpackageStorage;
+  std::vector<u16> doneIndexes, loadedIndexes;
   StaPipQBufferRenderer qbufferRenderer;
   void renderPkgs(StaPipBagPackage* packages, const bool& doClip, u16 count);
   void renderSubpkgs(StaPipBagPackage* packages, u16 count);

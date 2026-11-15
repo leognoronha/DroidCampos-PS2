@@ -48,6 +48,7 @@ class StaticPipeline : public Renderer3DPipeline {
   void render(const StaticMesh* mesh);
   void render(const StaticMesh* mesh, const StaPipOptions& options);
   void render(const StaticMesh* mesh, const StaPipOptions* options);
+  bool isVisible(const StaticMesh* mesh) const;
 
  private:
   RendererCore* rendererCore;
@@ -56,21 +57,20 @@ class StaticPipeline : public Renderer3DPipeline {
   void addVertices(const MeshMaterialFrame* materialFrame,
                    StaPipBag* bag) const;
 
-  StaPipInfoBag* getInfoBag(const StaticMesh* mesh,
+  StaPipInfoBag getInfoBag(const StaticMesh* mesh,
                             const StaPipOptions* options, M4x4* model) const;
 
-  StaPipColorBag* getColorBag(const MeshMaterial* material,
+  StaPipColorBag getColorBag(const MeshMaterial* material,
                               const MeshMaterialFrame* materialFrame) const;
 
-  StaPipTextureBag* getTextureBag(const MeshMaterial* material,
+  StaPipTextureBag getTextureBag(const MeshMaterial* material,
                                   const MeshMaterialFrame* materialFrame);
 
-  StaPipLightingBag* getLightingBag(const MeshMaterialFrame* materialFrame,
+  StaPipLightingBag getLightingBag(const MeshMaterialFrame* materialFrame,
                                     PipelineDirLightsBag* dirLightsBag,
                                     M4x4* model,
                                     const StaPipOptions* options) const;
 
-  void deallocDrawBags(StaPipBag* bag, const MeshMaterial* material) const;
 
   void setLightingColorsCache(PipelineLightingOptions* lightingOptions);
 };

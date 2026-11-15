@@ -10,18 +10,24 @@
 
 #pragma once
 
-#include <math3d.h>
 #include <string>
+#include <vector>
+#include "math/vec4.hpp"
 #include "debug/debug.hpp"
-#include "./bag/packaging/stapip_bag_package.hpp"
-#include "./bag/stapip_bag.hpp"
+#include "renderer/3d/pipeline/static/core/bag/stapip_bag.hpp"
+#include "renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_package.hpp"
 
 namespace Tyra {
+
+class StaPipBag;
+class StaPipBagPackage;
 
 class StaPipQBuffer {
  public:
   StaPipQBuffer();
   ~StaPipQBuffer();
+  StaPipQBuffer(const StaPipQBuffer&) = delete;
+  StaPipQBuffer& operator=(const StaPipQBuffer&) = delete;
 
   void setMaxVertCount(const u32& count);
 
@@ -52,9 +58,8 @@ class StaPipQBuffer {
   void fillByCopy1By3(const StaPipBagPackage& pkg);
 
   /**
-   * @brief Deallocate dynamic data if it was allocated and allocate new data
-   * specified by size.
-   * @param size 48 is max
+   * @brief Select owned storage, growing only when required. Caller must have
+   * acquired this buffer after its previous DMA transfer completed.
    */
   void reallocateManually(const u16& size);
 
@@ -75,9 +80,8 @@ class StaPipQBuffer {
 
  private:
   u32 maxVertCount;
-  void deallocateDynamicData();
   void allocateDynamicData(u16 size, StaPipBag* bag);
-  u8 _isDynamicallyAllocated, _stAllocated, _colorAllocated, _normalAllocated;
+  std::vector<Vec4> vertexStorage, stStorage, colorStorage, normalStorage;
 };
 
 }  // namespace Tyra

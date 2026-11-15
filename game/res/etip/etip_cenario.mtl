@@ -1,0 +1,132 @@
+# Blender 5.2.2 LTS MTL File: 'ETIP-matriz.blend'
+# www.blender.org
+
+newmtl PS2_Mat_AcoEscuro
+Ns 39.999996
+Ka 1.000000 1.000000 1.000000
+Ks 0.150000 0.150000 0.150000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd ps2_tex_acoescuro.png
+
+newmtl PS2_Mat_Advertencia
+Ns 22.499992
+Ka 1.000000 1.000000 1.000000
+Ks 0.150000 0.150000 0.150000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd ps2_tex_advertencia.png
+
+newmtl PS2_Mat_Asfalto_Via
+Ns 2.500001
+Ka 1.000000 1.000000 1.000000
+Ks 0.150000 0.150000 0.150000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd ps2_tex_asfalto_via.png
+
+newmtl PS2_Mat_Ceu_Nublado
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd ps2_tex_ceu_nublado.png
+map_Ke ps2_tex_ceu_nublado.png
+
+newmtl PS2_Mat_Concreto
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd ps2_tex_concreto.png
+
+newmtl PS2_Mat_Concreto_Bruto
+Ns 1.600002
+Ka 1.000000 1.000000 1.000000
+Ks 0.120000 0.120000 0.120000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd ps2_tex_concreto_bruto.png
+
+newmtl PS2_Mat_Ferrugem
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd ps2_tex_ferrugem.png
+
+newmtl PS2_Mat_Logo_ETIP
+Ns 6.399997
+Ka 1.000000 1.000000 1.000000
+Ks 0.150000 0.150000 0.150000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd ps2_tex_logo_etip.png
+
+newmtl PS2_Mat_Luz_Leitor
+Ns 722.500000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd ps2_tex_luz_leitor.png
+
+newmtl PS2_Mat_Metal_Ferrugem
+Ns 14.400002
+Ka 1.000000 1.000000 1.000000
+Ks 0.120000 0.120000 0.120000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd ps2_tex_metal_ferrugem.png
+
+newmtl PS2_Mat_PlacaCyber
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd ps2_tex_placacyber.png
+
+newmtl PS2_Mat_Portao
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 1
+map_Kd ps2_tex_portao.png
+
+newmtl PS2_Mat_VidroGuarita
+Ns 302.500000
+Ka 1.000000 1.000000 1.000000
+Ks 0.150000 0.150000 0.150000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd ps2_tex_vidroguarita.png

@@ -11,7 +11,7 @@
 #include "renderer/3d/pipeline/static/static_pipeline.hpp"
 #include "debug/debug.hpp"
 #include "renderer/3d/pipeline/static/core/bag/stapip_info_bag.hpp"
-#include <memory>
+#include <optional>
 namespace Tyra {
 
 StaticPipeline::StaticPipeline() {}
@@ -41,6 +41,12 @@ void StaticPipeline::onUseEnd() {
 
 void StaticPipeline::onFrameEnd() { core.onFrameEnd(); }
 
+bool StaticPipeline::isVisible(const StaticMesh* mesh) const {
+  return mesh->frame->bbox->frustumCheck(
+      rendererCore->renderer3D.frustumPlanes.getAll(), mesh->getModelMatrix()) !=
+      CoreBBoxFrustum::OUTSIDE_FRUSTUM;
+}
+
 void StaticPipeline::render(const StaticMesh* mesh) { render(mesh, nullptr); }
 
 void StaticPipeline::render(const StaticMesh* mesh,
@@ -50,20 +56,14 @@ void StaticPipeline::render(const StaticMesh* mesh,
 
 void StaticPipeline::render(const StaticMesh* mesh,
                             const StaPipOptions* options) {
-  bool optionsManuallyAllocated = false;
-
-  if (!options) {
-    options = new StaPipOptions();
-    optionsManuallyAllocated = true;
-  }
+  StaPipOptions defaultOptions;
+  if (!options) options = &defaultOptions;
 
   auto model = mesh->getModelMatrix();
-  auto* infoBag = getInfoBag(mesh, options, &model);
-  auto dirLightsBag = std::make_unique<PipelineDirLightsBag>(true);
 
   TYRA_ASSERT(
       !(options->frustumCulling != PipelineFrustumCulling_Precise &&
-        infoBag->fullClipChecks == true),
+        options->fullClipChecks == true),
       "Full clip checks are only supported with frustum culling == Precise!");
 
   TYRA_ASSERT(options->transformationType == TyraMVP ||
@@ -72,18 +72,18 @@ void StaticPipeline::render(const StaticMesh* mesh,
               "Please disable clip checks and frustum culling if not using MVP "
               "matrix!");
 
-  if (options->frustumCulling == PipelineFrustumCulling_Simple) {
+  if (options->frustumCulling != PipelineFrustumCulling_None) {
     auto* frame = mesh->frame;
     if (frame->bbox->frustumCheck(
             rendererCore->renderer3D.frustumPlanes.getAll(), model) ==
         CoreBBoxFrustum::OUTSIDE_FRUSTUM) {
-      if (options && optionsManuallyAllocated) {
-        delete options;
-      }
-      delete infoBag;
       return;
     }
   }
+
+  auto infoBag = getInfoBag(mesh, options, &model);
+  std::optional<PipelineDirLightsBag> dirLightsBag;
+  if (options->lighting) dirLightsBag.emplace(true);
 
   if (options && options->lighting) setLightingColorsCache(options->lighting);
 
@@ -92,20 +92,20 @@ void StaticPipeline::render(const StaticMesh* mesh,
     auto* materialFrame = material->frames[0];
     StaPipBag bag;
     addVertices(materialFrame, &bag);
-    bag.info = infoBag;
-    bag.color = getColorBag(material, materialFrame);
-    bag.texture = getTextureBag(material, materialFrame);
-    bag.lighting =
-        getLightingBag(materialFrame, dirLightsBag.get(), &model, options);
+    auto colorBag = getColorBag(material, materialFrame);
+    auto textureBag = getTextureBag(material, materialFrame);
+    auto lightingBag = getLightingBag(materialFrame,
+        dirLightsBag ? &*dirLightsBag : nullptr, &model, options);
+    bag.info = &infoBag;
+    bag.color = &colorBag;
+    bag.texture = textureBag.texture ? &textureBag : nullptr;
+    bag.lighting = lightingBag.normals ? &lightingBag : nullptr;
 
+    // core.render builds and flushes all packets before these descriptors die.
+    // DMA references vertex/attribute arrays, not the local bag objects.
     core.render(&bag);
-
-    deallocDrawBags(&bag, material);
   }
 
-  delete infoBag;
-
-  if (optionsManuallyAllocated) delete options;
 }
 
 void StaticPipeline::addVertices(const MeshMaterialFrame* materialFrame,
@@ -114,77 +114,77 @@ void StaticPipeline::addVertices(const MeshMaterialFrame* materialFrame,
   bag->vertices = materialFrame->vertices;
 }
 
-StaPipInfoBag* StaticPipeline::getInfoBag(const StaticMesh* mesh,
+StaPipInfoBag StaticPipeline::getInfoBag(const StaticMesh*,
                                           const StaPipOptions* options,
                                           M4x4* model) const {
-  auto* result = new StaPipInfoBag();
+  StaPipInfoBag result;
 
-  result->antiAliasingEnabled = options->antiAliasingEnabled;
-  result->blendingEnabled = options->blendingEnabled;
-  result->shadingType = options->shadingType;
-  result->textureMappingType = options->textureMappingType;
-  result->transformationType = options->transformationType;
-  result->frustumCulling =
+  result.antiAliasingEnabled = options->antiAliasingEnabled;
+  result.blendingEnabled = options->blendingEnabled;
+  result.shadingType = options->shadingType;
+  result.textureMappingType = options->textureMappingType;
+  result.transformationType = options->transformationType;
+  result.frustumCulling =
       options->frustumCulling == PipelineFrustumCulling_Precise
           ? PipelineInfoBagFrustumCulling_Precise
           : PipelineInfoBagFrustumCulling_None;
-  result->fullClipChecks = options->fullClipChecks;
-  result->zTestType = options->zTestType;
-  result->model = model;
+  result.fullClipChecks = options->fullClipChecks;
+  result.zTestType = options->zTestType;
+  result.model = model;
 
   return result;
 }
 
-StaPipColorBag* StaticPipeline::getColorBag(
+StaPipColorBag StaticPipeline::getColorBag(
     const MeshMaterial* material,
     const MeshMaterialFrame* materialFrame) const {
-  auto* result = new StaPipColorBag();
+  StaPipColorBag result;
 
   if (material->lightmapFlag) {
-    result->many = materialFrame->colors;
+    result.many = materialFrame->colors;
   } else {
-    result->single = &material->ambient;
+    result.single = &material->ambient;
   }
 
   return result;
 }
 
-StaPipTextureBag* StaticPipeline::getTextureBag(
+StaPipTextureBag StaticPipeline::getTextureBag(
     const MeshMaterial* material, const MeshMaterialFrame* materialFrame) {
   if (!materialFrame->textureCoords || !material->textureName.has_value())
-    return nullptr;
+    return {};
 
-  auto* result = new StaPipTextureBag();
+  StaPipTextureBag result;
 
-  result->texture =
+  result.texture =
       rendererCore->texture.repository.getByMeshMaterialId(material->id);
 
-  TYRA_ASSERT(result->texture, "Texture for material: ", material->name,
+  TYRA_ASSERT(result.texture, "Texture for material: ", material->name,
               "Id: ", material->id,
               "Was not found in texture repository! Did you forget to add "
               "texture or disable texture coords loading in mesh?");
 
-  result->coordinates = materialFrame->textureCoords;
+  result.coordinates = materialFrame->textureCoords;
 
   return result;
 }
 
-StaPipLightingBag* StaticPipeline::getLightingBag(
+StaPipLightingBag StaticPipeline::getLightingBag(
     const MeshMaterialFrame* materialFrame, PipelineDirLightsBag* dirLightsBag,
     M4x4* model, const StaPipOptions* options) const {
   if (!materialFrame->normals || options == nullptr ||
       options->lighting == nullptr)
-    return nullptr;
+    return {};
 
-  auto* result = new StaPipLightingBag();
+  StaPipLightingBag result;
 
-  result->dirLights = dirLightsBag;
-  result->lightMatrix = model;
+  result.dirLights = dirLightsBag;
+  result.lightMatrix = model;
 
-  result->dirLights->setLightsManually(
+  result.dirLights->setLightsManually(
       colorsCache, options->lighting->directionalDirections);
 
-  result->normals = materialFrame->normals;
+  result.normals = materialFrame->normals;
 
   return result;
 }
@@ -196,19 +196,6 @@ void StaticPipeline::setLightingColorsCache(
         reinterpret_cast<Vec4&>(lightingOptions->directionalColors[i]);
   }
   colorsCache[3] = reinterpret_cast<Vec4&>(*lightingOptions->ambientColor);
-}
-
-void StaticPipeline::deallocDrawBags(StaPipBag* bag,
-                                     const MeshMaterial* material) const {
-  if (bag->texture) {
-    delete bag->texture;
-  }
-
-  if (bag->lighting) {
-    delete bag->lighting;
-  }
-
-  delete bag->color;
 }
 
 }  // namespace Tyra

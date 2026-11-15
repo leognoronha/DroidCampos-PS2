@@ -31,6 +31,7 @@ class PlanesClipAlgorithm {
   u8 clip(PlanesClipVertex* o_vertices, PlanesClipVertexPtrs* i_vertices,
           const EEClipAlgorithmSettings& settings);
 
+  // Retained for source compatibility; clipping no longer uses world margins.
   static float clipMargin;
 
  private:
