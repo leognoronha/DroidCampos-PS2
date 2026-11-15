@@ -14,6 +14,7 @@ constexpr s8 kMenuMusicChannel = 5;
 constexpr s8 kDroidAlarmChannel = 4;
 constexpr s8 kDroidStepsChannel = 3;
 constexpr s8 kDroidVoiceChannel = 20;
+constexpr s8 kRadioChannel = 22;
 constexpr s8 kAmbienceChannel = 23;
 // Enemy voices are idle in the exterior, where the reader is used.
 constexpr s8 kCardReaderChannel = 6;
@@ -60,12 +61,29 @@ bool MenuAudioSystem::loadSample(const char* path, audsrv_adpcm_t& sample, u8*& 
     return false;
   }
   std::rewind(file);
-  data = allocateSampleData(static_cast<size_t>(size));
+  // AUDSRV transfers the APCM payload to SPU2 via DMA. Pad the payload
+  // independently of the 16-byte header to complete the final DMA unit.
+  constexpr int headerSize = 16;
+  constexpr int dmaUnit = 64;
+  const int transferSize = headerSize + ((size - headerSize + dmaUnit - 1) & -dmaUnit);
+  data = allocateSampleData(transferSize);
   const bool read = data && std::fread(data, 1, size, file) == static_cast<size_t>(size);
   std::fclose(file);
   const bool valid = read && std::memcmp(data, "APCM", 4) == 0 &&
       data[4] == 1 && data[5] == 1 && data[6] == static_cast<u8>(loop);
-  if (!valid || audsrv_load_adpcm(&sample, data, static_cast<int>(size)) != 0) {
+  if (valid) {
+    // Keep one-shot samples from re-entering the following SPU2 allocation.
+    // adpenc appends a silent repeat marker even to non-looping samples.
+    if (!loop) {
+      for (int block = headerSize; block < size - 16; block += 16) data[block + 1] &= 1;
+      data[size - 15] = 1;
+    }
+    std::memset(data + size, 0, transferSize - size);
+#ifdef _EE
+    SyncDCache(data, data + transferSize);
+#endif
+  }
+  if (!valid || audsrv_load_adpcm(&sample, data, transferSize) != 0) {
     std::printf("[UI AUDIO] Invalid or failed sample: %s\n", path);
     freeSampleData(data);
     data = nullptr;
@@ -149,10 +167,10 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
         } else if (events[i].type == Events::EventType::MedkitUsed) {
           playCombatCue(engine, healUp_);
         } else if (events[i].type == Events::EventType::PlayerDefeated) {
-          // Defeat can coincide with a punch. Try the radio voice first so
+          // Defeat can coincide with a punch. Try the reload voice first so
           // both sounds can play even when the UI voices are busy.
           if (gameOver_.data &&
-              engine->audio.adpcm.tryPlay(&gameOver_.sample, 22) != Tyra::ADPCM_OK)
+              engine->audio.adpcm.tryPlay(&gameOver_.sample, 21) != Tyra::ADPCM_OK)
             playCombatCue(engine, gameOver_);
         }
       }
@@ -184,7 +202,7 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
   if (volume != volume_) {
     for (int channel = 0; channel < kAmbienceChannel; ++channel) {
       if (channel != kMenuMusicChannel && channel != kDroidAlarmChannel &&
-          channel != kDroidStepsChannel && channel != kDroidVoiceChannel)
+          channel != kDroidStepsChannel && channel != kDroidVoiceChannel && channel != kRadioChannel)
         engine->audio.adpcm.setVolume(static_cast<u8>(volume), static_cast<s8>(channel));
     }
     volume_ = volume;
@@ -215,7 +233,7 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
     // Non-blocking playback stays within the reserved channel pools.
     if (sample) {
       if (events[i].type == Events::EventType::RadioDismissRequested)
-        engine->audio.adpcm.tryPlay(sample, 22);
+        playRadioCue(engine, *sample, radioConfirmationData_, volume);
       else {
         engine->audio.adpcm.tryPlay(sample, nextUiChannel_);
         nextUiChannel_ = nextUiChannel_ == kDroidStepsChannel - 1 ? 0 : nextUiChannel_ + 1;
@@ -257,10 +275,27 @@ void MenuAudioSystem::updateLoop(Tyra::Engine* engine, Loop& loop, s8 channel, i
     loop.playing = engine->audio.adpcm.tryPlay(&loop.sample, channel) == Tyra::ADPCM_OK;
 }
 
+bool MenuAudioSystem::playRadioCue(Tyra::Engine* engine, audsrv_adpcm_t& sample,
+                                   const u8* data, int volume) {
+  if (engine->audio.adpcm.tryPlay(&sample, kRadioChannel) != Tyra::ADPCM_OK) return false;
+  engine->audio.adpcm.setVolume(static_cast<u8>(std::clamp(volume, 0, 100)), kRadioChannel);
+  radioVoiceTicks_ = playbackTicks(data, sample.size);
+  return true;
+}
+
 void MenuAudioSystem::updateRadio(Tyra::Engine* engine,
                                   Core::WorldState& state) {
   const u32 elapsed = radioTimer_.getTimeDelta();
   radioTimer_.prime();
+  if (radioVoiceTicks_ > 0) {
+    if (elapsed >= radioVoiceTicks_ || state.menu.sfxVolume <= 0) {
+      // Silence a voice even if the physical SPU2 did not signal its end.
+      engine->audio.adpcm.setVolume(0, kRadioChannel);
+      radioVoiceTicks_ = 0;
+    } else {
+      radioVoiceTicks_ -= elapsed;
+    }
+  }
   auto& radio = state.radio;
   if (!radio.popupActive) {
     radioTicksRemaining_ = 0;
@@ -283,7 +318,7 @@ void MenuAudioSystem::updateRadio(Tyra::Engine* engine,
   const bool muted = state.menu.sfxVolume <= 0;
   if (radio.phase == Core::RadioPhase::Waiting) {
     if (!muted && radioAlertLoaded_ && radioAlertTicks_ > 0 &&
-        engine->audio.adpcm.tryPlay(&radioAlert_, 22) == Tyra::ADPCM_OK) {
+        playRadioCue(engine, radioAlert_, radioAlertData_, state.menu.sfxVolume)) {
       radioTicksRemaining_ = radioAlertTicks_;
       radio.phase = Core::RadioPhase::Alert;
       return;
@@ -299,7 +334,7 @@ void MenuAudioSystem::updateRadio(Tyra::Engine* engine,
     return;
   }
   if (!muted && radioConfirmationLoaded_)
-    engine->audio.adpcm.tryPlay(&radioConfirmation_, 22);
+    playRadioCue(engine, radioConfirmation_, radioConfirmationData_, state.menu.sfxVolume);
   radio.phase = Core::RadioPhase::Message;
   radio.visibleChars = 0;
   radio.revealTicks = 0;
@@ -347,7 +382,7 @@ void MenuAudioSystem::shutdown(Tyra::Engine* engine) {
   radioAlertLoaded_ = radioConfirmationLoaded_ = navigateLoaded_ = backLoaded_ = confirmLoaded_ = initialized_ = false;
   radioAlert_ = {};
   radioConfirmation_ = {};
-  radioTicksRemaining_ = radioAlertTicks_ = 0;
+  radioTicksRemaining_ = radioAlertTicks_ = radioVoiceTicks_ = 0;
   navigate_ = {};
   back_ = {};
   confirm_ = {};
