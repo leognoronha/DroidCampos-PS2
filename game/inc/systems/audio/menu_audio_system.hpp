@@ -49,6 +49,8 @@ class MenuAudioSystem final : public Core::ISubsystem {
   audsrv_adpcm_t confirm_{};
   audsrv_adpcm_t back_{};
   void updateRadio(Tyra::Engine* engine, Core::WorldState& state);
+  bool playRadioCue(Tyra::Engine* engine, audsrv_adpcm_t& sample, const u8* data, int volume);
+  u32 radioVoiceTicks_ = 0;
   audsrv_adpcm_t navigate_{};
   audsrv_adpcm_t radioAlert_{};
   audsrv_adpcm_t radioConfirmation_{};

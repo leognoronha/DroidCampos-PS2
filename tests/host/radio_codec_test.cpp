@@ -17,13 +17,17 @@ int main(int argc,char**argv) {
   Systems::Input::InputSystem input;Systems::Audio::MenuAudioSystem audio;
   Systems::Ui::UiContextDrawer drawer;Systems::Narrative::RadioCodecSystem radio(drawer);
   radio.init(&engine,state,bus);audio.init(&engine,state,bus);
-  assert(HostAudio::loaded.size()==18);
+  assert(HostAudio::loaded.size()==19);
   audsrv_adpcm_t* alert=nullptr; audsrv_adpcm_t* confirmation=nullptr;
   for(auto& entry:HostAudio::loaded) {
-    if(entry.second==32000)alert=entry.first;
-    if(entry.second==17120)confirmation=entry.first;
+    if(entry.second==32016)alert=entry.first;
+    if(entry.second==17168)confirmation=entry.first;
   }
   assert(alert&&confirmation);
+  const auto* blocks = static_cast<const unsigned char*>(alert->buffer);
+  for (int offset = 16; offset < alert->size; offset += 16)
+    assert((blocks[offset + 1] & 6) == 0);
+  assert(blocks[32000 - 15] == 1);
   auto read32=[](const unsigned char* p)->uint32_t{return uint32_t(p[0])|(uint32_t(p[1])<<8)|(uint32_t(p[2])<<16)|(uint32_t(p[3])<<24);};
   const uint32_t pitch=read32(static_cast<unsigned char*>(alert->buffer)+8);
   const uint32_t samples=static_cast<uint32_t>((alert->size-16)/16)*28;
@@ -100,6 +104,7 @@ int main(int argc,char**argv) {
   engine.pad.clicked={};bus.flushFrameEvents();state.menu.currentScreen=Core::ScreenState::Settings;
   const auto plays=HostAudio::played.size();step(duration);
   assert(state.radio.phase==Core::RadioPhase::Alert&&HostAudio::played.size()==plays);
+  assert(HostAudio::volumes[22]==0);
   state.menu.currentScreen=Core::ScreenState::GameplayFps;step(0);
   assert(state.radio.phase==Core::RadioPhase::Message&&HostAudio::played.back()==confirmation);
   // Mute bypasses the wait and never plays either radio clip.

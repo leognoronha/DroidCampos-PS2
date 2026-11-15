@@ -21,13 +21,13 @@ int main(int argc,char**argv) {
   const std::vector<char> defeatBytes((std::istreambuf_iterator<char>(defeatFile)), {});
   assert(!defeatBytes.empty());
   for(auto& entry:HostAudio::loaded) {
-    if(static_cast<size_t>(entry.second)==defeatBytes.size() &&
-       std::memcmp(entry.first->buffer, defeatBytes.data(), defeatBytes.size())==0)
+    if(static_cast<size_t>(entry.second)==16 + ((defeatBytes.size() - 16 + 63) & ~size_t(63)) &&
+       std::memcmp(entry.first->buffer, defeatBytes.data(), defeatBytes.size() - 16)==0)
       defeat=entry.first;
-    else if(entry.second==50432)confirm=entry.first;
-    else if(entry.second==10432)back=entry.first;
-    else if(entry.second==2560)navigate=entry.first;
-    else if(entry.second==16256)secret=entry.first;
+    else if(entry.second==50448)confirm=entry.first;
+    else if(entry.second==10448)back=entry.first;
+    else if(entry.second==2576)navigate=entry.first;
+    else if(entry.second==16272)secret=entry.first;
   }
   assert(confirm&&back&&navigate&&confirm!=back&&navigate!=back&&navigate!=confirm);
   assert(secret);
@@ -168,7 +168,7 @@ int main(int argc,char**argv) {
   state.menu.sfxVolume=0;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.empty());
   for(int volume:HostAudio::volumes)assert(volume==0);
   state.menu.sfxVolume=30;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.size()==1);
-  for(int i=0;i<23;++i)assert(HostAudio::volumes[i]==(((i>=3&&i<=5)||i==20)?0:30));
+  for(int i=0;i<23;++i)assert(HostAudio::volumes[i]==(((i>=3&&i<=5)||i==20||i==22)?0:30));
   HostAudio::playResult=-1;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.size()==1);
   HostAudio::played.clear();audio.executeStage(Core::HardwareStage::Stage3_GifPath3Render2D,&engine,state,bus,scratch);assert(HostAudio::played.empty());
   HostAudio::playResult = Tyra::ADPCM_OK;
