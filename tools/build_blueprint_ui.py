@@ -39,8 +39,7 @@ for x,s in [(274,1),(492,-1)]:
     for y,t in [(26,1),(344,-1)]: d.line([(x+s*9,y),(x,y),(x,y+t*9)],fill=C)
     d.line((x,112,x,300),fill=D)
     for y in (112,174,238,300): d.line((x-2,y,x+2,y),fill=D)
-text(shell,(345,205),'3D VIEWPORT',9,fill=D)
-text(shell,(369,224),'DC-01',9,fill=D)
+# The gallery sprite fills this viewport at runtime.
 d.ellipse((286,346,480,370),outline=D);d.ellipse((305,350,461,366),outline=D)
 d.line((383,343,383,374),fill=D)
 d.line((290,380,476,380),fill=D)

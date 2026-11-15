@@ -110,6 +110,7 @@ struct RadioCodecState {
 };
 
 struct MenuNavigationState {
+  static constexpr int kSettingsOptionCount = 3;
   ScreenState currentScreen;
   int mainSelectedIndex;
   int settingsSelectedIndex;

@@ -512,12 +512,13 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
           static_cast<u8>(state.menu.currentScreen)));
       return;
     }
+    constexpr int optionCount = Core::MenuNavigationState::kSettingsOptionCount;
     if (upPressed) {
       state.menu.settingsSelectedIndex =
-          (state.menu.settingsSelectedIndex + 4) % 5;
+          (state.menu.settingsSelectedIndex + optionCount - 1) % optionCount;
     } else if (downPressed) {
       state.menu.settingsSelectedIndex =
-          (state.menu.settingsSelectedIndex + 1) % 5;
+          (state.menu.settingsSelectedIndex + 1) % optionCount;
     }
 
     if (leftPressed || rightPressed || clicked.Cross) {
@@ -538,21 +539,11 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
         bus.publish(Events::GameEvent::makeSimple(
             Events::EventType::AudioSettingChanged,
             static_cast<s16>(state.menu.sfxVolume)));
-      } else if (state.menu.settingsSelectedIndex == 3) {
-        state.menu.scanlinesEnabled = !state.menu.scanlinesEnabled;
-        bus.publish(Events::GameEvent::makeSimple(
-            Events::EventType::VideoFilterChanged,
-            state.menu.scanlinesEnabled ? 1 : 0));
       } else if (state.menu.settingsSelectedIndex == 2) {
         state.menu.ambientVolume = std::clamp(state.menu.ambientVolume + dir * 10, 0, 100);
         bus.publish(Events::GameEvent::makeSimple(
             Events::EventType::AudioSettingChanged,
             static_cast<s16>(state.menu.ambientVolume)));
-      } else if (state.menu.settingsSelectedIndex == 4) {
-        state.menu.nearestFilter = !state.menu.nearestFilter;
-        bus.publish(Events::GameEvent::makeSimple(
-            Events::EventType::VideoFilterChanged,
-            state.menu.nearestFilter ? 1 : 0));
       }
     }
 
@@ -564,9 +555,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
   const bool changed = previous.mainSelectedIndex != current.mainSelectedIndex ||
       previous.settingsSelectedIndex != current.settingsSelectedIndex ||
       previous.bgmVolume != current.bgmVolume || previous.sfxVolume != current.sfxVolume ||
-      previous.ambientVolume != current.ambientVolume ||
-      previous.scanlinesEnabled != current.scanlinesEnabled ||
-      previous.nearestFilter != current.nearestFilter;
+      previous.ambientVolume != current.ambientVolume;
   if (changed && previous.currentScreen == current.currentScreen &&
       !clicked.Cross && !clicked.Start && !clicked.Circle && !clicked.Select)
     bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));

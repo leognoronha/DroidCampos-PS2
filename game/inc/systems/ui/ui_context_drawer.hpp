@@ -22,6 +22,7 @@ class UiContextDrawer {
   void renderBackground(const Core::WorldState& state);
   void renderHeader();
   void renderFooter(const char* controlsHint);
+  void renderGalleryImage(int index, int glitchPhase);
   void renderMenuButton(int index, bool selected);
   void renderSync(const Core::WorldState& state);
   void drawBlueprintPanel(float x, float y, float w, float h,
@@ -34,6 +35,8 @@ class UiContextDrawer {
   Font font_;
   Tyra::Sprite bgSprite_;
   Tyra::Sprite menuButtons_;
+  Tyra::Sprite gallerySprite_;
+  bool galleryLoaded_ = false;
   Tyra::Sprite uiRectSprite_;
   bool initialized_;
 };

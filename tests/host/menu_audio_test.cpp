@@ -147,11 +147,20 @@ int main(int argc,char**argv) {
     poll(screen,false,true);assert(HostAudio::played.size()==1&&HostAudio::played[0]==back);
     assert(state.menu.currentScreen==Core::ScreenState::MainMenu);
   }
-  state.menu.settingsSelectedIndex=3;
+  state.menu.currentScreen = Core::ScreenState::Settings;
+  state.menu.settingsSelectedIndex = 0;
+  engine.pad.clicked = {};
+  engine.pad.clicked.DpadUp = true;
+  tick(); click();
+  assert(state.menu.settingsSelectedIndex == 2);
+  engine.pad.clicked = {};
+  engine.pad.clicked.DpadDown = true;
+  tick(); click();
+  assert(state.menu.settingsSelectedIndex == 0);
   poll(Core::ScreenState::Settings,true,false);assert(HostAudio::played[0]==confirm);
-  const bool scanlines=state.menu.scanlinesEnabled;
+  const int bgmVolume = state.menu.bgmVolume;
   poll(Core::ScreenState::Settings,true,true);assert(HostAudio::played.size()==1&&HostAudio::played[0]==back);
-  assert(state.menu.scanlinesEnabled==scanlines);
+  assert(state.menu.bgmVolume == bgmVolume);
   poll(Core::ScreenState::MainMenu,false,true);assert(HostAudio::played.empty());
   poll(Core::ScreenState::GameplayFps,true,false);assert(HostAudio::played.empty());
   state.scene.error=nullptr;poll(Core::ScreenState::Loading,true,true);assert(HostAudio::played.empty());

@@ -10,6 +10,9 @@ using namespace Tyra;
 
 namespace {
 // GS MODULATE uses 128 as neutral; ui_white and the font atlas are 255 white.
+constexpr u32 kGalleryImageTicks = 6 * 15625;
+constexpr u32 kGalleryCycleTicks = 4 * kGalleryImageTicks;
+
 Color menuInk(float r, float g, float b, float a = 128.0F) {
   return Color(r * (128.0F / 255.0F), g * (128.0F / 255.0F),
                b * (128.0F / 255.0F), a);
@@ -53,6 +56,7 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
     return;
   }
 
+  if (state.menu.currentScreen != Core::ScreenState::MainMenu) galleryActive_ = false;
   if (state.menu.currentScreen == Core::ScreenState::GameplayFps) {
     return;
   }
@@ -159,6 +163,15 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
 void MenuSystem::shutdown(Engine* engine) { (void)engine; }
 
 void MenuSystem::renderMainMenu(const Core::WorldState& state) {
+  galleryTicks_ = galleryActive_
+      ? (galleryTicks_ + galleryTimer_.getTimeDelta()) % kGalleryCycleTicks : 0;
+  galleryTimer_.prime();
+  galleryActive_ = true;
+  const u32 imageTicks = galleryTicks_ % kGalleryImageTicks;
+  const bool changing = imageTicks < 1875 || imageTicks >= kGalleryImageTicks - 1875;
+  const bool disturbance = imageTicks >= 43750 && imageTicks < 45000;
+  const int glitchPhase = changing || disturbance ? (galleryTicks_ / 400) % 4 : -1;
+  drawer_->renderGalleryImage(galleryTicks_ / kGalleryImageTicks, glitchPhase);
   for (int i = 0; i < 3; ++i)
     drawer_->renderMenuButton(i, state.menu.mainSelectedIndex == i);
 }
@@ -239,7 +252,15 @@ void MenuSystem::renderLoadGameScreen(const Core::WorldState& state) {
 }
 
 void MenuSystem::renderSettingsScreen(const Core::WorldState& state) {
-  drawer_->drawBlueprintPanel(16.0F, 108.0F, 480.0F, 286.0F,
+  constexpr int optionCount = Core::MenuNavigationState::kSettingsOptionCount;
+  constexpr float panelY = 108.0F;
+  constexpr float firstRowY = 148.0F;
+  constexpr float rowHeight = 41.0F;
+  constexpr float rowPitch = 47.0F;
+  constexpr float bottomPadding = 17.0F;
+  constexpr float panelHeight =
+      firstRowY - panelY + (optionCount - 1) * rowPitch + rowHeight + bottomPadding;
+  drawer_->drawBlueprintPanel(16.0F, panelY, 480.0F, panelHeight,
                      menuInk(0, 0, 0, 128),
                      menuInk(99, 180, 179, 128));
 
@@ -249,31 +270,22 @@ void MenuSystem::renderSettingsScreen(const Core::WorldState& state) {
   drawer_->drawRect(28.0F, 136.0F, 456.0F, 2.0F,
                     menuInk(54, 112, 115, 128));
 
-  const char* optionNames[5] = {"BGM SYNTH VOLUME", "INDUSTRIAL SFX VOL",
-                                "VOLUME DO AMBIENTE", "OPTICAL SCANLINES", "GS TEXTURE FILTER"};
+  const char* optionNames[optionCount] = {
+      "BGM SYNTH VOLUME", "INDUSTRIAL SFX VOL", "VOLUME DO AMBIENTE"};
 
   const int volumes[] = {state.menu.bgmVolume, state.menu.sfxVolume, state.menu.ambientVolume};
-  char valBuf[5][32];
-  for (int i = 0; i < 3; ++i)
-    std::snprintf(valBuf[i], sizeof(valBuf[i]), "%d%%", volumes[i]);
-  std::snprintf(valBuf[3], sizeof(valBuf[3]), "%s",
-                state.menu.scanlinesEnabled ? "[ ENABLED ]" : "[ DISABLED ]");
-  std::snprintf(valBuf[4], sizeof(valBuf[4]), "%s",
-                state.menu.nearestFilter ? "[ NEAREST / PIXEL ]"
-                                         : "[ LINEAR / SMOOTH ]");
-
-  for (int i = 0; i < 5; i++) {
-    float rowY = 148.0F + static_cast<float>(i) * 47.0F;
+  for (int i = 0; i < optionCount; ++i) {
+    const float rowY = firstRowY + i * rowPitch;
     bool selected = (state.menu.settingsSelectedIndex == i);
 
     if (selected) {
-      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, 41.0F,
+      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, rowHeight,
                          menuInk(8, 35, 36, 128),
                          menuInk(159, 239, 232, 128));
       drawer_->drawRect(36.0F, rowY + 6.0F, 5.0F, 29.0F,
                         menuInk(159, 239, 232, 128));
     } else {
-      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, 41.0F,
+      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, rowHeight,
                          menuInk(0, 0, 0, 128),
                          menuInk(55.0F, 75.0F, 95.0F, 95.0F));
     }
@@ -283,25 +295,19 @@ void MenuSystem::renderSettingsScreen(const Core::WorldState& state) {
     drawer_->getFont().drawText(optionNames[i], 50,
                                 static_cast<int>(rowY + 14.0F), labelCol);
 
-    if (i < 3) {
-      const int vol = volumes[i];
-      float barX = 245.0F;
-      float barY = rowY + 15.0F;
-      drawer_->drawRect(barX, barY, 140.0F, 14.0F,
-                        menuInk(8.0F, 12.0F, 18.0F, 128.0F));
-      float fillW = (136.0F * static_cast<float>(vol)) / 100.0F;
-      if (fillW > 0.0F) {
-        drawer_->drawRect(barX + 2.0F, barY + 2.0F, fillW, 10.0F,
-                          menuInk(159, 239, 232, 128));
-      }
-      drawer_->getFont().drawText(valBuf[i], 398,
-                                  static_cast<int>(rowY + 14.0F),
-                                  menuInk(159, 239, 232, 128));
-    } else {
-      drawer_->getFont().drawText(valBuf[i], 270,
-                                  static_cast<int>(rowY + 14.0F),
-                                  menuInk(159, 239, 232, 128));
+    constexpr float barX = 245.0F;
+    const float barY = rowY + 15.0F;
+    drawer_->drawRect(barX, barY, 140.0F, 14.0F,
+                      menuInk(8.0F, 12.0F, 18.0F, 128.0F));
+    const float fillW = 136.0F * volumes[i] / 100.0F;
+    if (fillW > 0.0F) {
+      drawer_->drawRect(barX + 2.0F, barY + 2.0F, fillW, 10.0F,
+                        menuInk(159, 239, 232, 128));
     }
+    char value[8];
+    std::snprintf(value, sizeof(value), "%d%%", volumes[i]);
+    drawer_->getFont().drawText(value, 398, static_cast<int>(rowY + 14.0F),
+                                menuInk(159, 239, 232, 128));
   }
 }
 
