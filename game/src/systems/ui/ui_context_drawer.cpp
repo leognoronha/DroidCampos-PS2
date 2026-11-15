@@ -33,6 +33,17 @@ void UiContextDrawer::init(Engine* engine) {
   menuButtons_.color = Color(128, 128, 128, 128);
   repo.add(FileUtils::fromCwd("ui_menu_buttons.png"))->addLink(menuButtons_.id);
 
+  const auto galleryPath = FileUtils::fromCwd("ui_blueprint_gallery.png");
+  if (auto* file = std::fopen(galleryPath.c_str(), "rb")) {
+    std::fclose(file);
+    gallerySprite_.mode = SpriteMode::MODE_REPEAT;
+    gallerySprite_.position.set(279, 68);
+    gallerySprite_.size.set(208, 240);
+    gallerySprite_.color = Color(128, 128, 128, 128);
+    repo.add(galleryPath)->addLink(gallerySprite_.id);
+    galleryLoaded_ = true;
+  }
+
   uiRectSprite_.mode = SpriteMode::MODE_STRETCH;
   uiRectSprite_.size = Vec2(16.0F, 16.0F);
   uiRectSprite_.position = Vec2(0.0F, 0.0F);
@@ -51,6 +62,8 @@ void UiContextDrawer::shutdown(Engine* engine) {
     auto& repo = targetEngine->renderer.getTextureRepository();
     repo.freeBySprite(bgSprite_);
     repo.freeBySprite(menuButtons_);
+    if (galleryLoaded_) repo.freeBySprite(gallerySprite_);
+    galleryLoaded_ = false;
     repo.freeBySprite(uiRectSprite_);
     font_.free(repo);
   }
@@ -124,8 +137,7 @@ void UiContextDrawer::drawBlueprintPanel(float x, float y, float w, float h,
 
 void UiContextDrawer::renderBackground(const Core::WorldState& state) {
   if (!engine_) return;
-  // Black clear color belongs to the menu pass. Do not cover the future 3D
-  // viewport with an opaque full-screen background sprite.
+  // The clear color is the base for the transparent blueprint artwork.
   if (state.menu.currentScreen == Core::ScreenState::MainMenu) {
     bgSprite_.position.set(0, 100);
     bgSprite_.offset.set(0, 100);
@@ -152,6 +164,36 @@ void UiContextDrawer::renderFooter(const char* controlsHint) {
   bgSprite_.size.set(512, 54);
   engine_->renderer.renderer2D.render(bgSprite_);
   font_.drawText(controlsHint, 20, 416, Color(80, 120, 116, 128), 1.0F);
+}
+
+void UiContextDrawer::renderGalleryImage(int index, int glitchPhase) {
+  if (!engine_ || !galleryLoaded_ || index < 0 || index >= 4) return;
+  const int textureX = (index % 2) * 256 + 24;
+  const int textureY = (index / 2) * 256 + 8;
+  gallerySprite_.offset.set(textureX, textureY);
+  auto& renderer = engine_->renderer.renderer2D;
+  if (glitchPhase < 0) {
+    renderer.render(gallerySprite_);
+    return;
+  }
+
+  // Shift horizontal bands to suggest a tilted, corrupted signal.
+  // Inset the strips so the distortion cannot cross the viewport bounds.
+  constexpr int cuts[] = {4, 52, 91, 151, 177, 236};
+  constexpr int offsets[][5] = {
+      {-5, -3, 4, 1, 5}, {4, 1, -5, -2, -4},
+      {-2, 3, -4, 5, 2}, {3, -4, 2, -3, -5}};
+  constexpr int stripCount = sizeof(cuts) / sizeof(cuts[0]) - 1;
+  Sprite strips[stripCount];
+  for (int i = 0; i < stripCount; ++i) {
+    auto& strip = strips[i];
+    strip = gallerySprite_;
+    strip.position.set(284 + offsets[glitchPhase][i], 68 + cuts[i] + glitchPhase - 2);
+    strip.size.set(198, cuts[i + 1] - cuts[i]);
+    strip.offset.set(textureX + 5, textureY + cuts[i]);
+    if (i == glitchPhase) strip.color = Color(84, 127, 150, 117);
+  }
+  renderer.renderBatch(strips, stripCount);
 }
 
 void UiContextDrawer::renderMenuButton(int index, bool selected) {

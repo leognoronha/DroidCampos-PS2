@@ -22,7 +22,7 @@ OBJEXT      := o
 
 #Flags, Libraries and Includes
 CFLAGS      := 
-LIB         := -ltyra
+LIB         := -ltyra -lmc -lfileXio
 LIBDIRS     := -L$(ENGINEDIR)/bin
 INC         := -I$(INCDIR) -I$(ENGINEDIR)/inc
 INCDEP      := -I$(INCDIR) -I$(ENGINEDIR)/inc

@@ -2,6 +2,7 @@
 
 #include <tyra>
 #include "core/world_state.hpp"
+#include "core/memory_card.hpp"
 #include "systems/audio/menu_audio_system.hpp"
 #include "events/event_bus.hpp"
 #include "hardware/ps2_scratchpad.hpp"
@@ -29,11 +30,23 @@ class GameApp final : public Tyra::Game {
   void loop() override;
 
  private:
+  void updateSaveMenu(ScreenState previousScreen);
   void updateSceneTransition();
   void advanceLoading();
+  void queueCheckpoint(Checkpoint stage);
   Tyra::Timer accessTimer_;
   Tyra::Engine* engine_;
   WorldState worldState_;
+  MemoryCard memoryCard_;
+  CheckpointData pendingLoad_{};
+  CheckpointData sessionCheckpoint_{};
+  bool autosaveEnabled_ = false;
+  Events::EventType pendingSaveMenuAction_ = Events::EventType::None;
+  std::uint32_t menuMediaEpoch_ = 0;
+  std::uint32_t menuSaveSequence_ = 0;
+  SaveStatus menuCardStatus_ = SaveStatus::Checking;
+  u32 saveNoticeTicks_ = 0;
+  SaveNotice lastSaveNotice_ = SaveNotice::None;
   Events::EventBus eventBus_;
   Hardware::Ps2ScratchpadArena scratchpad_;
   Hardware::Ps2TaskScheduler scheduler_;

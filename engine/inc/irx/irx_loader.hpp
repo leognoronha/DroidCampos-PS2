@@ -20,12 +20,15 @@ class IrxLoader {
   ~IrxLoader();
 
   void loadAll(const bool& withUsb, const bool& isLoggingToFile);
+  static bool isMemoryCardLoaded() { return memoryCardLoaded; }
 
  private:
   static bool isLoaded;
+  static bool memoryCardLoaded;
 
   void loadSio2man(const bool& verbose);
   void loadPadman(const bool& verbose);
+  void loadMemoryCard();
   void loadLibsd(const bool& verbose);
   void loadIO(const bool& verbose);
   void loadUsbModules(const bool& verbose);

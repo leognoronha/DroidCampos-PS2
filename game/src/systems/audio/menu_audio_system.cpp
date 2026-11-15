@@ -13,6 +13,7 @@ namespace {
 constexpr s8 kMenuMusicChannel = 5;
 constexpr s8 kDroidAlarmChannel = 4;
 constexpr s8 kDroidStepsChannel = 3;
+constexpr s8 kDroidVoiceChannel = 20;
 constexpr s8 kAmbienceChannel = 23;
 // Enemy voices are idle in the exterior, where the reader is used.
 constexpr s8 kCardReaderChannel = 6;
@@ -88,6 +89,7 @@ void MenuAudioSystem::init(Tyra::Engine* engine, Core::WorldState&, Events::Even
   menuMusic_.loaded = loadSample("audio/menu_bgm.adpcm", menuMusic_.sample, menuMusic_.data, true);
   droidAlarm_.loaded = loadSample("audio/droid_alarm.adpcm", droidAlarm_.sample, droidAlarm_.data, true);
   droidSteps_.loaded = loadSample("audio/droid_steps.adpcm", droidSteps_.sample, droidSteps_.data, true);
+  loadSample("audio/droid_ce_sabe.adpcm", droidVoice_.sample, droidVoice_.data);
   loadSample("audio/card_reader.adpcm", cardReader_.sample, cardReader_.data,
              false, &cardReaderTicks_);
   loadSample("audio/pickup_weapon.adpcm", pickupWeapon_.sample, pickupWeapon_.data);
@@ -132,13 +134,12 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
       for (u32 i = 0; i < count; ++i) {
         if (events[i].type == Events::EventType::WeaponFired &&
             weaponShotLoaded_) {
-          // 11 voices cover the full 2.598s tail at 4 shots/sec; never
-          // wait/retry.
+          // Cycle through the weapon voices without waiting for a free voice.
           if(events[i].intParam>=0)
             engine->audio.adpcm.tryPlay(&weaponShot_,6+events[i].intParam%4);
           else {
             engine->audio.adpcm.tryPlay(&weaponShot_, nextWeaponChannel_);
-            nextWeaponChannel_ = nextWeaponChannel_ == 20 ? 10 : nextWeaponChannel_ + 1;
+            nextWeaponChannel_ = nextWeaponChannel_ == kDroidVoiceChannel - 1 ? 10 : nextWeaponChannel_ + 1;
           }
         } else if (events[i].type == Events::EventType::WeaponReloadStarted &&
                    weaponReloadLoaded_) {
@@ -165,16 +166,16 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
         screen == Core::ScreenState::NewGame || screen == Core::ScreenState::LoadGame ||
         (screen == Core::ScreenState::Settings &&
          state.menu.settingsReturnScreen == Core::ScreenState::MainMenu);
-    updateLoop(engine, ambience_, kAmbienceChannel, inside ? state.menu.ambientVolume : 0);
-    updateLoop(engine, menuMusic_, kMenuMusicChannel, inMainMenu ? state.menu.bgmVolume : 0);
-    const bool alarmActive = (inside || screen == Core::ScreenState::Paused ||
-        (screen == Core::ScreenState::Settings &&
-         state.menu.settingsReturnScreen == Core::ScreenState::Paused)) &&
+    const bool encounterActive = scene.active == Core::SceneId::Interior &&
+        state.simulationActive() &&
         (state.droid.phase == Core::DroidPhase::Release ||
          state.droid.phase == Core::DroidPhase::Pursuit);
-    updateLoop(engine, droidAlarm_, kDroidAlarmChannel, alarmActive ? state.menu.sfxVolume : 0);
-    const bool walking = inside && alarmActive && state.droid.moving;
+    const bool walking = encounterActive && state.droid.moving;
+    updateLoop(engine, droidAlarm_, kDroidAlarmChannel, encounterActive ? state.menu.sfxVolume : 0);
     updateLoop(engine, droidSteps_, kDroidStepsChannel, walking ? state.menu.sfxVolume : 0);
+    updateDroidVoice(engine, state, encounterActive);
+    updateLoop(engine, ambience_, kAmbienceChannel, inside ? state.menu.ambientVolume : 0);
+    updateLoop(engine, menuMusic_, kMenuMusicChannel, inMainMenu ? state.menu.bgmVolume : 0);
     updateRadio(engine, state);
     return;
   }
@@ -183,7 +184,7 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
   if (volume != volume_) {
     for (int channel = 0; channel < kAmbienceChannel; ++channel) {
       if (channel != kMenuMusicChannel && channel != kDroidAlarmChannel &&
-          channel != kDroidStepsChannel)
+          channel != kDroidStepsChannel && channel != kDroidVoiceChannel)
         engine->audio.adpcm.setVolume(static_cast<u8>(volume), static_cast<s8>(channel));
     }
     volume_ = volume;
@@ -220,6 +221,27 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
         nextUiChannel_ = nextUiChannel_ == kDroidStepsChannel - 1 ? 0 : nextUiChannel_ + 1;
       }
     }
+  }
+}
+
+void MenuAudioSystem::updateDroidVoice(Tyra::Engine* engine, const Core::WorldState& state,
+                                       bool encounterActive) {
+  if (!droidVoice_.data) return;
+  const auto& droid = state.droid;
+  const bool pursuing = droid.phase == Core::DroidPhase::Pursuit;
+  if (!pursuing) nextDroidVoiceTick_ = 0;
+
+  // Keep the phrase below the footsteps and alarm in the SFX mix.
+  const int volume = encounterActive && pursuing
+      ? std::clamp(state.menu.sfxVolume, 0, 100) * 9 / 10 : 0;
+  if (volume != droidVoiceVolume_) {
+    engine->audio.adpcm.setVolume(static_cast<u8>(volume), kDroidVoiceChannel);
+    droidVoiceVolume_ = volume;
+  }
+
+  if (volume > 0 && droid.phaseTicks >= nextDroidVoiceTick_) {
+    engine->audio.adpcm.tryPlay(&droidVoice_.sample, kDroidVoiceChannel);
+    nextDroidVoiceTick_ = droid.phaseTicks + 2 * Core::kDroidSecond;
   }
 }
 
@@ -291,7 +313,7 @@ void MenuAudioSystem::shutdown(Tyra::Engine* engine) {
   if (engine && (backLoaded_ || confirmLoaded_ || navigateLoaded_ ||
                  radioAlertLoaded_ || radioConfirmationLoaded_ || weaponShotLoaded_ ||
                  weaponReloadLoaded_ || ambience_.loaded || menuMusic_.loaded || droidAlarm_.loaded ||
-                 droidSteps_.loaded || cardReader_.data || pickupWeapon_.data || pickupMedkit_.data ||
+                 droidSteps_.loaded || droidVoice_.data || cardReader_.data || pickupWeapon_.data || pickupMedkit_.data ||
                  punchImpact_.data || healUp_.data || gameOver_.data))
     engine->audio.adpcm.reset();
   for (auto* effect : {&cardReader_, &pickupWeapon_, &pickupMedkit_,
@@ -304,10 +326,14 @@ void MenuAudioSystem::shutdown(Tyra::Engine* engine) {
   freeSampleData(menuMusic_.data);
   freeSampleData(droidAlarm_.data);
   freeSampleData(droidSteps_.data);
+  freeSampleData(droidVoice_.data);
   ambience_ = {};
   menuMusic_ = {};
   droidAlarm_ = {};
   droidSteps_ = {};
+  droidVoice_ = {};
+  droidVoiceVolume_ = -1;
+  nextDroidVoiceTick_ = 0;
   freeSampleData(weaponShotData_);freeSampleData(weaponReloadData_);
   weaponShotData_ = weaponReloadData_ = nullptr;
   weaponShotLoaded_ = weaponReloadLoaded_ = false;

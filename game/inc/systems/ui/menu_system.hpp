@@ -32,6 +32,9 @@ class MenuSystem : public Core::ISubsystem {
   void renderSettingsScreen(const Core::WorldState& state);
 
   UiContextDrawer* drawer_;
+  Tyra::Timer galleryTimer_;
+  u32 galleryTicks_ = 0;
+  bool galleryActive_ = false;
 };
 
 }  // namespace Ui
