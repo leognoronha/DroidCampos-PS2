@@ -1,6 +1,7 @@
 #include "core/game_app.hpp"
 #include <cstdio>
 #include "core/interior_layout.hpp"
+#include "irx/irx_loader.hpp"
 
 namespace DroidCampos {
 namespace Core {
@@ -55,6 +56,7 @@ void GameApp::init() {
   scheduler_.registerSubsystem(&sceneIntroSystem_);
 
   scheduler_.initAll(engine_, worldState_, eventBus_);
+  memoryCard_.init(Tyra::IrxLoader::isMemoryCardLoaded());
 
   TYRA_LOG("DroidCampos-PS2 GameApp initialized (Modular ECS-Lite + PS2 Stages Ready)!");
 }
@@ -67,18 +69,57 @@ void GameApp::loop() {
   scratchpad_.resetFrame();
   eventBus_.flushFrameEvents();
 
+  auto& state = worldState_;
+  const auto previousScreen = state.menu.currentScreen;
+  const bool inSaveMenu = (previousScreen == ScreenState::NewGame && state.menu.saveDialog) ||
+      previousScreen == ScreenState::LoadGame;
+  memoryCard_.update(inSaveMenu);
+  const auto status = memoryCard_.status();
+  const auto epoch = memoryCard_.mediaEpoch();
+  const auto sequence = memoryCard_.saved().sequence;
+  if (!memoryCard_.busy() && pendingSaveMenuAction_ == Events::EventType::None &&
+      (menuCardStatus_ != status || menuMediaEpoch_ != epoch || menuSaveSequence_ != sequence)) {
+    state.menu.confirmNewGame = false;
+    menuCardStatus_ = status;
+    menuMediaEpoch_ = epoch;
+    menuSaveSequence_ = sequence;
+  }
+  state.menu.saveStatus = pendingSaveMenuAction_ != Events::EventType::None
+      ? SaveStatus::Checking : status;
+  state.menu.savedStage = memoryCard_.saved().data.stage;
+
   // Stage 0: IOP Input Poll (DualShock 2 / SIF RPC)
   scheduler_.runStage(HardwareStage::Stage0_IopInputPoll, engine_, worldState_,
                       eventBus_, scratchpad_);
+
+  updateSaveMenu(previousScreen);
 
   // Convert scene requests to Loading before any simulation/audio can observe
   // the input system's temporary GameplayFps state on confirmation.
   updateSceneTransition();
 
   // Stage 1: EE + VU0 + Scratchpad Simulation
+  const auto phaseBefore = state.encounter.phase;
   scheduler_.runStage(HardwareStage::Stage1_EeVu0Simulation, engine_,
                       worldState_, eventBus_, scratchpad_);
 
+  if (state.scene.active == SceneId::Interior && state.scene.resident &&
+      state.playerHealth > 0 && state.inventory.canEnter()) {
+    if (phaseBefore == EncounterPhase::Armed && state.encounter.phase == EncounterPhase::Countdown)
+      queueCheckpoint(Checkpoint::WavesStarted);
+    else if (phaseBefore == EncounterPhase::Wave && state.encounter.phase == EncounterPhase::Complete)
+      queueCheckpoint(Checkpoint::WavesCleared);
+  }
+
+  const auto notice = memoryCard_.notice();
+  if (notice != lastSaveNotice_) {
+    lastSaveNotice_ = notice;
+    saveNoticeTicks_ = notice == SaveNotice::Saved ? 180 : 300;
+  }
+  if (state.menu.currentScreen == ScreenState::GameplayFps && !state.scene.terminalActive &&
+      !state.intro.active && saveNoticeTicks_ > 0 && notice != SaveNotice::Writing)
+    --saveNoticeTicks_;
+  state.menu.saveNotice = saveNoticeTicks_ > 0 ? notice : SaveNotice::None;
   auto& renderer = engine_->renderer;
   renderer.core.renderer2D.setTextureMappingType(
       worldState_.menu.nearestFilter ? Tyra::TyraNearest : Tyra::TyraLinear);
@@ -119,6 +160,104 @@ void GameApp::loop() {
 }
 
 
+
+void GameApp::queueCheckpoint(Checkpoint stage) {
+  sessionCheckpoint_ = captureCheckpoint(worldState_, stage);
+  if (autosaveEnabled_) {
+    memoryCard_.queueSave(sessionCheckpoint_);
+    saveNoticeTicks_ = 300;
+  }
+}
+
+void GameApp::updateSaveMenu(ScreenState previousScreen) {
+  auto& state = worldState_;
+  auto& menu = state.menu;
+  const auto screen = menu.currentScreen;
+  const auto requestScene = [&](CheckpointData checkpoint) {
+    pendingLoad_ = checkpoint;
+    state.inventory = InventoryState{};
+    state.scene.accessTicks = 0;
+    state.scene.target = checkpoint.stage == Checkpoint::None ? SceneId::Exterior : SceneId::Interior;
+    state.scene.requested = true;
+    eventBus_.publish(Events::GameEvent::makeSimple(Events::EventType::PlayerSpawnResetRequested));
+  };
+
+  u32 count = 0;
+  const auto* events = eventBus_.getFrameEvents(count);
+  if (screen == ScreenState::Defeated && sessionCheckpoint_.stage == Checkpoint::WavesCleared) {
+    for (u32 i = 0; i < count; ++i) {
+      if (events[i].type == Events::EventType::BossRetryRequested) {
+        requestScene(sessionCheckpoint_);
+        return;
+      }
+    }
+  }
+
+  if (screen != ScreenState::LoadGame && !(screen == ScreenState::NewGame && menu.saveDialog)) {
+    pendingSaveMenuAction_ = Events::EventType::None;
+    if (screen == ScreenState::MainMenu) pendingLoad_ = {};
+    return;
+  }
+
+  for (u32 i = 0; i < count; ++i) {
+    if (events[i].type == Events::EventType::MenuBackRequested) {
+      pendingSaveMenuAction_ = Events::EventType::None;
+      return;
+    }
+  }
+
+  const auto startCampaign = [&](bool autosave, CheckpointData checkpoint) {
+    autosaveEnabled_ = autosave;
+    memoryCard_.bindSession(autosave);
+    lastSaveNotice_ = SaveNotice::None;
+    saveNoticeTicks_ = 0;
+    sessionCheckpoint_ = checkpoint;
+    menu.saveDialog = menu.confirmNewGame = false;
+    requestScene(checkpoint);
+  };
+
+  if (screen == ScreenState::LoadGame && screen != previousScreen) {
+    memoryCard_.refresh();
+    menu.saveStatus = memoryCard_.status();
+    return;
+  }
+  if (pendingSaveMenuAction_ == Events::EventType::None) {
+    for (u32 i = 0; i < count; ++i) {
+      const auto type = events[i].type;
+      if (type == Events::EventType::NewCampaignWithoutSaveRequested) {
+        startCampaign(false, {});
+        return;
+      }
+      if (type == Events::EventType::CheckCardRequested) {
+        memoryCard_.refresh();
+        return;
+      }
+      if (type == Events::EventType::LoadCheckpointRequested ||
+          type == Events::EventType::NewCampaignRequested) {
+        pendingSaveMenuAction_ = type;
+        memoryCard_.refresh();
+        menu.saveStatus = SaveStatus::Checking;
+        return;
+      }
+    }
+    return;
+  }
+  if (memoryCard_.busy()) return;
+
+  const bool loading = pendingSaveMenuAction_ == Events::EventType::LoadCheckpointRequested;
+  pendingSaveMenuAction_ = Events::EventType::None;
+  const auto status = memoryCard_.status();
+  menu.saveStatus = status;
+  const bool sameRecord = menuCardStatus_ == status && menuMediaEpoch_ == memoryCard_.mediaEpoch() &&
+      menuSaveSequence_ == memoryCard_.saved().sequence;
+  if (!sameRecord || (loading ? status != SaveStatus::Ready : !canEnableAutosave(status))) {
+    menu.confirmNewGame = false;
+    menu.saveChoice = 0;
+    return;
+  }
+
+  startCampaign(true, loading ? memoryCard_.saved().data : CheckpointData{});
+}
 
 void GameApp::updateSceneTransition() {
   auto& state = worldState_;
@@ -180,16 +319,22 @@ void GameApp::advanceLoading() {
       return;
     }
   } else {
-    scene.active = scene.target;
+    const auto target = scene.target;
+    scene = SceneState{};
+    scene.active = scene.target = target;
     scene.resident = true;
     scene.presented = false;
     worldState_.intro = SceneIntroState{true, 0};
-    scene.nearbyDoor = -1;
-    for (auto& door : scene.doors) door = DoorState{};
     const int health = worldState_.playerHealth;
     Systems::Enemy::EnemySystem::reset(worldState_);
     if (scene.active == SceneId::Interior) worldState_.playerHealth = health;
     worldState_.resetPlayerToSpawn();
+    if (pendingLoad_.stage != Checkpoint::None) {
+      restoreCheckpoint(worldState_, pendingLoad_);
+      pendingLoad_ = {};
+    } else if (scene.active == SceneId::Interior && worldState_.inventory.canEnter()) {
+      queueCheckpoint(Checkpoint::EnteredEtip);
+    }
     worldState_.menu.currentScreen = ScreenState::GameplayFps;
     return;
   }
