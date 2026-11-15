@@ -3,3 +3,6 @@
 /engine/obj/
 /game/bin/
 /game/obj/
+/artifacts/combat/
+/artifacts/droid-release/
+/artifacts/optimization/
