@@ -14,7 +14,7 @@
 #include <string>
 #include "renderer/models/color.hpp"
 #include "loaders/3d/obj_loader/tiny_obj_loader.hpp"
-#include <memory.h>
+#include <memory>
 #include <optional>
 
 namespace Tyra {
@@ -26,6 +26,8 @@ struct ObjLoaderAnimationOptions {
 
 struct ObjLoaderOptions {
   bool flipUVs = false;
+  // Already-triangulated vertex banks require the OBJ corner order unchanged.
+  bool preserveTriangleOrder = false;
   float scale = 1.0F;
   ObjLoaderAnimationOptions animation;
 };

@@ -2,6 +2,7 @@
 
 #include <tyra>
 #include <array>
+#include <algorithm>
 #include "core/combat_config.hpp"
 
 namespace DroidCampos {
@@ -10,10 +11,12 @@ namespace Core {
 constexpr float kDefaultPi = 3.1415926535F;
 constexpr float kDefaultEyeHeight = 1.70F;
 constexpr const char* kDefaultCodecMessage =
-    "DR. CAMPOS, DO YOU READ ME?\n"
-    "ETIP PERIMETER IS UNDER LOCKDOWN.\n"
-    "CHECK THE GUARD BOOTH AND CARD\n"
-    "READER TO BREACH THE MAIN GATE.";
+    "PM, ESTA NA ESCUTA?\n"
+    "AQUI E O CJE. ESTAMOS NA LINHA.\n"
+    "A ENTRADA DA ETIP ESTA BLOQUEADA.\n"
+    "PEGUE A ARMA E O CARTAO NA GUARITA.\n"
+    "LOCALIZE O LEITOR PERTO DA ENTRADA.\n"
+    "E ENTRE NO COMPLEXO. CAMBIO";
 
 enum class ScreenState : u8 {
   MainMenu = 0,
@@ -34,7 +37,7 @@ struct SceneState {
   bool resident = false;
   bool presented = false;
   bool requested = false;
-  int accessFrames = 0;
+  u32 accessTicks = 0;
   int loadStep = 0;
   int totalSteps = 0;
   const char* error = nullptr;
@@ -43,7 +46,7 @@ struct SceneState {
   bool terminalActive = false;
   int terminalTopic = 0;
   int terminalPage = 0;
-  int terminalEntry = 0;
+  unsigned int terminalAnimationFrame = 0;
   bool terminalReading = false;
   int terminalBootFrames = 0;
   DoorState doors[4] = {};
@@ -93,8 +96,11 @@ enum class RadioPhase : u8 { Idle, Waiting, Alert, Message };
 struct RadioCodecState {
   RadioPhase phase = RadioPhase::Idle;
   bool popupActive;
+  bool reviewing = false;
+
+  bool blocksGameplay() const { return popupActive && !reviewing; }
   int visibleChars;
-  float typeTimer;
+  u32 revealTicks = 0;
   const char* currentMessage;
 };
 
@@ -103,8 +109,10 @@ struct MenuNavigationState {
   int mainSelectedIndex;
   int loadSelectedIndex;
   int settingsSelectedIndex;
+  ScreenState settingsReturnScreen = ScreenState::MainMenu;
   int bgmVolume;
   int sfxVolume;
+  int ambientVolume;
   bool scanlinesEnabled;
   bool nearestFilter;
   int padCooldown;
@@ -126,6 +134,34 @@ struct CardReaderState {
 struct SceneIntroState {
   bool active = false;
   u32 elapsedTicks = 0;
+};
+
+enum class Pickup : u8 { Pistol, AccessCard, RearMedkit, SideRoomMedkit, Count };
+constexpr int kMedkitCapacity = 2;
+constexpr int kMedkitHeal = kPlayerHealth * 40 / 100;
+
+struct InventoryState {
+  std::array<bool, static_cast<int>(Pickup::Count)> collected{};
+  int medkits = 0;
+
+  bool has(Pickup item) const { return collected[static_cast<int>(item)]; }
+  bool armed() const { return has(Pickup::Pistol); }
+  bool canEnter() const { return armed() && has(Pickup::AccessCard); }
+  bool collect(Pickup item) {
+    if (item == Pickup::Count || has(item)) return false;
+    if (item == Pickup::RearMedkit || item == Pickup::SideRoomMedkit) {
+      if (medkits >= kMedkitCapacity) return false;
+      ++medkits;
+    }
+    collected[static_cast<int>(item)] = true;
+    return true;
+  }
+  bool useMedkit(int& health) {
+    if (medkits <= 0 || health <= 0 || health >= kPlayerHealth) return false;
+    health = std::min(kPlayerHealth, health + kMedkitHeal);
+    --medkits;
+    return true;
+  }
 };
 
 constexpr int kMagazineSize = 8;
@@ -164,16 +200,40 @@ struct EnemyState {
   u32 animationTicks = 0, shotAnimationTicks = 0, hitTicks = 0;
   u32 randomState = 1;
 };
+enum class DroidPhase : u8 { Inactive, ButtonRising, ButtonReady, Release, Pursuit, GameOver };
+constexpr float kDroidRadius=.60F;
+constexpr u32 kDroidSecond=15625;
+struct DroidEncounterState {
+  DroidPhase phase=DroidPhase::Inactive;
+  u32 phaseTicks=0, animationTicks=0, attackTicks=0, pathTicks=0;
+  bool buttonNearby=false, attacking=false, impactDone=false, moving=false, crouched=false, passage=false;
+  Tyra::Vec4 position=Tyra::Vec4(3.58F,1.237F,-29.F,1);
+  int passageDoor=-1, passageSide=1;
+  float yaw=-1.570796327F;
+  float opening() const {
+    return phase==DroidPhase::Release ? std::min(1.F,phaseTicks/(3.F*kDroidSecond)) :
+      (phase==DroidPhase::Pursuit || phase==DroidPhase::GameOver ? 1.F : 0.F);
+  }
+  bool mobile() const {return phase==DroidPhase::Pursuit || phase==DroidPhase::GameOver ||
+    (phase==DroidPhase::Release && phaseTicks>=3*kDroidSecond);}
+  float shake() const {
+    if(phase!=DroidPhase::Release)return 0;
+    float t=phaseTicks/float(kDroidSecond);
+    return t<3 ? t/3 : std::max(0.F,(6-t)/3);
+  }
+};
 struct EncounterState {
   EncounterPhase phase = EncounterPhase::Dormant;
   int wave = 0, remaining = 0;
   u32 countdownTicks = 0, attackTicks = 0;
+  u32 completionNoticeTicks = 0;
   int attackCursor = 0;
   bool checkpointValid = false;
   bool newEntryUnlocked = false, objectiveComplete = false;
   bool finalRadioPending = false;
   PlayerKinematicsState checkpointPlayer{};
   DoorState checkpointDoors[4]{};
+  InventoryState checkpointInventory{};
 };
 
 struct alignas(64) WorldState {
@@ -186,15 +246,21 @@ struct alignas(64) WorldState {
   SceneState scene;
   SceneIntroState intro;
   WeaponState weapon;
+  InventoryState inventory;
+  Pickup nearbyPickup = Pickup::Count;
   int playerHealth = kPlayerHealth;
   u32 damageFlashTicks = 0;
   std::array<EnemyState,kMaxEnemies> enemies{};
   EncounterState encounter;
+  DroidEncounterState droid;
 
-  bool simulationActive() const {
+  bool playerMovementActive() const {
     return menu.currentScreen == ScreenState::GameplayFps && scene.resident &&
-        scene.presented && !scene.requested && !scene.accessFrames &&
-        !intro.active && !scene.terminalActive && !radio.popupActive && playerHealth>0;
+        scene.presented && !scene.requested && !scene.accessTicks &&
+        !intro.active && !scene.terminalActive && playerHealth>0;
+  }
+  bool simulationActive() const {
+    return playerMovementActive() && !radio.blocksGameplay();
   }
 
   void resetPlayerToSpawn() {
@@ -223,11 +289,13 @@ struct alignas(64) WorldState {
 
     cardReader.isPlayerNearby = false;
     cardReader.isUnlocked = false;
+    nearbyPickup = Pickup::Count;
 
     radio.popupActive = true;
+    radio.reviewing = false;
     radio.phase = RadioPhase::Waiting;
     radio.visibleChars = 0;
-    radio.typeTimer = 0.0F;
+    radio.revealTicks = 0;
     radio.currentMessage = scene.active == SceneId::Interior
         ? "VOCE ESTA DENTRO DA ETIP.\nA ENTRADA FOI SELADA.\nEXPLORE AS SALAS LATERAIS.\nLOCALIZE O TERMINAL CENTRAL."
         : kDefaultCodecMessage;
@@ -235,6 +303,7 @@ struct alignas(64) WorldState {
 
   void resetToDefaults() {
     weapon = WeaponState{};
+    inventory = InventoryState{};
     playerHealth = kPlayerHealth;
     damageFlashTicks = 0;
     enemies = {};
@@ -251,13 +320,16 @@ struct alignas(64) WorldState {
     menu.mainSelectedIndex = 0;
     menu.loadSelectedIndex = 0;
     menu.settingsSelectedIndex = 0;
+    menu.settingsReturnScreen = ScreenState::MainMenu;
     menu.bgmVolume = 80;
     menu.sfxVolume = 90;
+    menu.ambientVolume = 70;
     menu.scanlinesEnabled = true;
     menu.nearestFilter = true;
     menu.padCooldown = 0;
     menu.activeSaveSlot = 1;
 
+    droid = DroidEncounterState{};
     anim.animTick = 0.0F;
     anim.scanlineY = 0.0F;
     anim.bgScrollOffset = 0.0F;

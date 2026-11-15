@@ -1,6 +1,6 @@
-# DroidCampos-PS2 v0.3.0
+# DroidCampos-PS2 v0.4.0
 
-Enfrente três ondas de inimigos e acesse o registro desbloqueado no terminal.
+Abra o registro após as ondas para liberar o DroidCampos e iniciar a perseguição.
 
 ## Compilar
 
@@ -15,6 +15,8 @@ executável. No PCSX2, abra esse ELF com a BIOS configurada.
 - X para pular, L1 para correr, R1 para atirar e Círculo para recarregar.
 - Círculo fecha as transmissões automáticas.
 - Triângulo abre o terminal quando estiver próximo.
+- Start abre a pausa. L2 alterna a revisão do rádio e R2 usa um kit médico.
+- Pegue a pistola e o cartão na guarita antes de usar o leitor externo.
 
 ## Créditos
 

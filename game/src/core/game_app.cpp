@@ -118,27 +118,34 @@ void GameApp::loop() {
     advanceLoading();
 }
 
-void GameApp::logSceneMemory(const char* phase) {
-  std::printf("[ETIP MEMORY] %s free=%.3f MiB textures=%lu\n", phase,
-      engine_->info.getAvailableRAM(),
-      static_cast<unsigned long>(engine_->renderer.getTextureRepository().getTexturesCount()));
-}
+
 
 void GameApp::updateSceneTransition() {
   auto& state = worldState_;
   auto& scene = state.scene;
-  if (state.menu.currentScreen == ScreenState::Paused) return;
-  if (scene.accessFrames > 0 && --scene.accessFrames == 0) {
-    scene.target = SceneId::Interior;
-    scene.requested = true;
+  if (state.menu.currentScreen == ScreenState::Paused ||
+      (state.menu.currentScreen == ScreenState::Settings &&
+       state.menu.settingsReturnScreen == ScreenState::Paused)) return;
+  if (scene.accessTicks > 0) {
+    const u32 elapsed = accessTimer_.getTimeDelta();
+    accessTimer_.prime();
+    if (elapsed < scene.accessTicks) {
+      scene.accessTicks -= elapsed;
+    } else {
+      scene.accessTicks = 0;
+      scene.target = SceneId::Interior;
+      scene.requested = true;
+    }
   }
   u32 count = 0;
   const auto* events = eventBus_.getFrameEvents(count);
   for (u32 i = 0; i < count; ++i) {
     if (events[i].type == Events::EventType::CardReaderInteracted &&
-        scene.active == SceneId::Exterior && scene.resident &&
-        scene.accessFrames == 0 && !scene.requested && !state.radio.popupActive) {
-      scene.accessFrames = 20;
+        scene.active == SceneId::Exterior && state.simulationActive() &&
+        state.inventory.canEnter()) {
+      scene.accessTicks = menuAudioSystem_.playCardReader(engine_, state.menu.sfxVolume);
+      accessTimer_.prime();
+      state.cardReader.isUnlocked = true;
       state.inputCmd.clear();
     }
   }
@@ -153,6 +160,7 @@ void GameApp::updateSceneTransition() {
   state.inputCmd.clear();
   state.weapon.cancelTransient();
   state.radio.popupActive = false;
+  state.radio.reviewing = false;
   state.radio.phase = RadioPhase::Idle;
 }
 
@@ -162,10 +170,8 @@ void GameApp::advanceLoading() {
     // endFrame swaps buffers, but does not itself wait for outstanding DMA/GS.
     engine_->renderer.core.sync.align3D();
     engine_->renderer.core.sync.align2D();
-    logSceneMemory("before unload");
     render3dSystem_.unloadScene(engine_);
     scene.resident = false;
-    logSceneMemory("after unload");
   } else if (scene.loadStep < scene.totalSteps) {
     if (!render3dSystem_.loadSceneStep(engine_, scene.target, scene.loadStep - 1)) {
       render3dSystem_.unloadScene(engine_);
@@ -173,7 +179,6 @@ void GameApp::advanceLoading() {
       scene.error = "ERRO AO CARREGAR INIMIGOS. VERIFIQUE OS ARQUIVOS.";
       return;
     }
-    logSceneMemory("load step");
   } else {
     scene.active = scene.target;
     scene.resident = true;
@@ -181,10 +186,11 @@ void GameApp::advanceLoading() {
     worldState_.intro = SceneIntroState{true, 0};
     scene.nearbyDoor = -1;
     for (auto& door : scene.doors) door = DoorState{};
+    const int health = worldState_.playerHealth;
     Systems::Enemy::EnemySystem::reset(worldState_);
+    if (scene.active == SceneId::Interior) worldState_.playerHealth = health;
     worldState_.resetPlayerToSpawn();
     worldState_.menu.currentScreen = ScreenState::GameplayFps;
-    logSceneMemory("scene ready");
     return;
   }
   ++scene.loadStep;

@@ -66,6 +66,21 @@ void Font::free(TextureRepository& repository) {
   repository.freeBySprite(allFont);
 }
 
+int Font::lineWidth(const char* text) const {
+  int width = 0;
+  int visibleWidth = 0;
+  for (; *text != '\0' && *text != '\n'; ++text) {
+    const int index = charLookup[static_cast<unsigned char>(*text)];
+    if (*text == ' ' || index == -1) {
+      width += 4;
+    } else {
+      visibleWidth = width + charWidths[index];
+      width = visibleWidth + 2;
+    }
+  }
+  return visibleWidth;
+}
+
 void Font::drawText(const char* text, const int& x, const int& y, Color color,
                     float scale) {
   drawText(std::string(text), x, y, color, scale);

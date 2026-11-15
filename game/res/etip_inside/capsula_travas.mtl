@@ -1,0 +1,3 @@
+newmtl PS2_Mat_Capsule_Pintura_Industrial
+Kd 1.000000 1.000000 1.000000
+map_Kd ps2_tex_capsule_pintura_desgastada.png

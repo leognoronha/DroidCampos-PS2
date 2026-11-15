@@ -31,7 +31,7 @@ class GameApp final : public Tyra::Game {
  private:
   void updateSceneTransition();
   void advanceLoading();
-  void logSceneMemory(const char* phase);
+  Tyra::Timer accessTimer_;
   Tyra::Engine* engine_;
   WorldState worldState_;
   Events::EventBus eventBus_;
