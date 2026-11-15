@@ -19,7 +19,8 @@ enum class ScreenState : u8 {
   LoadGame = 2,
   Settings = 3,
   GameplayFps = 4,
-  Loading = 5
+  Loading = 5,
+  Paused = 6
 };
 
 enum class SceneId : u8 { Exterior, Interior };
@@ -28,12 +29,15 @@ struct SceneState {
   SceneId active = SceneId::Exterior;
   SceneId target = SceneId::Exterior;
   bool resident = false;
+  bool presented = false;
   bool requested = false;
   int accessFrames = 0;
   int loadStep = 0;
   int totalSteps = 0;
   const char* error = nullptr;
   int nearbyDoor = -1;
+  bool terminalNearby = false;
+  bool terminalActive = false;
   DoorState doors[4] = {};
 };
 
@@ -50,6 +54,8 @@ struct alignas(16) PlayerKinematicsState {
   float walkBobAmount;
   float weaponSwayX;
   float weaponSwayY;
+  float verticalVelocity;
+  bool grounded;
 };
 
 struct alignas(16) InputCommandState {
@@ -58,6 +64,9 @@ struct alignas(16) InputCommandState {
   float lookYawDelta;
   float lookPitchDelta;
   bool isRunning;
+  bool jumpRequested;
+  bool fireRequested;
+  bool reloadRequested;
 
   void clear() {
     moveForward = 0.0F;
@@ -65,10 +74,16 @@ struct alignas(16) InputCommandState {
     lookYawDelta = 0.0F;
     lookPitchDelta = 0.0F;
     isRunning = false;
+    jumpRequested = false;
+    fireRequested = false;
+    reloadRequested = false;
   }
 };
 
+enum class RadioPhase : u8 { Idle, Waiting, Alert, Message };
+
 struct RadioCodecState {
+  RadioPhase phase = RadioPhase::Idle;
   bool popupActive;
   int visibleChars;
   float typeTimer;
@@ -86,6 +101,7 @@ struct MenuNavigationState {
   bool nearestFilter;
   int padCooldown;
   int activeSaveSlot;
+  int pauseSelectedIndex = 0;
 };
 
 struct AnimationFrameState {
@@ -99,6 +115,30 @@ struct CardReaderState {
   bool isUnlocked;
 };
 
+struct SceneIntroState {
+  bool active = false;
+  u32 elapsedTicks = 0;
+};
+
+constexpr int kMagazineSize = 8;
+constexpr u32 kShotIntervalTicks = 3907; // ceil(0.25 * 15625)
+constexpr u32 kReloadTicks = 8032; // ceil(0.514 * 15625)
+constexpr u32 kBeamTicks = 1250; // 80ms
+constexpr u32 kImpactTicks = 1563; // 100ms, rounded up
+struct WeaponState {
+  int ammo = kMagazineSize;
+  u32 cooldownTicks = 0;
+  u32 reloadTicks = 0;
+  u32 beamTicks = 0;
+  u32 impactTicks = 0;
+  bool impact = false;
+  Tyra::Vec4 beamStart, beamEnd, impactNormal;
+  void cancelTransient() {
+    cooldownTicks = reloadTicks = beamTicks = impactTicks = 0;
+    impact = false;
+  }
+};
+
 struct alignas(64) WorldState {
   PlayerKinematicsState player;
   InputCommandState inputCmd;
@@ -107,6 +147,8 @@ struct alignas(64) WorldState {
   AnimationFrameState anim;
   CardReaderState cardReader;
   SceneState scene;
+  SceneIntroState intro;
+  WeaponState weapon;
 
   void resetPlayerToSpawn() {
     player.playerPos.set(0.0F, kDefaultEyeHeight, 17.0F, 1.0F);
@@ -121,6 +163,10 @@ struct alignas(64) WorldState {
       player.cameraLookAt.set(0.0F, kDefaultEyeHeight, -2.8F, 1.0F);
       player.pitch = 0.0F;
     }
+    player.verticalVelocity = 0.0F;
+    player.grounded = true;
+    scene.terminalNearby = false;
+    scene.terminalActive = false;
     player.walkBobPhase = 0.0F;
     player.walkBobAmount = 0.0F;
     player.weaponSwayX = 0.0F;
@@ -131,7 +177,8 @@ struct alignas(64) WorldState {
     cardReader.isPlayerNearby = false;
     cardReader.isUnlocked = false;
 
-    radio.popupActive = scene.active == SceneId::Exterior;
+    radio.popupActive = true;
+    radio.phase = RadioPhase::Waiting;
     radio.visibleChars = 0;
     radio.typeTimer = 0.0F;
     radio.currentMessage = scene.active == SceneId::Interior
@@ -140,7 +187,9 @@ struct alignas(64) WorldState {
   }
 
   void resetToDefaults() {
+    weapon = WeaponState{};
     scene = SceneState{};
+    intro = SceneIntroState{};
     player.moveSpeed = 0.11F;
     player.lookSensitivity = 0.032F;
     radio.currentMessage = kDefaultCodecMessage;

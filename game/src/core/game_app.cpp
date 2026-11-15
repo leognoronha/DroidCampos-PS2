@@ -13,11 +13,14 @@ GameApp::GameApp(Tyra::Engine* engine)
       scheduler_(),
       uiDrawer_(),
       inputSystem_(),
+      menuAudioSystem_(),
       playerSystem_(),
       render3dSystem_(),
+      weaponSystem_(&render3dSystem_),
       radioCodecSystem_(&uiDrawer_),
       hudSystem_(&uiDrawer_),
-      menuSystem_(&uiDrawer_) {
+      menuSystem_(&uiDrawer_),
+      sceneIntroSystem_(&uiDrawer_) {
   worldState_.resetToDefaults();
 }
 
@@ -31,7 +34,7 @@ void GameApp::init() {
     return;
   }
 
-  engine_->renderer.setClearScreenColor(Tyra::Color(12.0F, 15.0F, 22.0F));
+  engine_->renderer.setClearScreenColor(Tyra::Color(0.0F, 0.0F, 0.0F));
   engine_->renderer.core.renderer2D.setTextureMappingType(Tyra::TyraNearest);
 
   worldState_.resetToDefaults();
@@ -41,10 +44,13 @@ void GameApp::init() {
 
   scheduler_.registerSubsystem(&inputSystem_);
   scheduler_.registerSubsystem(&playerSystem_);
+  scheduler_.registerSubsystem(&weaponSystem_);
   scheduler_.registerSubsystem(&radioCodecSystem_);
+  scheduler_.registerSubsystem(&menuAudioSystem_);
   scheduler_.registerSubsystem(&render3dSystem_);
   scheduler_.registerSubsystem(&hudSystem_);
   scheduler_.registerSubsystem(&menuSystem_);
+  scheduler_.registerSubsystem(&sceneIntroSystem_);
 
   scheduler_.initAll(engine_, worldState_, eventBus_);
 
@@ -63,11 +69,13 @@ void GameApp::loop() {
   scheduler_.runStage(HardwareStage::Stage0_IopInputPoll, engine_, worldState_,
                       eventBus_, scratchpad_);
 
+  // Convert scene requests to Loading before any simulation/audio can observe
+  // the input system's temporary GameplayFps state on confirmation.
+  updateSceneTransition();
+
   // Stage 1: EE + VU0 + Scratchpad Simulation
   scheduler_.runStage(HardwareStage::Stage1_EeVu0Simulation, engine_,
                       worldState_, eventBus_, scratchpad_);
-
-  updateSceneTransition();
 
   auto& renderer = engine_->renderer;
   renderer.core.renderer2D.setTextureMappingType(
@@ -90,8 +98,9 @@ void GameApp::loop() {
                         worldState_, eventBus_, scratchpad_);
 
     renderer.endFrame();
+    worldState_.scene.presented = true;
   } else {
-    renderer.setClearScreenColor(Tyra::Color(12.0F, 15.0F, 22.0F));
+    renderer.setClearScreenColor(Tyra::Color(0.0F, 0.0F, 0.0F));
     renderer.beginFrame();
 
     // Stage 3: GIF Path 3 2D Menus
@@ -116,6 +125,7 @@ void GameApp::logSceneMemory(const char* phase) {
 void GameApp::updateSceneTransition() {
   auto& state = worldState_;
   auto& scene = state.scene;
+  if (state.menu.currentScreen == ScreenState::Paused) return;
   if (scene.accessFrames > 0 && --scene.accessFrames == 0) {
     scene.target = SceneId::Interior;
     scene.requested = true;
@@ -133,11 +143,15 @@ void GameApp::updateSceneTransition() {
   if (!scene.requested) return;
   scene.requested = false;
   scene.loadStep = 0;
+  scene.presented = false;
+  state.intro = SceneIntroState{};
   scene.totalSteps = scene.target == SceneId::Interior ? kInsidePartCount + 1 : 3;
   scene.error = render3dSystem_.validateScene(scene.target) ? nullptr : "ASSET AUSENTE. VERIFIQUE OS ARQUIVOS.";
   state.menu.currentScreen = ScreenState::Loading;
   state.inputCmd.clear();
+  state.weapon.cancelTransient();
   state.radio.popupActive = false;
+  state.radio.phase = RadioPhase::Idle;
 }
 
 void GameApp::advanceLoading() {
@@ -156,6 +170,8 @@ void GameApp::advanceLoading() {
   } else {
     scene.active = scene.target;
     scene.resident = true;
+    scene.presented = false;
+    worldState_.intro = SceneIntroState{true, 0};
     scene.nearbyDoor = -1;
     for (auto& door : scene.doors) door = DoorState{};
     worldState_.resetPlayerToSpawn();

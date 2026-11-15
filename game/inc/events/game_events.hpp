@@ -13,7 +13,13 @@ enum class EventType : u8 {
   RadioTransmissionTriggered = 4,
   AudioSettingChanged = 5,
   VideoFilterChanged = 6,
-  CardReaderInteracted = 7
+  CardReaderInteracted = 7,
+  MenuConfirmRequested = 8,
+  MenuBackRequested = 9,
+  MenuNavigateRequested = 10,
+  RadioReviewRequested = 11,
+  WeaponFired = 12,
+  WeaponReloadStarted = 13
 };
 
 struct alignas(16) GameEvent {

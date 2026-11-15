@@ -35,6 +35,7 @@ void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
   capsuleGlassOptions_.blendingEnabled = true;
   capsuleGlassOptions_.zTestType = PipelineZTest_Standard;
   loadPistol3D(engine);
+  loadWeaponEffects();
   updatePistolViewmodelTransform(state);
   updateAbandonedSignFlicker(state);
   updateCardReaderLight(state, bus);
@@ -73,6 +74,7 @@ void WorldRenderSystem::loadScenario3D(Engine* engine) {
   scenarioOptions_.transformationType = TyraMVP;
 
   prepareOpaqueMesh(scenarioMesh_.get(), repo, stapip_);
+  registerWeaponGeometry(scenarioMesh_.get());
   scenarioLoaded_ = true;
   TYRA_LOG("ETIP 3D Scenario loaded successfully!");
 }
@@ -140,6 +142,14 @@ void WorldRenderSystem::updatePistolViewmodelTransform(
   }
 
   const auto& p = state.player;
+  const float recoil =
+      static_cast<float>(state.weapon.beamTicks) / Core::kBeamTicks;
+  const float reload =
+      state.weapon.reloadTicks
+          ? std::sin((1.0F - static_cast<float>(state.weapon.reloadTicks) /
+                                 Core::kReloadTicks) *
+                     3.14159265F)
+          : 0;
 
   // Lissajous figure-8 walking bob + idle breathing + camera look inertia sway
   const float idleBreath = std::sin(state.anim.animTick * 0.75F) * 0.0035F;
@@ -152,15 +162,122 @@ void WorldRenderSystem::updatePistolViewmodelTransform(
   pistolMesh_->rotation.identity();
   pistolMesh_->scale.identity();
 
-  // Position in lower-right FPS hand (View Space: +X right, -Y down, -Z forward)
-  pistolMesh_->translation.translate(Vec4(
-      0.145F + bobX + p.weaponSwayX,
-      -0.135F + bobY + p.weaponSwayY + idleBreath, -0.320F + bobZ, 1.0F));
+  // Position in lower-right FPS hand (View Space: +X right, -Y down, -Z
+  // forward)
+  pistolMesh_->translation.translate(
+      Vec4(0.145F + bobX + p.weaponSwayX,
+           -0.135F + bobY + p.weaponSwayY + idleBreath - reload * .12F,
+           -0.320F + bobZ + recoil * .018F, 1.0F));
 
   // Slight natural inward angle toward center crosshair + dynamic sway tilt
   pistolMesh_->rotation.rotateY(0.11F - p.weaponSwayX * 1.8F);
-  pistolMesh_->rotation.rotateX(0.03F + p.weaponSwayY * 1.6F + bobY * 0.9F);
+  pistolMesh_->rotation.rotateX(0.03F + p.weaponSwayY * 1.6F + bobY * 0.9F +
+                                recoil * .045F + reload * .25F);
   pistolMesh_->rotation.rotateZ(-bobX * 1.4F - p.weaponSwayX * 1.2F);
+}
+
+void WorldRenderSystem::registerWeaponGeometry(StaticMesh* mesh, int door) {
+  if (!mesh) return;
+  for (const auto* mat : mesh->materials) {
+    if (mat->frames.empty()) continue;
+    const auto* f = mat->frames[0];
+    weaponRays_.add(f->vertices, f->count, door);
+  }
+}
+
+Vec4 WorldRenderSystem::weaponMuzzle(const Core::WorldState& state) {
+  using namespace Weapon;
+  updatePistolViewmodelTransform(state);
+  // Barrel end in pistol_scifi.obj coordinates; exactly the viewmodel
+  // transform.
+  Vec4 view(.145F, -.135F, -.5095F, 1);
+  if (pistolMesh_)
+    view = pistolMesh_->getModelMatrix() * Vec4(0, .034F, -.1895F, 1);
+  const auto forward =
+      unit(sub(state.player.cameraLookAt, state.player.cameraPos));
+  const auto right = unit(cross(forward, Vec4(0, 1, 0, 0)));
+  const auto up = unit(cross(right, forward));
+  return add(
+      state.player.cameraPos,
+      add(mul(right, view.x), add(mul(up, view.y), mul(forward, -view.z))));
+}
+
+void WorldRenderSystem::loadWeaponEffects() {
+  ObjLoaderOptions options;
+  options.scale = 1;
+  options.flipUVs = false;
+  auto beam =
+      ObjLoader::load(FileUtils::fromCwd("weapon/laser_beam.obj"), options);
+  beamCore_ = std::make_unique<StaticMesh>(beam.get());
+  // Separate loads preserve ownership of the immutable vertex arrays.
+  beam.reset();
+  beam = ObjLoader::load(FileUtils::fromCwd("weapon/laser_beam.obj"), options);
+  beamGlow_ = std::make_unique<StaticMesh>(beam.get());
+  auto impact =
+      ObjLoader::load(FileUtils::fromCwd("weapon/laser_impact.obj"), options);
+  impactMesh_ = std::make_unique<StaticMesh>(impact.get());
+  laserOptions_ = scenarioOptions_;
+  laserOptions_.blendingEnabled = true;
+  laserOptions_.zTestType = PipelineZTest_Standard;
+}
+
+void WorldRenderSystem::renderWeaponEffects(Engine* engine,
+                                            const Core::WorldState& state) {
+  using namespace Weapon;
+  const auto& w = state.weapon;
+  if (!beamCore_ || !beamGlow_ || !impactMesh_) return;
+  // The unit geometry never changes: model transforms keep Tyra's bbox cache
+  // valid.
+  auto pose = [](StaticMesh* mesh, const Vec4& position, const Vec4& x,
+                 const Vec4& y, const Vec4& z, float sx, float sy, float sz,
+                 const Color& color) {
+    mesh->translation.identity();
+    mesh->translation.translate(position);
+    mesh->rotation.identity();
+    mesh->scale.identity();
+    mesh->rotation.data[0] = x.x;
+    mesh->rotation.data[1] = x.y;
+    mesh->rotation.data[2] = x.z;
+    mesh->rotation.data[4] = y.x;
+    mesh->rotation.data[5] = y.y;
+    mesh->rotation.data[6] = y.z;
+    mesh->rotation.data[8] = z.x;
+    mesh->rotation.data[9] = z.y;
+    mesh->rotation.data[10] = z.z;
+    mesh->scale.scale(Vec4(sx, sy, sz, 1));
+    for (auto* mat : mesh->materials)
+      mat->ambient.set(color.r, color.g, color.b, color.a);
+  };
+  if (w.beamTicks) {
+    const auto segment = sub(w.beamEnd, w.beamStart);
+    const float length = std::sqrt(dot(segment, segment));
+    if (length > .001F) {
+      const auto forward = unit(segment);
+      const auto axis =
+          std::fabs(forward.y) < .95F ? Vec4(0, 1, 0, 0) : Vec4(1, 0, 0, 0);
+      const auto right = unit(cross(axis, forward));
+      const auto up = unit(cross(forward, right));
+      pose(beamGlow_.get(), w.beamStart, right, up, forward, .018F, .018F,
+           length, Color(0, 100, 128, 44));
+      pose(beamCore_.get(), w.beamStart, right, up, forward, .004F, .004F,
+           length, Color(100, 128, 128, 128));
+      renderTransparentPass(engine, beamGlow_.get(), laserOptions_);
+      renderTransparentPass(engine, beamCore_.get(), laserOptions_);
+    }
+  }
+  if (w.impact && w.impactTicks) {
+    const auto normal = unit(w.impactNormal);
+    const auto axis =
+        std::fabs(normal.y) < .95F ? Vec4(0, 1, 0, 0) : Vec4(1, 0, 0, 0);
+    const auto right = unit(cross(axis, normal));
+    const auto up = unit(cross(normal, right));
+    const auto position = add(w.beamEnd, mul(normal, .006F));
+    const float radius =
+        .025F + .035F * static_cast<float>(w.impactTicks) / Core::kImpactTicks;
+    pose(impactMesh_.get(), position, right, up, normal, radius, radius, 1,
+         Color(30, 128, 128, 100));
+    renderTransparentPass(engine, impactMesh_.get(), laserOptions_);
+  }
 }
 
 void WorldRenderSystem::updateAbandonedSignFlicker(
@@ -306,6 +423,8 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       renderTransparentPass(engine, capsuleGlassMesh_.get(), capsuleGlassOptions_);
     }
 
+    renderWeaponEffects(engine, state);
+
     if (pistolLoaded_ && pistolMesh_ != nullptr) {
       stapip_.render(pistolMesh_.get(), pistolOptions_);
     }
@@ -324,6 +443,7 @@ void WorldRenderSystem::shutdown(Engine* engine) {
   scenarioMesh_.reset();
   mistMesh_.reset();
   pistolMesh_.reset();
+  beamCore_.reset(); beamGlow_.reset(); impactMesh_.reset();
   etipLogoMat_ = nullptr;
   etipBoardMat_ = nullptr;
   cardReaderLightMat_ = nullptr;
@@ -366,6 +486,7 @@ void WorldRenderSystem::unloadScene(Engine* engine) {
   // New scene allocations may reuse the same vertex addresses. Do not keep
   // address-keyed bounding boxes from the previously unloaded geometry.
   stapip_.core.clearGeometryCache();
+  weaponRays_.clear();
   auto& repo = engine->renderer.getTextureRepository();
   if (scenarioMesh_) repo.freeByMesh(scenarioMesh_.get());
   if (mistMesh_) repo.freeByMesh(mistMesh_.get());
@@ -417,6 +538,9 @@ void WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
   }
   if (std::string(Core::kInsideParts[step]) != "capsula_vidro")
     prepareOpaqueMesh(mesh.get(), repo, stapip_);
+  if (step == Core::kInsidePartCount - 1) {
+    for(int door=0;door<4;++door) registerWeaponGeometry(mesh.get(),door);
+  } else registerWeaponGeometry(mesh.get());
   if (std::string(Core::kInsideParts[step]) == "capsula_vidro") capsuleGlassMesh_ = std::move(mesh);
   else if (step == Core::kInsidePartCount - 1) doorMesh_ = std::move(mesh);
   else interiorMeshes_.push_back(std::move(mesh));

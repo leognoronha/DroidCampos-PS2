@@ -29,7 +29,7 @@ void HudSystem::executeStage(Core::HardwareStage stage, Engine* engine,
 
   if (stage == Core::HardwareStage::Stage3_GifPath3Render2D) {
     if (state.menu.currentScreen == Core::ScreenState::GameplayFps &&
-        drawer_ != nullptr) {
+        !state.intro.active && drawer_ != nullptr) {
       renderFpsHud(state);
     }
   }
@@ -76,39 +76,75 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   // Contextual Card Reader Interaction Prompt
   if (state.cardReader.isPlayerNearby && !state.radio.popupActive) {
     if (state.cardReader.isUnlocked) {
-      drawer_->drawPanel(96.0F, 376.0F, 320.0F, 26.0F,
+      drawer_->drawPanel(12.0F, 376.0F, 356.0F, 26.0F,
                          Color(8.0F, 26.0F, 14.0F, 102.0F),
                          Color(30.0F, 230.0F, 80.0F, 115.0F));
-      drawer_->getFont().drawText("[ACESSO LIBERADO - LUZ VERDE ATIVA]", 112,
+      drawer_->getFont().drawText("[ACESSO LIBERADO - LUZ VERDE ATIVA]", 24,
                                   382, Color(80.0F, 250.0F, 120.0F, 128.0F),
                                   1.0F);
     } else {
-      drawer_->drawPanel(76.0F, 376.0F, 360.0F, 26.0F,
+      drawer_->drawPanel(12.0F, 376.0F, 356.0F, 26.0F,
                          Color(28.0F, 10.0F, 12.0F, 102.0F),
                          Color(235.0F, 50.0F, 50.0F, 115.0F));
       drawer_->getFont().drawText(
-          "[QUADRADO] INTERAGIR LEITOR (LUZ VERMELHA)", 90, 382,
-          Color(255.0F, 140.0F, 140.0F, 128.0F), 1.0F);
+          "[QUADRADO] INTERAGIR LEITOR (LUZ VERMELHA)", 24, 382,
+          Color(255.0F, 140.0F, 140.0F, 128.0F), .85F);
     }
+  }
+
+  if (state.scene.terminalNearby && !state.radio.popupActive) {
+    drawer_->drawPanel(76, 344, 360, 58, Color(8, 16, 22, 112), Color(0, 190, 210, 128));
+    drawer_->getFont().drawText(state.scene.terminalActive
+        ? "TERMINAL ETIP // CONECTADO" : "[TRIANGULO] INTERAGIR TERMINAL",
+        90, 352, Color(160, 240, 240, 128));
+    if (state.scene.terminalActive)
+      drawer_->getFont().drawText("[TRIANGULO] FECHAR TERMINAL", 90, 378,
+                                  Color(160, 240, 240, 128));
+  }
+
+  if (!state.radio.popupActive && !state.scene.terminalNearby) {
+    const auto& w = state.weapon;
+    const Color cyan(40, 120, 128, 128), dim(18, 48, 54, 128);
+    const Color ink = w.ammo ? cyan : Color(128, 70, 30, 128);
+    drawer_->drawBlueprintPanel(380, 344, 120, 60, Color(2, 7, 10, 120), cyan);
+    drawer_->getFont().drawText("LASER", 390, 347, cyan, 1.0F);
+    drawer_->getFont().drawText("INF", 470, 347, cyan, 1.0F);
+    char ammo[16];
+    std::snprintf(ammo, sizeof(ammo), "%02d / 08", w.ammo);
+    drawer_->getFont().drawText(ammo, 390, 363, ink, 1.0F);
+    for (int i = 0; i < Core::kMagazineSize; ++i)
+      drawer_->drawRect(390 + i * 12, 381, 9, 3, i < w.ammo ? cyan : dim);
+    if (w.reloadTicks) {
+      drawer_->getFont().drawText("RECARREGANDO", 390, 385, cyan, 1.0F);
+      drawer_->drawRect(390, 402, 96, 1, dim);
+      drawer_->drawRect(
+          390, 402,
+          96 * (1.0F - static_cast<float>(w.reloadTicks) / Core::kReloadTicks),
+          1, cyan);
+    } else if (w.ammo == 0)
+      drawer_->getFont().drawText("O: RECARREGAR", 390, 385, ink, 1.0F);
   }
 
   // Bottom Controls Bar
   if (state.scene.nearbyDoor >= 0 && !state.radio.popupActive) {
     const auto& door = state.scene.doors[state.scene.nearbyDoor];
-    drawer_->drawPanel(116, 376, 280, 26, Color(8, 16, 22, 112), Color(0, 190, 210, 128));
-    drawer_->getFont().drawText(door.targetOpen ? "[QUADRADO] FECHAR PORTA" : "[QUADRADO] ABRIR PORTA",
-                                132, 382, Color(160, 240, 240, 128));
+    drawer_->drawPanel(12, 376, 356, 26, Color(8, 16, 22, 112),
+                       Color(0, 190, 210, 128));
+    drawer_->getFont().drawText(
+        door.targetOpen ? "[QUADRADO] FECHAR PORTA" : "[QUADRADO] ABRIR PORTA",
+        24, 382, Color(160, 240, 240, 128));
   }
   drawer_->drawPanel(12.0F, 412.0F, 488.0F, 24.0F,
                      Color(8.0F, 12.0F, 18.0F, 92.0F),
                      Color(80.0F, 100.0F, 120.0F, 85.0F));
   if (state.radio.popupActive) {
-    drawer_->getFont().drawText(
-        "X: CLOSE RADIO   L-STICK/DPAD: WALK   R-STICK: LOOK   SELECT: MENU",
-        20, 417, Color(140.0F, 245.0F, 190.0F, 128.0F), 0.95F);
+    drawer_->getFont().drawText(state.radio.phase == Core::RadioPhase::Message
+                                    ? "O: CLOSE RADIO // START: PAUSA"
+                                    : "RADIO // INCOMING TRANSMISSION...",
+                                20, 417, Color(80, 120, 116, 128), 1.0F);
   } else {
     drawer_->getFont().drawText(
-        "L-STICK/DPAD: WALK   R-STICK/BTNS: LOOK   L2: RADIO   SELECT: MENU",
+        "R1: TIRO  O: RECARGA  X: PULO  L1: CORRER  L2: RADIO  START: PAUSA",
         20, 417, Color(190.0F, 215.0F, 230.0F, 128.0F), 0.95F);
   }
 }
