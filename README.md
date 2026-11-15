@@ -1,6 +1,6 @@
-# DroidCampos-PS2 v0.2.0
+# DroidCampos-PS2 v0.3.0
 
-O menu e a introdução apresentam a ETIP, com rádio, pulo e pistola laser.
+Enfrente três ondas de inimigos e acesse o registro desbloqueado no terminal.
 
 ## Compilar
 
@@ -14,6 +14,7 @@ executável. No PCSX2, abra esse ELF com a BIOS configurada.
 - Quadrado para interagir com o cenário.
 - X para pular, L1 para correr, R1 para atirar e Círculo para recarregar.
 - Círculo fecha as transmissões automáticas.
+- Triângulo abre o terminal quando estiver próximo.
 
 ## Créditos
 

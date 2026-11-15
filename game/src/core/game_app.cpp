@@ -17,6 +17,7 @@ GameApp::GameApp(Tyra::Engine* engine)
       playerSystem_(),
       render3dSystem_(),
       weaponSystem_(&render3dSystem_),
+      enemySystem_(&render3dSystem_),
       radioCodecSystem_(&uiDrawer_),
       hudSystem_(&uiDrawer_),
       menuSystem_(&uiDrawer_),
@@ -45,6 +46,7 @@ void GameApp::init() {
   scheduler_.registerSubsystem(&inputSystem_);
   scheduler_.registerSubsystem(&playerSystem_);
   scheduler_.registerSubsystem(&weaponSystem_);
+  scheduler_.registerSubsystem(&enemySystem_);
   scheduler_.registerSubsystem(&radioCodecSystem_);
   scheduler_.registerSubsystem(&menuAudioSystem_);
   scheduler_.registerSubsystem(&render3dSystem_);
@@ -145,7 +147,7 @@ void GameApp::updateSceneTransition() {
   scene.loadStep = 0;
   scene.presented = false;
   state.intro = SceneIntroState{};
-  scene.totalSteps = scene.target == SceneId::Interior ? kInsidePartCount + 1 : 3;
+  scene.totalSteps = scene.target == SceneId::Interior ? kInsideLoadStepCount + 1 : 3;
   scene.error = render3dSystem_.validateScene(scene.target) ? nullptr : "ASSET AUSENTE. VERIFIQUE OS ARQUIVOS.";
   state.menu.currentScreen = ScreenState::Loading;
   state.inputCmd.clear();
@@ -165,7 +167,12 @@ void GameApp::advanceLoading() {
     scene.resident = false;
     logSceneMemory("after unload");
   } else if (scene.loadStep < scene.totalSteps) {
-    render3dSystem_.loadSceneStep(engine_, scene.target, scene.loadStep - 1);
+    if (!render3dSystem_.loadSceneStep(engine_, scene.target, scene.loadStep - 1)) {
+      render3dSystem_.unloadScene(engine_);
+      scene.resident = false;
+      scene.error = "ERRO AO CARREGAR INIMIGOS. VERIFIQUE OS ARQUIVOS.";
+      return;
+    }
     logSceneMemory("load step");
   } else {
     scene.active = scene.target;
@@ -174,6 +181,7 @@ void GameApp::advanceLoading() {
     worldState_.intro = SceneIntroState{true, 0};
     scene.nearbyDoor = -1;
     for (auto& door : scene.doors) door = DoorState{};
+    Systems::Enemy::EnemySystem::reset(worldState_);
     worldState_.resetPlayerToSpawn();
     worldState_.menu.currentScreen = ScreenState::GameplayFps;
     logSceneMemory("scene ready");
