@@ -17,7 +17,8 @@ with tempfile.TemporaryDirectory(prefix='droid-menu-audio-') as scratch:
                          ('pegando-kitmedic.wav', 'pickup_medkit'),
                          ('impact-punch.mp3', 'impact_punch'),
                          ('heal-up.mp3', 'heal_up'),
-                         ('sci-fi-game-over.wav', 'game_over')]:
+                         ('sci-fi-game-over.wav', 'game_over'),
+                         ('cesabe-droidcampos.mp3', 'droid_ce_sabe')]:
         pcm = Path(scratch) / (name + '.wav')
         encoded = Path(scratch) / (name + '.adpcm')
         subprocess.run([args.ffmpeg, '-hide_banner', '-loglevel', 'error', '-y',
@@ -28,8 +29,8 @@ with tempfile.TemporaryDirectory(prefix='droid-menu-audio-') as scratch:
         subprocess.run([args.adpenc, str(pcm), str(encoded)], check=True)
         data = encoded.read_bytes()
         assert 32 <= len(data) <= 128 * 1024 and len(data) % 16 == 0
-        magic, version, channels, loop, _, pitch, samples = struct.unpack('<4sBBBBII', data[:16])
-        assert (magic, version, channels, loop) == (b'APCM', 1, 1, 0)
+        magic, version, channels, loop_flag, _, pitch, samples = struct.unpack('<4sBBBBII', data[:16])
+        assert (magic, version, channels, loop_flag) == (b'APCM', 1, 1, 0)
         assert pitch == 22050 * 4096 // 48000 and samples > 0
         output = root / 'game/res/audio'
         output.mkdir(parents=True, exist_ok=True)

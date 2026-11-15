@@ -42,6 +42,10 @@ class MenuAudioSystem final : public Core::ISubsystem {
   Loop menuMusic_;
   Loop droidAlarm_;
   Loop droidSteps_;
+  Effect droidVoice_;
+  int droidVoiceVolume_ = -1;
+  u32 nextDroidVoiceTick_ = 0;
+  void updateDroidVoice(Tyra::Engine* engine, const Core::WorldState& state, bool encounterActive);
   audsrv_adpcm_t confirm_{};
   audsrv_adpcm_t back_{};
   void updateRadio(Tyra::Engine* engine, Core::WorldState& state);
