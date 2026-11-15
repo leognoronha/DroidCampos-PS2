@@ -29,6 +29,8 @@ inline Tyra::Vec4 unit(const Tyra::Vec4& a) {
 }
 struct RayHit {
   float distance = 50.0F;
+  int actor = -2; // -2 world, -1 player, 0..4 enemy
+  int shooter = -1;
   Tyra::Vec4 position = Tyra::Vec4(0, 0, 0, 1);
   Tyra::Vec4 normal = Tyra::Vec4(0, 1, 0, 0);
 };

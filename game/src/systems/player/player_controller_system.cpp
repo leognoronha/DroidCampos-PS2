@@ -1,5 +1,6 @@
 #include "systems/player/player_controller_system.hpp"
 #include "systems/physics/collision_system.hpp"
+#include "systems/physics/interior_geometry.hpp"
 #include <cmath>
 
 namespace DroidCampos {
@@ -39,7 +40,7 @@ void PlayerControllerSystem::executeStage(
 
   updateGlobalAnimations(state);
 
-  if (state.menu.currentScreen == Core::ScreenState::GameplayFps) {
+  if (state.simulationActive()) {
     updateFpsKinematics(state, scratchpad);
   }
 }
@@ -150,7 +151,12 @@ void PlayerControllerSystem::updateFpsKinematics(
   float nextZ =
       state.player.playerPos.z + (fwdZ * moveForward + rightZ * moveStrafe) * step;
 
-  Physics::CollisionSystem::resolvePlayerCollisions(nextX, nextZ, scratchpad, state);
+  if(state.scene.active==Core::SceneId::Interior) {
+    auto next=Physics::moveInterior(state,state.player.playerPos,
+        nextX-state.player.playerPos.x,nextZ-state.player.playerPos.z,
+        Core::kPlayerBodyRadius,-1);
+    nextX=next.x;nextZ=next.z;
+  } else Physics::CollisionSystem::resolvePlayerCollisions(nextX,nextZ,scratchpad,state);
 
   state.player.playerPos.x = nextX;
   // Fixed simulation ticks, matching horizontal movement. No allocations.

@@ -27,6 +27,7 @@ class HudSystem : public Core::ISubsystem {
 
  private:
   void renderFpsHud(const Core::WorldState& state);
+  void renderTerminal(const Core::WorldState& state);
 
   UiContextDrawer* drawer_;
 };

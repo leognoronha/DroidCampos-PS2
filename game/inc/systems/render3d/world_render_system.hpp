@@ -5,6 +5,7 @@
 #include <map>
 #include "core/isubsystem.hpp"
 #include "systems/weapon/weapon_geometry.hpp"
+#include "systems/enemy/enemy_render_system.hpp"
 
 namespace DroidCampos {
 namespace Systems {
@@ -30,7 +31,7 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
   }
   Tyra::Vec4 weaponMuzzle(const Core::WorldState& state) override;
   void unloadScene(Tyra::Engine* engine);
-  void loadSceneStep(Tyra::Engine* engine, Core::SceneId scene, int step);
+  bool loadSceneStep(Tyra::Engine* engine, Core::SceneId scene, int step);
 
  private:
   void loadScenario3D(Tyra::Engine* engine);
@@ -38,6 +39,7 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
   void loadPistol3D(Tyra::Engine* engine);
   void loadWeaponEffects();
   void renderWeaponEffects(Tyra::Engine*,const Core::WorldState&);
+  void renderOneWeaponEffect(Tyra::Engine*,const Core::WeaponState&);
   void registerWeaponGeometry(Tyra::StaticMesh*,int door=-1);
   Weapon::WeaponRayScene weaponRays_;
   std::unique_ptr<Tyra::StaticMesh> beamCore_, beamGlow_, impactMesh_;
@@ -49,6 +51,7 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
   void updateCardReaderLight(Core::WorldState& state, Events::EventBus& bus);
 
   Tyra::StaticPipeline stapip_;
+  Enemy::EnemyRenderSystem enemyRenderer_;
 
   std::unique_ptr<Tyra::StaticMesh> scenarioMesh_;
   Tyra::StaPipOptions scenarioOptions_;
