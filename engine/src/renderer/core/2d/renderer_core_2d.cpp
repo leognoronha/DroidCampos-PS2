@@ -16,8 +16,8 @@ namespace Tyra {
 
 RendererCore2D::RendererCore2D() {
   context = 0;
-  packets[0] = packet2_create(16, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
-  packets[1] = packet2_create(16, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
+  packets[0] = packet2_create(PacketQuadwords, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
+  packets[1] = packet2_create(PacketQuadwords, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
   rects[0] = new texrect_t;
   rects[1] = new texrect_t;
 
@@ -26,6 +26,7 @@ RendererCore2D::RendererCore2D() {
 }
 
 RendererCore2D::~RendererCore2D() {
+  dma_channel_wait(DMA_CHANNEL_GIF, 0);
   packet2_free(packets[0]);
   packet2_free(packets[1]);
   delete rects[0];
@@ -65,6 +66,11 @@ void RendererCore2D::init(RendererSettings* t_settings,
 void RendererCore2D::render(const Sprite& sprite,
                             const RendererCoreTextureBuffers& texBuffers,
                             Texture* texture) {
+  renderBatch(&sprite, 1, texBuffers, texture);
+}
+
+void RendererCore2D::appendSprite(packet2_t* packet, const Sprite& sprite,
+                                  Texture* texture) {
   auto* rect = rects[context];
   float sizeX, sizeY;
 
@@ -107,30 +113,37 @@ void RendererCore2D::render(const Sprite& sprite,
   // rect->v1.y /= 2.0F;  // interlacing
   rect->v1.z = (u32)-1;
 
-  auto* packet = packets[context];
-
-  packet2_reset(packet, false);
-  packet2_update(packet, draw_primitive_xyoffset(packet->base, 0, SCREEN_CENTER,
-                                                 SCREEN_CENTER));
-
-  packet2_utils_gif_add_set(packet, 1);
-  packet2_utils_gs_add_lod(packet, &lod);
-  packet2_utils_gif_add_set(packet, 1);
-  packet2_utils_gs_add_texbuff_clut(packet, texBuffers.core, clutBuffer);
-  draw_enable_blending();
   packet2_update(packet, draw_rect_textured(packet->next, 0, rect));
+}
 
-  packet2_update(packet, draw_primitive_xyoffset(
-                             packet->next, 0,
-                             SCREEN_CENTER - (settings->getWidth() / 2.0F),
-                             SCREEN_CENTER - (settings->getHeight() / 2.0F)));
-  draw_disable_blending();
-  packet2_update(packet, draw_finish(packet->next));
-
-  dma_channel_wait(DMA_CHANNEL_GIF, 0);
-  dma_channel_send_packet2(packet, DMA_CHANNEL_GIF, true);
-
-  context = !context;
+void RendererCore2D::renderBatch(const Sprite* sprites, const u32 count,
+                                 const RendererCoreTextureBuffers& texBuffers,
+                                 Texture* texture) {
+  for (u32 start = 0; start < count;) {
+    const u32 remaining = count - start;
+    const u32 batchCount = remaining < MaxSpritesPerBatch ? remaining : MaxSpritesPerBatch;
+    auto* packet = packets[context];
+    packet2_reset(packet, false);
+    packet2_update(packet, draw_primitive_xyoffset(packet->base, 0, SCREEN_CENTER,
+                                                   SCREEN_CENTER));
+    packet2_utils_gif_add_set(packet, 1);
+    packet2_utils_gs_add_lod(packet, &lod);
+    packet2_utils_gif_add_set(packet, 1);
+    packet2_utils_gs_add_texbuff_clut(packet, texBuffers.core, clutBuffer);
+    draw_enable_blending();
+    for (u32 i = 0; i < batchCount; ++i) appendSprite(packet, sprites[start + i], texture);
+    packet2_update(packet, draw_primitive_xyoffset(packet->next, 0,
+        SCREEN_CENTER - (settings->getWidth() / 2.0F),
+        SCREEN_CENTER - (settings->getHeight() / 2.0F)));
+    draw_disable_blending();
+    packet2_update(packet, draw_finish(packet->next));
+    TYRA_ASSERT(packet2_get_qw_count(packet) <= PacketQuadwords,
+                "2D sprite batch exceeds packet capacity");
+    dma_channel_wait(DMA_CHANNEL_GIF, 0);
+    dma_channel_send_packet2(packet, DMA_CHANNEL_GIF, true);
+    context = !context;
+    start += batchCount;
+  }
 }
 
 void RendererCore2D::setTextureMappingType(

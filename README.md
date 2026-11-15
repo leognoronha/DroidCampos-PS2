@@ -1,25 +1,18 @@
-# DroidCampos-PS2 (v0.0.1)
+# DroidCampos-PS2 v0.1.0
 
-Jogo low-poly industrial desenvolvido para **PlayStation 2** utilizando a engine C++ **Tyra (PS2SDK)**.
+Explore o pátio, acione o leitor de cartão e entre no interior da ETIP.
 
-## Estrutura do Repositório
+## Compilar
 
-- `engine/` — Código-fonte da engine Tyra para PlayStation 2 (EE / GS / VU1 / IOP).
-- `game/` — Código-fonte, headers e recursos de **DroidCampos-PS2** (`droid_campos.elf`):
-  - `game/src/` — Implementação do jogo (`main.cpp`, `droid_campos_game.cpp`, `font_sprite.cpp`).
-  - `game/inc/` — Cabeçalhos (`droid_campos_game.hpp`, `font_sprite.hpp`).
-  - `game/res/` — Texturas, fontes e assets do jogo.
-- `Makefile.base` — Regras base de compilação com `mips64r5900el-ps2-elf-g++`.
-- `windows-pcsx2.ps1` — Script de execução automática do binário `.elf` no emulador PCSX2.
+Com o Docker Desktop em execução, rode `docker compose run --rm compiler`
+na raiz. O build gera `build/ps2/droid_campos.elf` e os recursos ao lado do
+executável. No PCSX2, abra esse ELF com a BIOS configurada.
 
-## Como Compilar e Executar
+## Controles
 
-1. Inicie o container de compilação PS2SDK/Tyra:
-   ```bash
-   docker compose up -d
-   ```
-2. No VS Code, execute a task padrão de build (`Ctrl+Shift+B` -> **Build & run**), que compila `game/` gerando `game/bin/droid_campos.elf` e inicia o PCSX2 automaticamente.
+- Analógico esquerdo para mover e direito para mirar.
+- Quadrado para interagir com o cenário.
 
-## Versão Atual
+## Créditos
 
-- **v0.0.1** — Configuração inicial limpa do projeto e estrutura base do jogo.
+Consulte [os avisos de terceiros](THIRD-PARTY.md).

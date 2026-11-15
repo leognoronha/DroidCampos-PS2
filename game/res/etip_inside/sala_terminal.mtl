@@ -1,0 +1,15 @@
+newmtl PS2_Mat_Inside_Piso
+Kd 1.000000 1.000000 1.000000
+map_Kd ps2_tex_inside_piso.png
+newmtl PS2_Mat_Inside_Metal
+Kd 1.000000 1.000000 1.000000
+map_Kd ps2_tex_inside_metal.png
+newmtl PS2_Mat_Inside_Parede
+Kd 1.000000 1.000000 1.000000
+map_Kd ps2_tex_inside_parede.png
+newmtl PS2_Mat_Inside_Luz
+Kd 1.000000 1.000000 1.000000
+map_Kd ps2_tex_inside_luz.png
+newmtl PS2_Mat_Inside_Emergencia
+Kd 1.000000 1.000000 1.000000
+map_Kd ps2_tex_inside_emergencia.png

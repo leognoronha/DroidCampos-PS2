@@ -10,14 +10,14 @@
 
 #pragma once
 
-#include "renderer/core/3d/bbox/core_bbox.hpp"
-#include "renderer/core/3d/renderer_3d_frustum_planes.hpp"
-#include "renderer/core/3d/clipper/planes_clip_algorithm.hpp"
-#include "./stapip_bag_packages_bbox.hpp"
-#include "./stapip_bag_package.hpp"
-#include "../stapip_bag.hpp"
+#include <vector>
+
+#include "renderer/3d/pipeline/static/core/bag/packaging/stapip_bag_package.hpp"
 
 namespace Tyra {
+
+class StaPipBagPackagesBBox;
+class Renderer3DFrustumPlanes;
 
 class StaPipBagPackager {
  public:
@@ -33,13 +33,15 @@ class StaPipBagPackager {
    *
    * @param size Max maxVertCount verts (VU1 buffer size)
    */
-  StaPipBagPackage* create(u16* o_size, StaPipBag* data, u16 size);
+  StaPipBagPackage* create(u16* o_size, StaPipBag* data, u16 size,
+      std::vector<StaPipBagPackage>* storage = nullptr);
   /**
    * @brief Split render package to smaller packages
    *
    * @param size Max maxVertCount verts (VU1 buffer size)
    */
-  StaPipBagPackage* create(u16* o_size, const StaPipBagPackage& pkg, u16 size);
+  StaPipBagPackage* create(u16* o_size, const StaPipBagPackage& pkg, u16 size,
+      std::vector<StaPipBagPackage>* storage = nullptr);
 
   CoreBBoxFrustum checkFrustum(const StaPipBagPackage& pkg);
 

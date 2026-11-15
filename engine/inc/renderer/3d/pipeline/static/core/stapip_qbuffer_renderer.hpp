@@ -87,6 +87,7 @@ class StaPipQBufferRenderer {
   StaPipVU1Program* getProgramByName(const StaPipProgramName& name);
   void addBuffersDataToPacket(const u32& from, const u32& to);
   void sendPacket();
+  void submitClippedBuffer(StaPipQBuffer* buffer);
   StaPipVU1Program* getAsIsProgramByBag(const StaPipBag* bag);
   StaPipVU1Program* getCullProgramByType(const StaPipProgramType& programType);
   StaPipProgramType getDrawProgramTypeByBag(const StaPipBag* bag) const;
@@ -109,6 +110,8 @@ class StaPipQBufferRenderer {
 
   u16 bufferSize, nextBufferIndex, currentBufferIndex;
   u8 context;
+  u32 maxVertCount;
+  int inFlightHalf;
 };
 
 }  // namespace Tyra

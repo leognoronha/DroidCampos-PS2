@@ -34,6 +34,7 @@ class StapipBagBBoxesCacher {
   const int cacheSecondsCount = 5;
 
   void onFrameEnd();
+  void clear() { storage.clear(); }
 
   StaPipBagPackagesBBox* getBBoxes(const Vec4* vertices, const u32& count,
                                    const u32& id, const u32& maxVertCount);

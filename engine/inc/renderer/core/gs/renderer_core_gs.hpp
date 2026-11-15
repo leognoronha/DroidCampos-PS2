@@ -29,6 +29,9 @@ class RendererCoreGS {
   void flipBuffers();
 
   void enableZTests();
+  // Caller must align3D before changing depth writes and align2D afterwards
+  // before submitting further PATH1 geometry. This method only waits for DMA.
+  void setZBufferWriteEnabled(bool enabled);
 
  private:
   constexpr static float gsCenter = 4096.0F;
