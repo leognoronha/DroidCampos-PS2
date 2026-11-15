@@ -1,5 +1,6 @@
 #pragma once
 #include "core/isubsystem.hpp"
+#include "systems/enemy/droid_encounter.hpp"
 #include "systems/enemy/interior_navigation.hpp"
 #include "systems/weapon/combat_queries.hpp"
 
@@ -24,6 +25,7 @@ class EnemySystem final : public Core::ISubsystem {
   void doors(Core::WorldState&,float);
   Weapon::WeaponScene* scene_;
   InteriorNavigation navigation_;
+  DroidController droidController_;
   Tyra::Timer timer_;
   bool wasActive_=false;
   bool navigationReady_=false;

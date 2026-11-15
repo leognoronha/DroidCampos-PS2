@@ -32,6 +32,7 @@ class RadioCodecSystem : public Core::ISubsystem {
   void renderSignalMonitor(float x, float y, bool speaking);
 
   Ui::UiContextDrawer* drawer_;
+  Tyra::Timer revealTimer_;
   float currentAnimTick_;
 };
 

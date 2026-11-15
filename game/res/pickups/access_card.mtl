@@ -1,0 +1,8 @@
+newmtl Card
+Kd 0.94 0.76 0.16
+
+newmtl Stripe
+Kd 0.09 0.12 0.19
+
+newmtl Chip
+Kd 0.98 0.93 0.72

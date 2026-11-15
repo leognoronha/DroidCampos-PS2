@@ -40,7 +40,7 @@ void PlayerControllerSystem::executeStage(
 
   updateGlobalAnimations(state);
 
-  if (state.simulationActive()) {
+  if (state.playerMovementActive()) {
     updateFpsKinematics(state, scratchpad);
   }
 }
@@ -86,6 +86,9 @@ void PlayerControllerSystem::updateCameraVectors(Core::WorldState& state) {
   state.player.cameraLookAt.set(
       state.player.cameraPos.x + dirX, state.player.cameraPos.y + dirY,
       state.player.cameraPos.z + dirZ, 1.0F);
+  const float amplitude=state.droid.shake(),t=state.droid.phaseTicks/15625.F;
+  const float sx=amplitude*.025F*std::sin(t*53.F),sy=amplitude*.018F*std::sin(t*71.F);
+  state.player.cameraLookAt.x+=sx;state.player.cameraLookAt.y+=sy;
 }
 
 void PlayerControllerSystem::updateFpsKinematics(

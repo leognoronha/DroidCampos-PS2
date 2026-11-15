@@ -13,10 +13,32 @@ class MenuAudioSystem final : public Core::ISubsystem {
   void executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
                     Core::WorldState& state, Events::EventBus& bus,
                     Hardware::Ps2ScratchpadArena& scratchpad) override;
+  u32 playCardReader(Tyra::Engine* engine, int volume);
   void shutdown(Tyra::Engine* engine) override;
 
  private:
-  bool loadSample(const char* path, audsrv_adpcm_t& sample, u8*& data);
+  struct Effect {
+    audsrv_adpcm_t sample{};
+    u8* data = nullptr;
+  };
+  Effect cardReader_, pickupWeapon_, pickupMedkit_;
+  Effect punchImpact_, healUp_, gameOver_;
+  void playCombatCue(Tyra::Engine* engine, Effect& effect);
+  bool loadSample(const char* path, audsrv_adpcm_t& sample, u8*& data,
+                  bool loop = false, u32* duration = nullptr);
+  u32 cardReaderTicks_ = 0;
+  struct Loop {
+    audsrv_adpcm_t sample{};
+    u8* data = nullptr;
+    bool loaded = false;
+    bool playing = false;
+    int volume = -1;
+  };
+  void updateLoop(Tyra::Engine* engine, Loop& loop, s8 channel, int volume);
+  Loop ambience_;
+  Loop menuMusic_;
+  Loop droidAlarm_;
+  Loop droidSteps_;
   audsrv_adpcm_t confirm_{};
   audsrv_adpcm_t back_{};
   void updateRadio(Tyra::Engine* engine, Core::WorldState& state);

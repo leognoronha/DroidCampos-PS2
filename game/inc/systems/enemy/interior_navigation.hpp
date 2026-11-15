@@ -7,10 +7,11 @@ namespace DroidCampos { namespace Systems { namespace Enemy {
 class InteriorNavigation {
  public:
   static constexpr int kCapacity=64;
-  void build(const Core::WorldState& s) {
+  void build(const Core::WorldState& s,float radius=Core::kEnemyRadius) {
+    radius_=radius;
     count_=0;
     auto node=[&](float x,float z){
-      if(count_<kCapacity && Physics::interiorFree(s,x,z,Core::kEnemyRadius,false))
+      if(count_<kCapacity && Physics::interiorFree(s,x,z,radius_,false))
         nodes_[count_++]=Tyra::Vec4(x,0,z,1);
     };
     for(float z : {-1.8F,-5.F,-8.F,-12.F,-16.F,-20.F,-23.F,-25.F})node(0,z);
@@ -23,7 +24,7 @@ class InteriorNavigation {
       for(float x : {-4.3F,-2.6F,-.8F,1.F,3.5F,4.5F})node(x,z);
     for(int i=0;i<count_;++i)for(int j=0;j<count_;++j)
       edges_[i][j]=i!=j && Physics::distanceXZ(nodes_[i],nodes_[j])<=8.1F &&
-        Physics::interiorSegmentFree(s,nodes_[i],nodes_[j],Core::kEnemyRadius,false);
+        Physics::interiorSegmentFree(s,nodes_[i],nodes_[j],radius_,false);
   }
   bool route(const Core::WorldState& s,const Tyra::Vec4& from,const Tyra::Vec4& to,
              std::array<int,kCapacity>& path,int& length)const {
@@ -33,7 +34,7 @@ class InteriorNavigation {
     std::array<bool,kCapacity> closed{};
     cost.fill(std::numeric_limits<float>::max());parent.fill(-1);
     for(int i=0;i<count_;++i)
-      if(Physics::interiorSegmentFree(s,from,nodes_[i],Core::kEnemyRadius,false))
+      if(Physics::interiorSegmentFree(s,from,nodes_[i],radius_,false))
         cost[i]=Physics::distanceXZ(from,nodes_[i]);
     int end=-1;
     for(int iteration=0;iteration<count_;++iteration) {
@@ -44,7 +45,7 @@ class InteriorNavigation {
       }
       if(best<0)break;
       closed[best]=true;
-      if(Physics::interiorSegmentFree(s,nodes_[best],to,Core::kEnemyRadius,false)) {
+      if(Physics::interiorSegmentFree(s,nodes_[best],to,radius_,false)) {
         end=best;break;
       }
       for(int j=0;j<count_;++j)if(edges_[best][j] && !closed[j]) {
@@ -59,6 +60,7 @@ class InteriorNavigation {
   const Tyra::Vec4& node(int i)const{return nodes_[i];}
   int count()const{return count_;}
  private:
+  float radius_=Core::kEnemyRadius;
   int count_=0;
   std::array<Tyra::Vec4,kCapacity> nodes_{};
   std::array<std::array<bool,kCapacity>,kCapacity> edges_{};

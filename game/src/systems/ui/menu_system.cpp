@@ -69,6 +69,32 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       break;
     }
     case Core::ScreenState::Defeated:
+      if (state.droid.phase == Core::DroidPhase::GameOver) {
+        constexpr int panelX = 56;
+        constexpr int panelWidth = 400;
+        constexpr int centerX = panelX + panelWidth / 2;
+        drawer_->drawBlueprintPanel(panelX, 144, panelWidth, 180,
+                                    menuInk(0, 0, 0), menuInk(230, 70, 50));
+
+        auto& font = drawer_->getFont();
+        const auto drawCentered = [&](const char* label, int y, Color color,
+                                      bool selected = false) {
+          const int x = centerX - font.lineWidth(label) / 2;
+          font.drawText(label, x, y, color);
+          if (selected) {
+            font.drawText(">", x - font.lineWidth(">") - 4, y, color);
+          }
+        };
+
+        drawCentered("GAME OVER", 158, menuInk(250, 130, 100));
+        drawCentered("DROIDCAMPOS E INEVITAVEL", 186, menuInk(250, 130, 100));
+        drawCentered("NEW GAME", 224, menuInk(200, 225, 235),
+                     state.menu.pauseSelectedIndex == 0);
+        drawCentered("LOAD GAME", 264, menuInk(200, 225, 235),
+                     state.menu.pauseSelectedIndex == 1);
+        drawer_->renderFooter("D-PAD: SELECIONAR  X: CONFIRMAR");
+        break;
+      }
       drawer_->drawBlueprintPanel(80,144,352,170,menuInk(0,0,0),menuInk(230,70,50));
       drawer_->getFont().drawText("VOCE FOI DERROTADO",120,168,menuInk(250,130,100));
       drawer_->getFont().drawText(state.menu.pauseSelectedIndex==0
@@ -81,29 +107,31 @@ void MenuSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       drawer_->drawBlueprintPanel(96, 144, 320, 160, menuInk(0, 0, 0), menuInk(0, 190, 210));
       drawer_->getFont().drawText("JOGO PAUSADO", 152, 164, menuInk(159, 239, 232));
       drawer_->getFont().drawText(state.menu.pauseSelectedIndex == 0
-          ? "> CONTINUAR" : "  CONTINUAR", 128, 214, menuInk(200, 225, 235));
+          ? "> CONTINUAR" : "  CONTINUAR", 128, 207, menuInk(200, 225, 235));
       drawer_->getFont().drawText(state.menu.pauseSelectedIndex == 1
-          ? "> MENU PRINCIPAL" : "  MENU PRINCIPAL", 128, 250, menuInk(200, 225, 235));
+          ? "> CONFIGURACOES" : "  CONFIGURACOES", 128, 237, menuInk(200, 225, 235));
+      drawer_->getFont().drawText(state.menu.pauseSelectedIndex == 2
+          ? "> MENU PRINCIPAL" : "  MENU PRINCIPAL", 128, 267, menuInk(200, 225, 235));
       drawer_->renderFooter("D-PAD: SELECIONAR  X: CONFIRMAR  START/O: VOLTAR");
       break;
     case Core::ScreenState::MainMenu:
       renderMainMenu(state);
       drawer_->renderFooter(
-          "D-PAD: NAVIGATE  X: SELECT");
+          "D-PAD: NAVEGAR  X: SELECIONAR");
       break;
     case Core::ScreenState::NewGame:
       renderNewGameScreen(state);
-      drawer_->renderFooter("X: ENTER ETIP  O: BACK");
+      drawer_->renderFooter("X: ENTRAR NA ETIP  O: VOLTAR");
       break;
     case Core::ScreenState::LoadGame:
       renderLoadGameScreen(state);
       drawer_->renderFooter(
-          "D-PAD: SLOT  X: LOAD  O: BACK");
+          "X: CARREGAR  O: VOLTAR");
       break;
     case Core::ScreenState::Settings:
       renderSettingsScreen(state);
       drawer_->renderFooter(
-          "D-PAD: ADJUST  O: BACK");
+          "O: VOLTAR");
       break;
     case Core::ScreenState::GameplayFps:
       break;
@@ -124,27 +152,29 @@ void MenuSystem::renderNewGameScreen(const Core::WorldState& state) {
                      menuInk(99, 180, 179, 128));
 
   drawer_->getFont().drawText(
-      "MISSION DOSSIER // ETIP COMPLEX", 32, 118,
+      "DOSSIE DA MISSAO // COMPLEXO ETIP", 32, 118,
       menuInk(159, 239, 232, 128));
   drawer_->drawRect(28.0F, 136.0F, 456.0F, 2.0F,
                     menuInk(54, 112, 115, 128));
 
   drawer_->getFont().drawText(
-      "YEAR 2066 - UTINGA INDUSTRIAL DISTRICT.\n"
-      "DR. VICTOR CAMPOS, CHIEF MATHEMATICIAN AT ETIP,\n"
-      "ARRIVES AT THE ABANDONED PERIMETER OF THE ETIP\n"
-      "INDUSTRIAL INSTALLATION.\n\n"
-      "OBJECTIVE:\n"
-      "- ADVANCE THROUGH ACCESS ROAD (ZONA A -> ZONA B)\n"
-      "- INSPECT SECURITY GUARITA & CARD READER AT GATE\n"
-      "- BREACH MAIN INDUSTRIAL GATE INTO ETIP FACILITY.",
-      32, 148, menuInk(200.0F, 225.0F, 235.0F, 128.0F));
+      "ANO 2066 - DISTRITO INDUSTRIAL DE UTINGA.\n"
+      "A CORPORACAO ETIP MANTEM SUAS INSTALACOES\n"
+      "SOB RIGIDO CONTROLE DE SEGURANCA.\n\n"
+      "GUIADO PELA ORGANIZACAO REBELDE CJE,\n"
+      "O AGENTE PM INICIA SUA INFILTRACAO\n"
+      "NO COMPLEXO INDUSTRIAL DA ETIP.\n\n"
+      "OBJETIVOS\n"
+      "- AVANCE ATE O PORTAO PRINCIPAL.\n"
+      "- PEGUE A ARMA E O CARTAO NA GUARITA.\n"
+      "- UTILIZE O LEITOR DE CARTAO PARA ENTRAR.",
+      32, 148, menuInk(200.0F, 225.0F, 235.0F, 128.0F), .9F);
 
   float pulse = (std::sin(state.anim.animTick * 4.0F) + 1.0F) * 0.5F;
-  drawer_->drawBlueprintPanel(86.0F, 344.0F, 340.0F, 36.0F,
+  drawer_->drawBlueprintPanel(86.0F, 350.0F, 340.0F, 32.0F,
                      menuInk(145 + pulse * 14, 225 + pulse * 14, 218 + pulse * 14, 128),
                      menuInk(159, 239, 232, 128));
-  drawer_->getFont().drawText(">> PRESS CROSS TO START 3D FPS <<", 112, 354,
+  drawer_->getFont().drawText("X: INICIAR MISSAO", 208, 358,
                               menuInk(0, 0, 0, 128));
 }
 
@@ -163,8 +193,8 @@ void MenuSystem::renderLoadGameScreen(const Core::WorldState& state) {
       "SLOT 02 // ETIP QUANTUM RESEARCH LAB",
       "SLOT 03 // [ EMPTY / UNFORMATTED DATA BLOCK ]"};
   const char* slotDetails[3] = {
-      "DR. CAMPOS LVL 01 // TIME: 00:05:12",
-      "DR. CAMPOS LVL 02 // TIME: 00:54:09",
+      "PM LVL 01 // TIME: 00:05:12",
+      "PM LVL 02 // TIME: 00:54:09",
       "NO TELEMETRY CHECKSUM FOUND IN THIS MEMORY SECTOR"};
 
   for (int i = 0; i < 3; i++) {
@@ -216,30 +246,31 @@ void MenuSystem::renderSettingsScreen(const Core::WorldState& state) {
   drawer_->drawRect(28.0F, 136.0F, 456.0F, 2.0F,
                     menuInk(54, 112, 115, 128));
 
-  const char* optionNames[4] = {"BGM SYNTH VOLUME", "INDUSTRIAL SFX VOL",
-                                "OPTICAL SCANLINES", "GS TEXTURE FILTER"};
+  const char* optionNames[5] = {"BGM SYNTH VOLUME", "INDUSTRIAL SFX VOL",
+                                "VOLUME DO AMBIENTE", "OPTICAL SCANLINES", "GS TEXTURE FILTER"};
 
-  char valBuf[4][32];
-  std::snprintf(valBuf[0], sizeof(valBuf[0]), "%d%%", state.menu.bgmVolume);
-  std::snprintf(valBuf[1], sizeof(valBuf[1]), "%d%%", state.menu.sfxVolume);
-  std::snprintf(valBuf[2], sizeof(valBuf[2]), "%s",
-                state.menu.scanlinesEnabled ? "[ ENABLED ]" : "[ DISABLED ]");
+  const int volumes[] = {state.menu.bgmVolume, state.menu.sfxVolume, state.menu.ambientVolume};
+  char valBuf[5][32];
+  for (int i = 0; i < 3; ++i)
+    std::snprintf(valBuf[i], sizeof(valBuf[i]), "%d%%", volumes[i]);
   std::snprintf(valBuf[3], sizeof(valBuf[3]), "%s",
+                state.menu.scanlinesEnabled ? "[ ENABLED ]" : "[ DISABLED ]");
+  std::snprintf(valBuf[4], sizeof(valBuf[4]), "%s",
                 state.menu.nearestFilter ? "[ NEAREST / PIXEL ]"
                                          : "[ LINEAR / SMOOTH ]");
 
-  for (int i = 0; i < 4; i++) {
-    float rowY = 148.0F + static_cast<float>(i) * 56.0F;
+  for (int i = 0; i < 5; i++) {
+    float rowY = 148.0F + static_cast<float>(i) * 47.0F;
     bool selected = (state.menu.settingsSelectedIndex == i);
 
     if (selected) {
-      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, 46.0F,
+      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, 41.0F,
                          menuInk(8, 35, 36, 128),
                          menuInk(159, 239, 232, 128));
-      drawer_->drawRect(36.0F, rowY + 6.0F, 5.0F, 34.0F,
+      drawer_->drawRect(36.0F, rowY + 6.0F, 5.0F, 29.0F,
                         menuInk(159, 239, 232, 128));
     } else {
-      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, 46.0F,
+      drawer_->drawBlueprintPanel(32.0F, rowY, 448.0F, 41.0F,
                          menuInk(0, 0, 0, 128),
                          menuInk(55.0F, 75.0F, 95.0F, 95.0F));
     }
@@ -249,8 +280,8 @@ void MenuSystem::renderSettingsScreen(const Core::WorldState& state) {
     drawer_->getFont().drawText(optionNames[i], 50,
                                 static_cast<int>(rowY + 14.0F), labelCol);
 
-    if (i == 0 || i == 1) {
-      int vol = (i == 0) ? state.menu.bgmVolume : state.menu.sfxVolume;
+    if (i < 3) {
+      const int vol = volumes[i];
       float barX = 245.0F;
       float barY = rowY + 15.0F;
       drawer_->drawRect(barX, barY, 140.0F, 14.0F,

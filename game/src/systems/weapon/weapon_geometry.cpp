@@ -35,6 +35,8 @@ bool WeaponRayScene::trace(const Core::WorldState& state,
                  Core::kInsideDoorZ[g.door] -
                      state.scene.doors[g.door].openAmount * Core::kDoorTravel,
                  0);
+    if(g.door==-3)offset.y=2.35F*state.droid.opening();
+    if(g.door==-4)offset.y=-5.F*state.droid.opening();
     const auto local = sub(origin, offset);
     if (!bounds(g, local, direction, result.distance)) continue;
     for (u32 i = 0; i + 2 < g.count; i += 3) {

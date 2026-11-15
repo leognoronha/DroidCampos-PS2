@@ -22,6 +22,8 @@ class Font {
   void drawText(const std::string& text, const int& x, const int& y,
                 Tyra::Color color, float scale = 1.0F);
 
+  int lineWidth(const char* text) const;
+
  private:
   const static int chars[FONT_CHAR_SIZE];
   const static int charWidths[FONT_CHAR_SIZE];

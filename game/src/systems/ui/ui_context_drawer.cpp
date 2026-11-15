@@ -171,6 +171,13 @@ void UiContextDrawer::renderSync(const Core::WorldState& state) {
   const int percent = static_cast<int>(std::max(0.0F, std::min(1.0F, ratio)) * 100);
   char value[8];
   std::snprintf(value, sizeof(value), "%d%%", percent);
+  if (state.menu.currentScreen == Core::ScreenState::NewGame) {
+    // The English labels are part of the footer texture.
+    drawRect(322, 406, 66, 25, Color(0, 0, 0, 128));
+    const Color ink(80, 120, 116, 128);
+    font_.drawText("UNIDADE DC-01", 324, 407, ink, .7F);
+    font_.drawText("SINC. NEURAL", 324, 421, ink, .7F);
+  }
   font_.drawText(value, 391, 421, Color(80, 120, 116, 128), 1.0F);
   Sprite segments[14];
   for (int i = 0; i < 14; ++i) {

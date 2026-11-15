@@ -68,6 +68,8 @@ inline bool traceCombat(const WeaponScene& scene,const Core::WorldState& s,
   for(int i=0;i<Core::kMaxEnemies;++i)
     if(i!=shooter && s.enemies[i].active)
       actor(i,s.enemies[i].position,Core::kEnemyRadius,Core::kEnemyHeight);
+  if(s.droid.mobile() && shooter!=Core::kMaxEnemies)
+    actor(Core::kMaxEnemies,s.droid.position,Core::kDroidRadius,s.droid.crouched?2.05F:3.27F);
   hit.shooter=shooter;return found;
 }
 inline void damageActor(Core::WorldState& s,Events::EventBus& bus,int victim,int shooter) {

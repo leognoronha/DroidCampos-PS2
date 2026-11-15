@@ -49,7 +49,8 @@ std::unique_ptr<MeshBuilderData> ObjLoader::load(
   auto result = std::make_unique<MeshBuilderData>();
 
   tinyobj::ObjReaderConfig readerConfig;
-  readerConfig.triangulate = options.animation.count == 1;
+  readerConfig.triangulate = options.animation.count == 1 &&
+      !options.preserveTriangleOrder;
   readerConfig.triangulation_method =
       options.animation.count == 1 ? "earcut" : "simple";
   readerConfig.mtl_search_path = basePath;

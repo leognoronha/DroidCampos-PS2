@@ -32,18 +32,20 @@ void EnemySystem::init(Tyra::Engine*,WorldState&,Events::EventBus&) {
   timer_.prime();wasActive_=false;navigationReady_=false;decisionTicks_=0;
 }
 void EnemySystem::reset(WorldState& s) {
-  s.enemies={};s.encounter=EncounterState{};s.playerHealth=kPlayerHealth;s.weapon=WeaponState{};
+  s.enemies={};s.encounter=EncounterState{};s.droid=DroidEncounterState{};s.playerHealth=kPlayerHealth;s.weapon=WeaponState{};
   s.damageFlashTicks=0;
 }
 void EnemySystem::retry(WorldState& s) {
   auto& c=s.encounter;if(!c.checkpointValid)return;
   s.player=c.checkpointPlayer;
+  s.inventory=c.checkpointInventory;
   for(int i=0;i<4;++i)s.scene.doors[i]=c.checkpointDoors[i];
   s.playerHealth=kPlayerHealth;s.damageFlashTicks=0;s.weapon=WeaponState{};
   s.enemies={};s.inputCmd.clear();s.scene.terminalActive=false;
-  s.radio.popupActive=false;s.radio.phase=RadioPhase::Idle;
+  s.radio.popupActive=false;s.radio.reviewing=false;s.radio.phase=RadioPhase::Idle;
   c.phase=EncounterPhase::Countdown;c.wave=0;c.remaining=0;
   c.countdownTicks=kEncounterDelay;c.attackTicks=0;c.attackCursor=0;
+  c.completionNoticeTicks = 0;
   c.newEntryUnlocked=c.objectiveComplete=c.finalRadioPending=false;
   s.menu.currentScreen=ScreenState::GameplayFps;
 }
@@ -86,6 +88,7 @@ void EnemySystem::executeStage(HardwareStage stage,Tyra::Engine*,WorldState& s,
                                Events::EventBus& bus,Hardware::Ps2ScratchpadArena&) {
   if(stage!=HardwareStage::Stage1_EeVu0Simulation)return;
   u32 elapsed=timer_.getTimeDelta();timer_.prime();
+  reduceTicks(s.encounter.completionNoticeTicks, elapsed);
   if(!s.simulationActive() || !wasActive_)elapsed=0;
   wasActive_=s.simulationActive();
   advance(s,bus,std::min(elapsed,3907U));
@@ -104,8 +107,12 @@ void EnemySystem::advance(WorldState& s,Events::EventBus& bus,u32 elapsed) {
         if(c.phase==EncounterPhase::Dormant)c.phase=EncounterPhase::Armed;
         break;
       case Events::EventType::TerminalClosed:
+        if(c.newEntryUnlocked && c.objectiveComplete && s.droid.phase==DroidPhase::Inactive) {
+          s.droid.phase=DroidPhase::ButtonRising;s.droid.phaseTicks=0;
+        }
         if(c.phase==EncounterPhase::Armed) {
           c.checkpointValid=true;c.checkpointPlayer=s.player;
+          c.checkpointInventory=s.inventory;
           for(int d=0;d<4;++d)c.checkpointDoors[d]=s.scene.doors[d];
           c.phase=EncounterPhase::Countdown;c.countdownTicks=kEncounterDelay;
           elapsed=0;
@@ -118,6 +125,7 @@ void EnemySystem::advance(WorldState& s,Events::EventBus& bus,u32 elapsed) {
   if(!navigationReady_){navigation_.build(s);navigationReady_=true;}
   reduceTicks(s.damageFlashTicks,elapsed);
   doors(s,static_cast<float>(elapsed)/kCombatTicksPerSecond);
+  droidController_.advance(s,bus,elapsed,scene_);
   if(c.finalRadioPending) {
     c.finalRadioPending=false;
     bus.publish(Events::GameEvent::makeSimple(Events::EventType::RadioTransmissionTriggered,
@@ -140,6 +148,7 @@ void EnemySystem::advance(WorldState& s,Events::EventBus& bus,u32 elapsed) {
     bus.publish(Events::GameEvent::makeSimple(Events::EventType::WaveCompleted,static_cast<s16>(c.wave)));
     if(c.wave==3) {
       c.phase=EncounterPhase::Complete;c.newEntryUnlocked=true;c.finalRadioPending=true;
+      c.completionNoticeTicks = 4 * kCombatTicksPerSecond;
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::EncounterCompleted));
     }else {
       s.playerHealth=std::min(kPlayerHealth,s.playerHealth+kWaveHealing);
@@ -172,6 +181,7 @@ void EnemySystem::doors(WorldState& s,float dt) {
     };
     bool hasActor=occupied(s.player.playerPos,kPlayerBodyRadius);
     for(const auto& e:s.enemies)if(e.active && occupied(e.position,kEnemyRadius))hasActor=true;
+    if(s.droid.mobile() && occupied(s.droid.position,kDroidRadius))hasActor=true;
     if(!d.targetOpen && d.openAmount>0 && hasActor)d.targetOpen=true;
     d.openAmount=std::max(0.F,std::min(1.F,d.openAmount+(d.targetOpen?1:-1)*kDoorSpeed*60*dt));
   }

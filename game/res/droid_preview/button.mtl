@@ -1,0 +1,4 @@
+newmtl black
+Kd 0.035 0.045 0.055
+newmtl red
+Kd 0.85 0.01 0.015

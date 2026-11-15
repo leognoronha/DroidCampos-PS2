@@ -1,0 +1,6 @@
+newmtl PS2_Mat_Capsule_DroidCampos_body
+Kd 1.000000 1.000000 1.000000
+map_Kd ps2_tex_droidcampos_body.png
+newmtl PS2_Mat_Capsule_DroidCampos_head
+Kd 1.000000 1.000000 1.000000
+map_Kd ps2_tex_droidcampos_head.png

@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <string>
 #include "core/interior_layout.hpp"
+#include "core/pickup_layout.hpp"
 #include "systems/render3d/spatial_order.hpp"
 
 namespace DroidCampos {
@@ -21,12 +22,14 @@ WorldRenderSystem::WorldRenderSystem()
 
 void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
                              Events::EventBus& bus) {
+  (void)bus;
   if (engine == nullptr) {
     return;
   }
 
   stapip_.setRenderer(&engine->renderer.core);
   enemyRenderer_.init(engine);
+  droidPreview_.init(engine);
 
   scenarioOptions_.frustumCulling = PipelineFrustumCulling_Precise;
   scenarioOptions_.fullClipChecks = true;
@@ -36,10 +39,11 @@ void WorldRenderSystem::init(Engine* engine, Core::WorldState& state,
   capsuleGlassOptions_.blendingEnabled = true;
   capsuleGlassOptions_.zTestType = PipelineZTest_Standard;
   loadPistol3D(engine);
+  loadPickupMeshes();
   loadWeaponEffects();
   updatePistolViewmodelTransform(state);
   updateAbandonedSignFlicker(state);
-  updateCardReaderLight(state, bus);
+  updateCardReaderLight(state);
 }
 
 void WorldRenderSystem::loadScenario3D(Engine* engine) {
@@ -326,19 +330,7 @@ void WorldRenderSystem::updateAbandonedSignFlicker(
   }
 }
 
-void WorldRenderSystem::updateCardReaderLight(Core::WorldState& state,
-                                              Events::EventBus& bus) {
-  u32 eventCount = 0;
-  const Events::GameEvent* events = bus.getFrameEvents(eventCount);
-  for (u32 i = 0; i < eventCount; ++i) {
-    const auto& ev = events[i];
-    if (ev.type == Events::EventType::CardReaderInteracted) {
-      state.cardReader.isUnlocked = true;
-    } else if (ev.type == Events::EventType::PlayerSpawnResetRequested) {
-      state.cardReader.isUnlocked = false;
-    }
-  }
-
+void WorldRenderSystem::updateCardReaderLight(const Core::WorldState& state) {
   if (cardReaderLightMat_ == nullptr) {
     return;
   }
@@ -350,6 +342,43 @@ void WorldRenderSystem::updateCardReaderLight(Core::WorldState& state,
     // Glowing Crimson Red LED before interaction
     const float pulse = 0.92F + 0.08F * std::sin(state.anim.animTick * 3.5F);
     cardReaderLightMat_->ambient.set(225.0F * pulse, 18.0F, 18.0F, 128.0F);
+  }
+}
+
+void WorldRenderSystem::loadPickupMeshes() {
+  ObjLoaderOptions options;
+  options.scale = 1.0F;
+  options.flipUVs = false;
+  auto load = [&](const char* path) {
+    auto data = ObjLoader::load(FileUtils::fromCwd(path), options);
+    return std::make_unique<StaticMesh>(data.get());
+  };
+  accessCardMesh_ = load("pickups/access_card.obj");
+  medkitMesh_ = load("pickups/medkit.obj");
+  pickupMarkerMesh_ = load("pickups/pickup_marker.obj");
+}
+
+void WorldRenderSystem::renderPickups(const Core::WorldState& state) {
+  for (const auto& pickup : Core::kPickups) {
+    if (pickup.scene != state.scene.active || state.inventory.has(pickup.item)) continue;
+    pickupMarkerMesh_->translation.identity();
+    pickupMarkerMesh_->translation.translate(Vec4(pickup.x, .009F, pickup.z, 1));
+    stapip_.render(pickupMarkerMesh_.get(), scenarioOptions_);
+
+    StaticMesh* mesh = medkitMesh_.get();
+    float height = .004F;
+    if (pickup.item == Core::Pickup::AccessCard) mesh = accessCardMesh_.get();
+    if (pickup.item == Core::Pickup::Pistol) {
+      mesh = pistolMesh_.get();
+      mesh->rotation.identity();
+      mesh->rotation.rotateZ(Core::kDefaultPi * .5F);
+      mesh->scale.identity();
+      // Rotating the pistol onto its side puts its 26.5 mm half-width on Y.
+      height += .0265F;
+    }
+    mesh->translation.identity();
+    mesh->translation.translate(Vec4(pickup.x, height, pickup.z, 1));
+    stapip_.render(mesh, scenarioOptions_);
   }
 }
 
@@ -374,6 +403,7 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
                                      Events::EventBus& bus,
                                      Hardware::Ps2ScratchpadArena& scratchpad) {
   (void)scratchpad;
+  (void)bus;
 
 
   if (state.menu.currentScreen != Core::ScreenState::GameplayFps) {
@@ -383,7 +413,7 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
   if (stage == Core::HardwareStage::Stage1_EeVu0Simulation) {
     updatePistolViewmodelTransform(state);
     updateAbandonedSignFlicker(state);
-    updateCardReaderLight(state, bus);
+    updateCardReaderLight(state);
     return;
   }
 
@@ -394,7 +424,24 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
 
     engine->renderer.renderer3D.usePipeline(stapip_);
 
+    const bool emergencyLighting = state.droid.phase == Core::DroidPhase::Release ||
+        state.droid.phase == Core::DroidPhase::Pursuit;
+    float light = 1.0F;
+    if (emergencyLighting) {
+      // One smooth pulse per second. Release lasts six full cycles.
+      const float cycle = (state.droid.phaseTicks % Core::kDroidSecond) /
+                          static_cast<float>(Core::kDroidSecond);
+      light = .50F + .10F * std::cos(2.0F * Core::kDefaultPi * cycle);
+    }
+    for (const auto& base : interiorAmbient_)
+      base.material->ambient.set(base.r * light, base.g * light, base.b * light, 128);
     for (auto& mesh : interiorMeshes_) stapip_.render(mesh.get(), scenarioOptions_);
+    if(capsuleOccupantMesh_ && !state.droid.mobile())stapip_.render(capsuleOccupantMesh_.get(),scenarioOptions_);
+    if(capsuleLocksMesh_) {
+      capsuleLocksMesh_->translation.identity();
+      capsuleLocksMesh_->translation.translate(Vec4(0,2.35F*state.droid.opening(),0,1));
+      stapip_.render(capsuleLocksMesh_.get(),scenarioOptions_);
+    }
     if (doorMesh_) {
       for (int i = 0; i < 4; ++i) {
         doorMesh_->translation.identity();
@@ -408,20 +455,25 @@ void WorldRenderSystem::executeStage(Core::HardwareStage stage, Engine* engine,
       stapip_.render(scenarioMesh_.get(), scenarioOptions_);
     }
 
+    if (state.scene.resident) renderPickups(state);
+
     if (mistLoaded_ && mistMesh_ != nullptr) {
       renderTransparentPass(engine, mistMesh_.get(), mistOptions_);
     }
 
     enemyRenderer_.render(engine, state);
+    droidPreview_.render(engine, state);
     engine->renderer.renderer3D.usePipeline(stapip_);
 
     if (capsuleGlassMesh_) {
+      capsuleGlassMesh_->translation.identity();
+      capsuleGlassMesh_->translation.translate(Vec4(0,-5.F*state.droid.opening(),0,1));
       renderTransparentPass(engine, capsuleGlassMesh_.get(), capsuleGlassOptions_);
     }
 
     renderWeaponEffects(engine, state);
 
-    if (pistolLoaded_ && pistolMesh_ != nullptr) {
+    if (state.inventory.armed() && pistolLoaded_ && pistolMesh_ != nullptr) {
       stapip_.render(pistolMesh_.get(), pistolOptions_);
     }
   }
@@ -439,6 +491,9 @@ void WorldRenderSystem::shutdown(Engine* engine) {
   scenarioMesh_.reset();
   mistMesh_.reset();
   pistolMesh_.reset();
+  accessCardMesh_.reset();
+  medkitMesh_.reset();
+  pickupMarkerMesh_.reset();
   beamCore_.reset(); beamGlow_.reset(); impactMesh_.reset();
   etipLogoMat_ = nullptr;
   etipBoardMat_ = nullptr;
@@ -450,6 +505,7 @@ void WorldRenderSystem::shutdown(Engine* engine) {
 
 bool WorldRenderSystem::validateScene(Core::SceneId scene) const {
   if (scene == Core::SceneId::Interior && !Enemy::EnemyRenderSystem::validateAssets()) return false;
+  if (scene == Core::SceneId::Interior && !DroidPreview::validateAssets()) return false;
   // Check OBJ, its MTL and every referenced PNG before destroying the old scene.
   std::vector<std::string> bases;
   if (scene == Core::SceneId::Exterior) bases = {"etip/etip_cenario", "etip/etip_nevoa"};
@@ -489,10 +545,11 @@ void WorldRenderSystem::unloadScene(Engine* engine) {
   if (mistMesh_) repo.freeByMesh(mistMesh_.get());
   scenarioMesh_.reset(); mistMesh_.reset();
   enemyRenderer_.unload(engine);
+  droidPreview_.unload(engine);
   // Each interior PNG is owned once, regardless of how many material links use it.
   for (const auto& entry : interiorTextures_) repo.free(entry.second);
   interiorTextures_.clear(); interiorMeshes_.clear(); doorMesh_.reset();
-  capsuleGlassMesh_.reset();
+  capsuleGlassMesh_.reset();capsuleOccupantMesh_.reset();capsuleLocksMesh_.reset();interiorAmbient_.clear();
   etipLogoMat_ = etipBoardMat_ = cardReaderLightMat_ = nullptr;
   scenarioLoaded_ = mistLoaded_ = false;
 }
@@ -505,6 +562,7 @@ bool WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
     return true;
   }
   if (step >= Core::kInsideLoadStepCount) return false;
+  if (step == Core::kInsidePartCount + 5) return droidPreview_.load(engine);
   if (step >= Core::kInsidePartCount)
     return enemyRenderer_.loadSlot(engine, step - Core::kInsidePartCount);
   const std::string base = std::string("etip_inside/") + Core::kInsideParts[step];
@@ -528,6 +586,7 @@ bool WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
       const float tint = luminous ? 128.0F : 72.0F;
       mat->ambient.set(tint, tint, tint, 128);
     }
+    interiorAmbient_.push_back({mat,mat->ambient.r,mat->ambient.g,mat->ambient.b});
     if (!mat->textureName.has_value()) continue;
     const std::string name = mat->textureName.value();
     auto it = interiorTextures_.find(name);
@@ -542,8 +601,13 @@ bool WorldRenderSystem::loadSceneStep(Engine* engine, Core::SceneId scene, int s
     prepareOpaqueMesh(mesh.get(), repo, stapip_);
   if (step == Core::kInsidePartCount - 1) {
     for(int door=0;door<4;++door) registerWeaponGeometry(mesh.get(),door);
-  } else registerWeaponGeometry(mesh.get());
+  } else {
+    const std::string part=Core::kInsideParts[step];
+    if(part!="capsula_ocupante")registerWeaponGeometry(mesh.get(),part=="capsula_travas"?-3:part=="capsula_vidro"?-4:-1);
+  }
   if (std::string(Core::kInsideParts[step]) == "capsula_vidro") capsuleGlassMesh_ = std::move(mesh);
+  else if (std::string(Core::kInsideParts[step]) == "capsula_ocupante") capsuleOccupantMesh_ = std::move(mesh);
+  else if (std::string(Core::kInsideParts[step]) == "capsula_travas") capsuleLocksMesh_ = std::move(mesh);
   else if (step == Core::kInsidePartCount - 1) doorMesh_ = std::move(mesh);
   else interiorMeshes_.push_back(std::move(mesh));
   return true;

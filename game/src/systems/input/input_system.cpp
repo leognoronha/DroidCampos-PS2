@@ -1,6 +1,9 @@
 #include "systems/input/input_system.hpp"
+#include "core/terminal_documents.hpp"
 #include <cmath>
 #include "core/interior_layout.hpp"
+#include "core/pickup_layout.hpp"
+#include "systems/physics/interior_geometry.hpp"
 
 namespace DroidCampos {
 namespace Systems {
@@ -39,6 +42,7 @@ void InputSystem::init(Tyra::Engine* engine, Core::WorldState& state,
   (void)engine;
   (void)bus;
   state.inputCmd.clear();
+  state.droid.buttonNearby=false;
 }
 
 void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
@@ -50,6 +54,8 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
   }
 
   state.inputCmd.clear();
+  state.droid.buttonNearby=false;
+  state.nearbyPickup = Core::Pickup::Count;
 
   if (state.menu.padCooldown > 0) {
     state.menu.padCooldown--;
@@ -59,7 +65,7 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
     if (state.scene.error && (engine->pad.getClicked().Cross || engine->pad.getClicked().Circle)) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
       state.scene.requested = false;
-      state.scene.accessFrames = 0;
+      state.scene.accessTicks = 0;
       state.menu.currentScreen = Core::ScreenState::MainMenu;
     }
     return;
@@ -70,6 +76,7 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
     if (state.scene.terminalActive) {
       const auto& clicked = engine->pad.getClicked();
       auto& terminal = state.scene;
+      ++terminal.terminalAnimationFrame;
       if (clicked.Triangle || (clicked.Circle && !terminal.terminalReading)) {
         terminal.terminalActive = false;
         bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalClosed));
@@ -86,25 +93,21 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
         const bool down = clicked.DpadDown || (state.menu.padCooldown == 0 && joy.v >= 185);
         const bool left = clicked.DpadLeft || (state.menu.padCooldown == 0 && joy.h <= 70);
         const bool right = clicked.DpadRight || (state.menu.padCooldown == 0 && joy.h >= 185);
+        const int topicCount = Core::kTruthTopic + (state.encounter.newEntryUnlocked ? 1 : 0);
+        const int pageCount = Core::kTerminalDocuments[terminal.terminalTopic].pageCount;
         if (!terminal.terminalReading && clicked.Cross) {
           terminal.terminalReading = true;
           terminal.terminalPage = 0;
-          if(terminal.terminalTopic==2 && terminal.terminalEntry==1 &&
-             state.encounter.newEntryUnlocked) state.encounter.objectiveComplete=true;
+          if (terminal.terminalTopic == Core::kTruthTopic) state.encounter.objectiveComplete = true;
           bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
         } else if (!terminal.terminalReading && (up || down)) {
-          terminal.terminalTopic = (terminal.terminalTopic + (up ? 2 : 1)) % 3;
-          terminal.terminalEntry=terminal.terminalTopic==2 && state.encounter.newEntryUnlocked?1:0;
+          terminal.terminalTopic =
+              (terminal.terminalTopic + (up ? topicCount - 1 : 1)) % topicCount;
           state.menu.padCooldown = 12;
-          bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
-        } else if (!terminal.terminalReading && terminal.terminalTopic==2 &&
-                   state.encounter.newEntryUnlocked && (left || right)) {
-          terminal.terminalEntry=1-terminal.terminalEntry;
-          state.menu.padCooldown=12;
           bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
         } else if (terminal.terminalReading &&
                    ((left && terminal.terminalPage > 0) ||
-                    (right && terminal.terminalPage < 1))) {
+                    (right && terminal.terminalPage + 1 < pageCount))) {
           terminal.terminalPage += left ? -1 : 1;
           state.menu.padCooldown = 12;
           bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
@@ -112,6 +115,7 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
       }
       return; // Closing must consume this frame's Circle/Cross/R1 too.
     }
+    if (state.scene.accessTicks > 0) return;
     if (engine->pad.getClicked().Start) {
       state.menu.currentScreen = Core::ScreenState::Paused;
       state.menu.pauseSelectedIndex = 0;
@@ -136,18 +140,16 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   const auto& leftJoy = pad.getLeftJoyPad();
   const auto& rightJoy = pad.getRightJoyPad();
 
-  if (state.scene.accessFrames > 0) return;
-
-  if (state.radio.popupActive && clicked.Circle) {
+  if (state.radio.blocksGameplay() && clicked.Circle) {
     if (state.radio.phase == Core::RadioPhase::Message)
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::RadioDismissRequested));
     return;
   }
 
-  if (!state.radio.popupActive && clicked.L2) {
+  if (clicked.L2 && !state.radio.blocksGameplay()) {
     bus.publish(Events::GameEvent::makeSimple(
-        Events::EventType::RadioReviewRequested));
-    return;
+        state.radio.popupActive ? Events::EventType::RadioDismissRequested
+                                : Events::EventType::RadioReviewRequested));
   }
 
   if (clicked.Select) {
@@ -160,6 +162,34 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   if (clicked.L3 || clicked.R3) {
     bus.publish(Events::GameEvent::makeSimple(
         Events::EventType::PlayerSpawnResetRequested));
+    return;
+  }
+
+  bool pickupInteraction = false;
+  if (state.simulationActive()) {
+    if (clicked.R2 && state.inventory.useMedkit(state.playerHealth))
+      bus.publish(Events::GameEvent::makeSimple(Events::EventType::MedkitUsed));
+    const auto& player = state.player.playerPos;
+    float nearestSq = Core::kPickupRadius * Core::kPickupRadius;
+    for (const auto& pickup : Core::kPickups) {
+      if (pickup.scene != state.scene.active || state.inventory.has(pickup.item)) continue;
+      const float dx = player.x - pickup.x, dz = player.z - pickup.z;
+      const float distanceSq = dx * dx + dz * dz;
+      if (distanceSq >= nearestSq) continue;
+      if (pickup.scene == Core::SceneId::Interior &&
+          !Physics::interiorSegmentFree(state, player,
+              Tyra::Vec4(pickup.x, 0, pickup.z, 1), .02F)) continue;
+      state.nearbyPickup = pickup.item;
+      nearestSq = distanceSq;
+    }
+    pickupInteraction = clicked.Square && state.nearbyPickup != Core::Pickup::Count;
+    if (pickupInteraction && state.inventory.collect(state.nearbyPickup)) {
+      if (state.nearbyPickup == Core::Pickup::Pistol)
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::WeaponPickedUp));
+      else if (state.nearbyPickup != Core::Pickup::AccessCard)
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::MedkitPickedUp));
+      state.nearbyPickup = Core::Pickup::Count;
+    }
   }
 
   // Check proximity to Card Reader pedestal (X = 2.48m, Z_tyra = 3.25m)
@@ -170,18 +200,36 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   const float dzReader = state.player.playerPos.z - kCardReaderZ;
   float readerHit = 2.55F;
   state.cardReader.isPlayerNearby = state.scene.active == Core::SceneId::Exterior &&
-      !state.radio.popupActive &&
+      !state.radio.blocksGameplay() &&
       ((dxReader * dxReader + dzReader * dzReader) <= kInteractRadiusSq) &&
       reticleHits(state, 2.2665F, 1.0F, 3.0365F, 2.7027F, 1.4766F, 3.5508F, readerHit);
 
-  if (state.cardReader.isPlayerNearby && !state.radio.popupActive &&
-      !state.cardReader.isUnlocked && clicked.Square) {
+  if (state.cardReader.isPlayerNearby && !state.cardReader.isUnlocked &&
+      state.simulationActive() && state.inventory.canEnter() &&
+      clicked.Square && !pickupInteraction) {
     bus.publish(Events::GameEvent::makeSimple(
         Events::EventType::CardReaderInteracted));
   }
 
+  state.droid.buttonNearby=false;
+  if(state.scene.active==Core::SceneId::Interior && !state.radio.blocksGameplay() &&
+     state.droid.phase==Core::DroidPhase::ButtonReady) {
+    float hit=1.5F;
+    Tyra::Vec4 post(0,0,-26,1);
+    if(Systems::Physics::distanceXZ(state.player.playerPos,post)<=1.5F &&
+       reticleHits(state,-.1F,.90F,-26.1F,.1F,1.02F,-25.9F,hit) &&
+       Systems::Physics::interiorSegmentFree(state,state.player.playerPos,
+         Tyra::Vec4(state.player.playerPos.x*.25F/std::max(.001F,Systems::Physics::distanceXZ(state.player.playerPos,post)),0,-26+(state.player.playerPos.z+26)*.25F/std::max(.001F,Systems::Physics::distanceXZ(state.player.playerPos,post)),1),.01F)) {
+      state.droid.buttonNearby=true;
+      if(clicked.Triangle) {
+        state.droid.phase=Core::DroidPhase::Release;state.droid.phaseTicks=0;
+        state.weapon.cancelTransient();state.inputCmd.clear();
+        bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));return;
+      }
+    }
+  }
   state.scene.nearbyDoor = -1;
-  if (state.scene.active == Core::SceneId::Interior && !state.radio.popupActive) {
+  if (state.scene.active == Core::SceneId::Interior && !state.radio.blocksGameplay()) {
     float nearestHit = 1.8F;
     for (int i = 0; i < 4; ++i) {
       const float dx = state.player.playerPos.x - Core::kInsideDoorX[i];
@@ -197,7 +245,7 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
         state.scene.nearbyDoor = i;
       }
     }
-    if (state.scene.nearbyDoor >= 0 && clicked.Square) {
+    if (state.scene.nearbyDoor >= 0 && clicked.Square && !pickupInteraction) {
       auto& door = state.scene.doors[state.scene.nearbyDoor];
       door.targetOpen = !door.targetOpen;
     }
@@ -209,11 +257,11 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   state.scene.terminalNearby = state.scene.active == Core::SceneId::Interior &&
       terminalDx * terminalDx + terminalDz * terminalDz <= 1.8F * 1.8F;
   if (!state.scene.terminalNearby) state.scene.terminalActive = false;
-  if (state.scene.terminalNearby && !state.radio.popupActive && clicked.Triangle) {
+  if (state.scene.terminalNearby && !state.radio.blocksGameplay() && clicked.Triangle) {
     state.scene.terminalActive = true;
     bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalOpened));
-    state.scene.terminalEntry=0;
-    state.scene.terminalTopic = 0;
+    state.scene.terminalAnimationFrame = 0;
+    state.scene.terminalTopic = state.encounter.newEntryUnlocked ? Core::kTruthTopic : 0;
     state.scene.terminalPage = 0;
     state.scene.terminalReading = false;
     state.scene.terminalBootFrames = 24;
@@ -269,8 +317,9 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   state.inputCmd.lookPitchDelta = lookPitchDelta;
   state.inputCmd.isRunning = pressed.L1;
   state.inputCmd.jumpRequested = clicked.Cross;
-  state.inputCmd.fireRequested = clicked.R1;
-  state.inputCmd.reloadRequested = clicked.Circle && !state.radio.popupActive;
+  state.inputCmd.fireRequested = clicked.R1 && state.inventory.armed();
+  state.inputCmd.reloadRequested = clicked.Circle && !state.radio.blocksGameplay() &&
+                                  state.inventory.armed();
 }
 
 void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
@@ -298,7 +347,10 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
     } else if(clicked.Cross) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
-      if(state.menu.pauseSelectedIndex==0)
+      if(state.droid.phase==Core::DroidPhase::GameOver) {
+        state.menu.currentScreen=state.menu.pauseSelectedIndex==0?Core::ScreenState::NewGame:Core::ScreenState::LoadGame;
+        bus.publish(Events::GameEvent::makeScreenTransition(static_cast<u8>(state.menu.currentScreen)));
+      } else if(state.menu.pauseSelectedIndex==0)
         bus.publish(Events::GameEvent::makeSimple(Events::EventType::EncounterRetryRequested));
       else state.menu.currentScreen=Core::ScreenState::MainMenu;
     }
@@ -310,11 +362,16 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
       state.menu.currentScreen = Core::ScreenState::GameplayFps;
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
     } else if (clicked.Cross) {
-      state.menu.currentScreen = state.menu.pauseSelectedIndex == 0
-          ? Core::ScreenState::GameplayFps : Core::ScreenState::MainMenu;
+      if (state.menu.pauseSelectedIndex == 1) {
+        state.menu.settingsReturnScreen = Core::ScreenState::Paused;
+        state.menu.currentScreen = Core::ScreenState::Settings;
+      } else {
+        state.menu.currentScreen = state.menu.pauseSelectedIndex == 0
+            ? Core::ScreenState::GameplayFps : Core::ScreenState::MainMenu;
+      }
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
     } else if (upPressed || downPressed) {
-      state.menu.pauseSelectedIndex = 1 - state.menu.pauseSelectedIndex;
+      state.menu.pauseSelectedIndex = (state.menu.pauseSelectedIndex + (upPressed ? 2 : 1)) % 3;
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
     }
     return;
@@ -338,6 +395,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
         bus.publish(Events::GameEvent::makeScreenTransition(
             static_cast<u8>(Core::ScreenState::LoadGame)));
       } else if (state.menu.mainSelectedIndex == 2) {
+        state.menu.settingsReturnScreen = Core::ScreenState::MainMenu;
         state.menu.currentScreen = Core::ScreenState::Settings;
         bus.publish(Events::GameEvent::makeScreenTransition(
             static_cast<u8>(Core::ScreenState::Settings)));
@@ -347,6 +405,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
     if (clicked.Cross || clicked.Start) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
       state.weapon = Core::WeaponState{};
+      state.inventory = Core::InventoryState{};
       state.menu.activeSaveSlot = 0;
       state.scene.target = Core::SceneId::Exterior;
       state.scene.requested = true;
@@ -372,6 +431,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
       if (state.menu.loadSelectedIndex < 2) {
         bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
         state.menu.activeSaveSlot = state.menu.loadSelectedIndex + 1;
+        state.inventory = Core::InventoryState{};
         state.scene.target = Core::SceneId::Exterior;
         state.scene.requested = true;
         state.menu.currentScreen = Core::ScreenState::GameplayFps;
@@ -389,17 +449,17 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
   } else if (state.menu.currentScreen == Core::ScreenState::Settings) {
     if (clicked.Circle || clicked.Select) {
       bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
-      state.menu.currentScreen = Core::ScreenState::MainMenu;
+      state.menu.currentScreen = state.menu.settingsReturnScreen;
       bus.publish(Events::GameEvent::makeScreenTransition(
-          static_cast<u8>(Core::ScreenState::MainMenu)));
+          static_cast<u8>(state.menu.currentScreen)));
       return;
     }
     if (upPressed) {
       state.menu.settingsSelectedIndex =
-          (state.menu.settingsSelectedIndex + 3) % 4;
+          (state.menu.settingsSelectedIndex + 4) % 5;
     } else if (downPressed) {
       state.menu.settingsSelectedIndex =
-          (state.menu.settingsSelectedIndex + 1) % 4;
+          (state.menu.settingsSelectedIndex + 1) % 5;
     }
 
     if (leftPressed || rightPressed || clicked.Cross) {
@@ -420,12 +480,17 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
         bus.publish(Events::GameEvent::makeSimple(
             Events::EventType::AudioSettingChanged,
             static_cast<s16>(state.menu.sfxVolume)));
-      } else if (state.menu.settingsSelectedIndex == 2) {
+      } else if (state.menu.settingsSelectedIndex == 3) {
         state.menu.scanlinesEnabled = !state.menu.scanlinesEnabled;
         bus.publish(Events::GameEvent::makeSimple(
             Events::EventType::VideoFilterChanged,
             state.menu.scanlinesEnabled ? 1 : 0));
-      } else if (state.menu.settingsSelectedIndex == 3) {
+      } else if (state.menu.settingsSelectedIndex == 2) {
+        state.menu.ambientVolume = std::clamp(state.menu.ambientVolume + dir * 10, 0, 100);
+        bus.publish(Events::GameEvent::makeSimple(
+            Events::EventType::AudioSettingChanged,
+            static_cast<s16>(state.menu.ambientVolume)));
+      } else if (state.menu.settingsSelectedIndex == 4) {
         state.menu.nearestFilter = !state.menu.nearestFilter;
         bus.publish(Events::GameEvent::makeSimple(
             Events::EventType::VideoFilterChanged,
@@ -442,6 +507,7 @@ void InputSystem::pollMenuInput(Tyra::Engine* engine, Core::WorldState& state,
       previous.loadSelectedIndex != current.loadSelectedIndex ||
       previous.settingsSelectedIndex != current.settingsSelectedIndex ||
       previous.bgmVolume != current.bgmVolume || previous.sfxVolume != current.sfxVolume ||
+      previous.ambientVolume != current.ambientVolume ||
       previous.scanlinesEnabled != current.scanlinesEnabled ||
       previous.nearestFilter != current.nearestFilter;
   if (changed && previous.currentScreen == current.currentScreen &&

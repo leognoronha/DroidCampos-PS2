@@ -1,4 +1,5 @@
 #pragma once
+#include "systems/render3d/droid_preview.hpp"
 
 #include <tyra>
 #include <memory>
@@ -37,6 +38,8 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
   void loadScenario3D(Tyra::Engine* engine);
   void loadMist3D(Tyra::Engine* engine);
   void loadPistol3D(Tyra::Engine* engine);
+  void loadPickupMeshes();
+  void renderPickups(const Core::WorldState&);
   void loadWeaponEffects();
   void renderWeaponEffects(Tyra::Engine*,const Core::WorldState&);
   void renderOneWeaponEffect(Tyra::Engine*,const Core::WeaponState&);
@@ -48,10 +51,11 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
                              const Tyra::StaPipOptions& options);
   void updatePistolViewmodelTransform(const Core::WorldState& state);
   void updateAbandonedSignFlicker(const Core::WorldState& state);
-  void updateCardReaderLight(Core::WorldState& state, Events::EventBus& bus);
+  void updateCardReaderLight(const Core::WorldState& state);
 
   Tyra::StaticPipeline stapip_;
   Enemy::EnemyRenderSystem enemyRenderer_;
+  DroidPreview droidPreview_;
 
   std::unique_ptr<Tyra::StaticMesh> scenarioMesh_;
   Tyra::StaPipOptions scenarioOptions_;
@@ -65,11 +69,14 @@ class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponSc
   bool mistLoaded_;
 
   std::unique_ptr<Tyra::StaticMesh> pistolMesh_;
+  std::unique_ptr<Tyra::StaticMesh> accessCardMesh_, medkitMesh_, pickupMarkerMesh_;
   Tyra::StaPipOptions pistolOptions_;
   bool pistolLoaded_;
   std::vector<std::unique_ptr<Tyra::StaticMesh>> interiorMeshes_;
   std::unique_ptr<Tyra::StaticMesh> doorMesh_;
-  std::unique_ptr<Tyra::StaticMesh> capsuleGlassMesh_;
+  std::unique_ptr<Tyra::StaticMesh> capsuleGlassMesh_, capsuleOccupantMesh_, capsuleLocksMesh_;
+  struct AmbientBaseline {Tyra::MeshMaterial* material;float r,g,b;};
+  std::vector<AmbientBaseline> interiorAmbient_;
   Tyra::StaPipOptions capsuleGlassOptions_;
   std::map<std::string, u32> interiorTextures_;
 };
