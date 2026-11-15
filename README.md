@@ -1,6 +1,6 @@
-# DroidCampos-PS2 v1.0.0-rc.1
+# DroidCampos-PS2 v1.0.0
 
-Candidata privada com o encontro da ETIP, autosave, retomada e boot por USB.
+Lançamento privado do episódio ETIP para PlayStation 2.
 
 ## Compilar
 
