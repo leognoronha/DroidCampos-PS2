@@ -27,8 +27,9 @@ class RadioCodecSystem : public Core::ISubsystem {
 
  private:
   void updateSimulation(Core::WorldState& state, Events::EventBus& bus);
+  void renderIncomingIndicator();
   void renderRadioPopup(const Core::WorldState& state);
-  void renderAnonymousCodecPortrait(float x, float y, bool speaking);
+  void renderSignalMonitor(float x, float y, bool speaking);
 
   Ui::UiContextDrawer* drawer_;
   float currentAnimTick_;

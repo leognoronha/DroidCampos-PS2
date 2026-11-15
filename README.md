@@ -1,6 +1,6 @@
-# DroidCampos-PS2 v0.1.0
+# DroidCampos-PS2 v0.2.0
 
-Explore o pátio, acione o leitor de cartão e entre no interior da ETIP.
+O menu e a introdução apresentam a ETIP, com rádio, pulo e pistola laser.
 
 ## Compilar
 
@@ -12,6 +12,8 @@ executável. No PCSX2, abra esse ELF com a BIOS configurada.
 
 - Analógico esquerdo para mover e direito para mirar.
 - Quadrado para interagir com o cenário.
+- X para pular, L1 para correr, R1 para atirar e Círculo para recarregar.
+- Círculo fecha as transmissões automáticas.
 
 ## Créditos
 

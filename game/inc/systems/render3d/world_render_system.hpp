@@ -4,12 +4,13 @@
 #include <memory>
 #include <map>
 #include "core/isubsystem.hpp"
+#include "systems/weapon/weapon_geometry.hpp"
 
 namespace DroidCampos {
 namespace Systems {
 namespace Render3D {
 
-class WorldRenderSystem final : public Core::ISubsystem {
+class WorldRenderSystem final : public Core::ISubsystem, public Weapon::WeaponScene {
  public:
   WorldRenderSystem();
   ~WorldRenderSystem() override = default;
@@ -23,6 +24,11 @@ class WorldRenderSystem final : public Core::ISubsystem {
                     Hardware::Ps2ScratchpadArena& scratchpad) override;
   void shutdown(Tyra::Engine* engine) override;
   bool validateScene(Core::SceneId scene) const;
+  bool traceWeapon(const Core::WorldState& state,const Tyra::Vec4& origin,
+                   const Tyra::Vec4& direction,Weapon::RayHit& hit) const override {
+    return weaponRays_.trace(state,origin,direction,hit);
+  }
+  Tyra::Vec4 weaponMuzzle(const Core::WorldState& state) override;
   void unloadScene(Tyra::Engine* engine);
   void loadSceneStep(Tyra::Engine* engine, Core::SceneId scene, int step);
 
@@ -30,6 +36,12 @@ class WorldRenderSystem final : public Core::ISubsystem {
   void loadScenario3D(Tyra::Engine* engine);
   void loadMist3D(Tyra::Engine* engine);
   void loadPistol3D(Tyra::Engine* engine);
+  void loadWeaponEffects();
+  void renderWeaponEffects(Tyra::Engine*,const Core::WorldState&);
+  void registerWeaponGeometry(Tyra::StaticMesh*,int door=-1);
+  Weapon::WeaponRayScene weaponRays_;
+  std::unique_ptr<Tyra::StaticMesh> beamCore_, beamGlow_, impactMesh_;
+  Tyra::StaPipOptions laserOptions_;
   void renderTransparentPass(Tyra::Engine* engine, Tyra::StaticMesh* mesh,
                              const Tyra::StaPipOptions& options);
   void updatePistolViewmodelTransform(const Core::WorldState& state);
