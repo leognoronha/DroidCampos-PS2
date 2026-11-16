@@ -30,23 +30,23 @@ int main(int argc, char** argv) {
       assert(d.position.x >= 0 && d.position.y >= 0);
       assert(d.position.x + d.size.x * d.scale <= 512 &&
              d.position.y + d.size.y * d.scale <= 448);
-      if (d.position.y == 358 && d.size.y == 1) {
+      if (d.position.y == 390 && d.size.y == 1) {
         healthTop |= d.position.x == 20 && d.size.x == 122;
         kitTop |= d.position.x == 166 && d.size.x == 28;
         ammoTop |= d.position.x == 388 && d.size.x == 104;
       }
-      if (d.position.y == 384 && d.position.x >= 390 && d.size.x == 9 &&
+      if (d.position.y == 416 && d.position.x >= 390 && d.size.x == 9 &&
           d.size.y == 3)
         ++slots;
-      if (d.position.y == 403 && d.size.y == 1) {
+      if (d.position.y == 435 && d.size.y == 1) {
         healthBottom |= d.position.x == 20 && d.size.x == 122;
         kitBottom |= d.position.x == 166 && d.size.x == 28;
         ammoBottom |= d.position.x == 388 && d.size.x == 104;
       }
       if (d.color.g > d.color.r && d.color.g > d.color.b) {
-        kitCrossVertical |= d.position.x == 169 && d.position.y == 368 &&
+        kitCrossVertical |= d.position.x == 169 && d.position.y == 400 &&
                             d.size.x == 4 && d.size.y == 12;
-        kitCrossHorizontal |= d.position.x == 165 && d.position.y == 372 &&
+        kitCrossHorizontal |= d.position.x == 165 && d.position.y == 404 &&
                               d.size.x == 12 && d.size.y == 4;
       }
     }
