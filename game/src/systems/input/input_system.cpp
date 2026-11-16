@@ -77,10 +77,15 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
       const auto& clicked = engine->pad.getClicked();
       auto& terminal = state.scene;
       ++terminal.terminalAnimationFrame;
-      if (clicked.Triangle || (clicked.Circle && !terminal.terminalReading)) {
+      if (clicked.Triangle ||
+          (clicked.Circle && !terminal.terminalReading && !terminal.terminalVideoActive)) {
+        terminal.terminalVideoActive = false;
+        terminal.terminalSecretUnlocked = false;
         terminal.terminalActive = false;
         bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalClosed));
         bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuBackRequested));
+      } else if (terminal.terminalVideoActive) {
+        if (clicked.Circle) terminal.terminalVideoActive = false;
       } else if (clicked.Circle) {
         terminal.terminalReading = false;
         terminal.terminalPage = 0;
@@ -93,21 +98,53 @@ void InputSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engine,
         const bool down = clicked.DpadDown || (state.menu.padCooldown == 0 && joy.v >= 185);
         const bool left = clicked.DpadLeft || (state.menu.padCooldown == 0 && joy.h <= 70);
         const bool right = clicked.DpadRight || (state.menu.padCooldown == 0 && joy.h >= 185);
-        const int topicCount = Core::kTruthTopic + (state.encounter.newEntryUnlocked ? 1 : 0);
-        const int pageCount = Core::kTerminalDocuments[terminal.terminalTopic].pageCount;
+        const int documentCount = Core::kTruthTopic + (state.encounter.newEntryUnlocked ? 1 : 0);
+        const int topicCount = documentCount + terminal.terminalSecretUnlocked;
         if (!terminal.terminalReading && clicked.Cross) {
+          terminal.terminalCodeProgress = 0;
+          if (terminal.terminalTopic == Core::kSecretTopic) {
+            terminal.terminalVideoError = false;
+            terminal.terminalVideoActive = true;
+            return;
+          }
           terminal.terminalReading = true;
           terminal.terminalPage = 0;
           if (terminal.terminalTopic == Core::kTruthTopic) state.encounter.objectiveComplete = true;
           bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuConfirmRequested));
-        } else if (!terminal.terminalReading && (up || down)) {
-          terminal.terminalTopic =
-              (terminal.terminalTopic + (up ? topicCount - 1 : 1)) % topicCount;
-          state.menu.padCooldown = 12;
-          bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
-        } else if (terminal.terminalReading &&
+        } else if (!terminal.terminalReading) {
+          if (!terminal.terminalSecretUnlocked) {
+            const auto& held = engine->pad.getPressed();
+            const int heldDirections = held.DpadDown + held.DpadLeft + held.DpadRight + held.DpadUp;
+            const int direction = clicked.DpadDown + 2 * clicked.DpadLeft +
+                                  3 * clicked.DpadRight + 4 * clicked.DpadUp;
+            if (heldDirections > 1 ||
+                clicked.DpadDown + clicked.DpadLeft + clicked.DpadRight + clicked.DpadUp > 1) {
+              terminal.terminalCodeProgress = 0;
+            } else if (direction != 0) {
+              constexpr int code[] = {1, 1, 2, 3, 4};
+              auto& progress = terminal.terminalCodeProgress;
+              if (direction == code[progress]) ++progress;
+              else if (direction == 1) progress = progress == 2 ? 2 : 1;
+              else progress = 0;
+              if (progress == 5) {
+                terminal.terminalSecretUnlocked = true;
+                terminal.terminalTopic = Core::kSecretTopic;
+                bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalSecretUnlocked));
+                return;
+              }
+            }
+          }
+          if (up || down) {
+            const int index = terminal.terminalTopic == Core::kSecretTopic
+                                  ? documentCount : terminal.terminalTopic;
+            const int next = (index + (up ? topicCount - 1 : 1)) % topicCount;
+            terminal.terminalTopic = next == documentCount ? Core::kSecretTopic : next;
+            state.menu.padCooldown = 12;
+            bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
+          }
+        } else if (
                    ((left && terminal.terminalPage > 0) ||
-                    (right && terminal.terminalPage + 1 < pageCount))) {
+                    (right && terminal.terminalPage + 1 < Core::kTerminalDocuments[terminal.terminalTopic].pageCount))) {
           terminal.terminalPage += left ? -1 : 1;
           state.menu.padCooldown = 12;
           bus.publish(Events::GameEvent::makeSimple(Events::EventType::MenuNavigateRequested));
@@ -246,6 +283,10 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
   if (!state.scene.terminalNearby) state.scene.terminalActive = false;
   if (state.scene.terminalNearby && !state.radio.blocksGameplay() && clicked.Triangle) {
     state.scene.terminalActive = true;
+    state.scene.terminalCodeProgress = 0;
+    state.scene.terminalSecretUnlocked = false;
+    state.scene.terminalVideoActive = false;
+    state.scene.terminalVideoError = false;
     bus.publish(Events::GameEvent::makeSimple(Events::EventType::TerminalOpened));
     state.scene.terminalAnimationFrame = 0;
     state.scene.terminalTopic = state.encounter.newEntryUnlocked ? Core::kTruthTopic : 0;

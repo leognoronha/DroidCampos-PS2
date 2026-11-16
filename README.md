@@ -1,4 +1,4 @@
-# DroidCampos-PS2 v1.0.0
+# DroidCampos-PS2 v1.1.0
 
 Lançamento privado do episódio ETIP para PlayStation 2.
 

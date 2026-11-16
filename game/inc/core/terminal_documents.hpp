@@ -3,6 +3,8 @@
 namespace DroidCampos {
 namespace Core {
 
+constexpr int kSecretTopic = 4;
+
 constexpr const char* kCorporatePages[] = {
     "ETIP CORP - DOCUMENTO CONFIDENCIAL\n"
     "PROTOCOLO DROIDCAMPOS\n"
