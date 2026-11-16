@@ -1,3 +1,4 @@
+#include "pad/analog_axis.hpp"
 #include "systems/input/input_system.hpp"
 #include "core/terminal_documents.hpp"
 #include <cmath>
@@ -312,32 +313,11 @@ void InputSystem::pollGameplayInput(Tyra::Engine* engine,
     return;
   }
 
-  float lookYawDelta = 0.0F;
-  float lookPitchDelta = 0.0F;
-
-  const float rx = (static_cast<float>(rightJoy.h) - 128.0F) / 128.0F;
-  const float ry = (static_cast<float>(rightJoy.v) - 128.0F) / 128.0F;
   const float lookSens = state.player.lookSensitivity;
-
-  if (std::fabs(rx) > 0.18F) {
-    lookYawDelta += rx * lookSens;
-  }
-  if (std::fabs(ry) > 0.18F) {
-    lookPitchDelta -= ry * lookSens;
-  }
-
-  float moveForward = 0.0F;
-  float moveStrafe = 0.0F;
-
-  const float lx = (static_cast<float>(leftJoy.h) - 128.0F) / 128.0F;
-  const float ly = (static_cast<float>(leftJoy.v) - 128.0F) / 128.0F;
-
-  if (std::fabs(ly) > 0.18F) {
-    moveForward -= ly;
-  }
-  if (std::fabs(lx) > 0.18F) {
-    moveStrafe += lx;
-  }
+  const float lookYawDelta = Tyra::AnalogAxis::normalize(rightJoy.h) * lookSens;
+  const float lookPitchDelta = -Tyra::AnalogAxis::normalize(rightJoy.v) * lookSens;
+  float moveForward = -Tyra::AnalogAxis::normalize(leftJoy.v);
+  float moveStrafe = Tyra::AnalogAxis::normalize(leftJoy.h);
 
   if (pressed.DpadUp) {
     moveForward += 1.0F;
