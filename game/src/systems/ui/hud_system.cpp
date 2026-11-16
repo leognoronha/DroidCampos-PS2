@@ -94,7 +94,8 @@ bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
     videoFile_ = std::fopen(path.c_str(), "rb");
     if (!videoFile_ || std::fseek(videoFile_, 0, SEEK_END) != 0) return finish(true);
     const long size = std::ftell(videoFile_);
-    if (size <= 0 || size % frameBytes != 0) return finish(true);
+    if (size <= 0 || size % frameBytes != 0 ||
+        std::fseek(videoFile_, 0, SEEK_SET) != 0) return finish(true);
     videoFrameCount_ = size / frameBytes;
 
     auto& song = engine->audio.song;
