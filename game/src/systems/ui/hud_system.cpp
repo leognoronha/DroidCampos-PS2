@@ -259,7 +259,7 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
     drawer_->drawRect(0,0,512,6,flash);drawer_->drawRect(0,442,512,6,flash);
     drawer_->drawRect(0,0,6,448,flash);drawer_->drawRect(506,0,6,448,flash);
   }
-  constexpr int statusBottom = 404;
+  constexpr int statusBottom = 436;
   constexpr int statusHeight = 46;
   constexpr int statusY = statusBottom - statusHeight;
   constexpr int healthX = 12;
@@ -331,7 +331,7 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   }
   const bool showNewEntry = encounter.newEntryUnlocked &&
                             !encounter.objectiveComplete && !state.radio.popupActive;
-  constexpr int newEntryY = 50;
+  constexpr int newEntryY = 12;
   constexpr int newEntryHeight = 42;
   if (waveTitle[0]) {
     const auto drawWaveLine = [&](const char* label, int y, float scale, Color ink) {
@@ -367,28 +367,6 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
     drawer_->drawRect(cx - 1.0F, cy + 3.0F, 2.0F, 5.0F, crosshairCol);
   }
 
-  // Compact Top Tactical Telemetry Bar
-  drawer_->drawPanel(12.0F, 10.0F, 488.0F, 26.0F,
-                     Color(8.0F, 12.0F, 18.0F, 92.0F),
-                     Color(0.0F, 180.0F, 220.0F, 95.0F));
-
-  const char* zoneLabel = "ZONA B // VIA DE ACESSO";
-  if (state.player.playerPos.z > 13.0F) {
-    zoneLabel = "ZONA A // PONTO INICIAL";
-  } else if (state.player.playerPos.z < 6.5F) {
-    zoneLabel = "ZONA C // PORTAO & CONTROLE ETIP";
-  }
-
-  if (state.scene.active == Core::SceneId::Interior) zoneLabel = "ETIP // INTERIOR";
-  drawer_->getFont().drawText(zoneLabel, 22, 16,
-                              Color(240.0F, 185.0F, 40.0F, 128.0F), 1.0F);
-
-  char posBuf[48];
-  std::snprintf(posBuf, sizeof(posBuf), "POS X:%.1f Z:%.1f",
-                state.player.playerPos.x, -state.player.playerPos.z);
-  drawer_->getFont().drawText(posBuf, 350, 16,
-                              Color(140.0F, 235.0F, 255.0F, 128.0F), 1.0F);
-
   const char* saveText = nullptr;
   switch (state.menu.saveNotice) {
     case Core::SaveNotice::Writing: saveText = "SALVANDO..."; break;
@@ -400,8 +378,8 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
   }
   if (saveText) {
     const int width = font.lineWidth(saveText) + 16;
-    drawer_->drawPanel(500 - width, 42, width, 20, Color(8, 16, 22, 112), cyan);
-    font.drawText(saveText, 508 - width, 46, Color(160, 240, 240, 128));
+    drawer_->drawPanel(500 - width, 12, width, 20, Color(8, 16, 22, 112), cyan);
+    font.drawText(saveText, 508 - width, 16, Color(160, 240, 240, 128));
   }
 
   if (!state.radio.popupActive && state.nearbyPickup != Core::Pickup::Count &&
@@ -482,24 +460,6 @@ void HudSystem::renderFpsHud(const Core::WorldState& state) {
     const auto& door = state.scene.doors[state.scene.nearbyDoor];
     drawInteraction(door.targetOpen ? "[QUADRADO] FECHAR PORTA"
                                     : "[QUADRADO] ABRIR PORTA", promptY);
-  }
-  // Bottom Controls Bar
-  drawer_->drawPanel(12.0F, 412.0F, 488.0F, 24.0F,
-                     Color(8.0F, 12.0F, 18.0F, 92.0F),
-                     Color(80.0F, 100.0F, 120.0F, 85.0F));
-  if (state.radio.popupActive) {
-    drawer_->getFont().drawText(state.radio.phase == Core::RadioPhase::Message
-                                    ? (state.radio.reviewing
-                                           ? "L2: FECHAR RADIO // O: RECARGA // START: PAUSA"
-                                           : "O: CLOSE RADIO // START: PAUSA")
-                                    : "RADIO // INCOMING TRANSMISSION...",
-                                20, 417, Color(80, 120, 116, 128), 1.0F);
-  } else {
-    drawer_->getFont().drawText(
-        state.inventory.armed()
-            ? "R1: TIRO  O: RECARGA  R2: KIT  X: PULO  L1: CORRER  L2: RADIO  START: PAUSA"
-            : "QUADRADO: PEGAR  R2: KIT  X: PULO  L1: CORRER  L2: RADIO  START: PAUSA",
-        20, 417, Color(190.0F, 215.0F, 230.0F, 128.0F), .85F);
   }
 }
 
