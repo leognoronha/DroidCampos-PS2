@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "pad/analog_axis.hpp"
+
 namespace Tyra {
 
 struct PadButtons {
@@ -45,12 +47,13 @@ class Pad {
   int actuators, ret, port, slot;
   padButtonStatus buttons;
   u32 padData, oldPad, newPad;
-  PadButtons pressed, clicked;
-  PadJoy leftJoyPad, rightJoyPad;
+  PadButtons pressed{}, clicked{};
+  PadJoy leftJoyPad{128, 128, 1, 0}, rightJoyPad{128, 128, 1, 0};
+  AnalogAxis leftHorizontal_, leftVertical_, rightHorizontal_, rightVertical_;
+  bool validButtons_ = false;
 
-  void reset();
-  void handleClickedButtons();
-  void handlePressedButtons();
+  void clearAnalog();
+  static void decodeButtons(PadButtons& output, u32 mask);
   int waitPadReady();
   int initPad();
 };

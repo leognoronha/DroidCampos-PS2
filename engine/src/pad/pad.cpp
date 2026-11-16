@@ -30,6 +30,8 @@ Pad::~Pad() {}
 
 void Pad::init() {
   this->oldPad = 0;
+  validButtons_ = false;
+  clearAnalog();
   padInit(0);
   this->port = 0;  // 0 -> Connector 1, 1 -> Connector 2
   this->slot = 0;  // Always zero if not using multitap
@@ -120,110 +122,65 @@ int Pad::initPad() {
 
 /** Updates state of joys/buttons. Called by engine */
 void Pad::update() {
-  int x = 0;
-  this->ret = padGetState(this->port, this->slot);
-  while ((this->ret != PAD_STATE_STABLE) && (this->ret != PAD_STATE_FINDCTP1)) {
-    if (this->ret == PAD_STATE_DISCONN)
-      printf("Pad(%d, %d) is disconnected\n", this->port, this->slot);
-    this->ret = padGetState(this->port, this->slot);
+  clicked = {};
+  pressed = {};
+  buttons = {};
+  // A failed poll or a controller negotiating its mode must not reuse axes.
+  const int bytes = padGetState(port, slot) == PAD_STATE_STABLE
+      ? padRead(port, slot, &buttons) : 0;
+  if (!isCompletePadPacket(bytes, buttons.ok, buttons.mode)) {
+    validButtons_ = false;
+    clearAnalog();
+    return;
   }
-  if (x == 1) TYRA_LOG("Pad: OK!\n");
 
-  this->ret = padRead(this->port, this->slot, &this->buttons);
+  padData = 0xffff ^ buttons.btns;
+  newPad = validButtons_ ? padData & ~oldPad : 0;
+  oldPad = padData;
+  validButtons_ = true;
+  decodeButtons(clicked, newPad);
+  decodeButtons(pressed, padData);
 
-  if (this->ret != 0) {
-    this->padData = 0xffff ^ this->buttons.btns;
-
-    this->newPad = this->padData & ~this->oldPad;
-    this->oldPad = this->padData;
-    this->reset();
-
-    // Digital buttons
-    this->rightJoyPad.h = this->buttons.rjoy_h;
-    this->rightJoyPad.v = this->buttons.rjoy_v;
-    this->leftJoyPad.h = this->buttons.ljoy_h;
-    this->leftJoyPad.v = this->buttons.ljoy_v;
-
-    this->rightJoyPad.isCentered =
-        this->buttons.rjoy_h == 127 && this->buttons.rjoy_v == 127;
-    this->rightJoyPad.isMoved = !this->rightJoyPad.isCentered;
-
-    this->leftJoyPad.isCentered =
-        this->buttons.ljoy_h == 127 && this->buttons.ljoy_v == 127;
-    this->leftJoyPad.isMoved = !this->leftJoyPad.isCentered;
-
-    this->handleClickedButtons();
-    this->handlePressedButtons();
+  if (!isAnalogPadMode(buttons.mode)) {
+    clearAnalog();
+    return;
   }
+  const auto updateStick = [](PadJoy& stick, AnalogAxis& horizontal,
+                              AnalogAxis& vertical, u8 h, u8 v) {
+    stick.h = horizontal.update(h);
+    stick.v = vertical.update(v);
+    stick.isCentered = stick.h == AnalogAxis::kCenter && stick.v == AnalogAxis::kCenter;
+    stick.isMoved = !stick.isCentered;
+  };
+  updateStick(leftJoyPad, leftHorizontal_, leftVertical_, buttons.ljoy_h, buttons.ljoy_v);
+  updateStick(rightJoyPad, rightHorizontal_, rightVertical_, buttons.rjoy_h, buttons.rjoy_v);
 }
 
-/** Update clicked buttons state */
-void Pad::handleClickedButtons() {
-  if (this->newPad & PAD_CROSS) this->clicked.Cross = 1;
-  if (this->newPad & PAD_SQUARE) this->clicked.Square = 1;
-  if (this->newPad & PAD_TRIANGLE) this->clicked.Triangle = 1;
-  if (this->newPad & PAD_CIRCLE) this->clicked.Circle = 1;
-  if (this->newPad & PAD_UP) this->clicked.DpadUp = 1;
-  if (this->newPad & PAD_DOWN) this->clicked.DpadDown = 1;
-  if (this->newPad & PAD_LEFT) this->clicked.DpadLeft = 1;
-  if (this->newPad & PAD_RIGHT) this->clicked.DpadRight = 1;
-  if (this->newPad & PAD_L1) this->clicked.L1 = 1;
-  if (this->newPad & PAD_L2) this->clicked.L2 = 1;
-  if (this->newPad & PAD_L3) this->clicked.L3 = 1;
-  if (this->newPad & PAD_R1) this->clicked.R1 = 1;
-  if (this->newPad & PAD_R2) this->clicked.R2 = 1;
-  if (this->newPad & PAD_R3) this->clicked.R3 = 1;
-  if (this->newPad & PAD_START) this->clicked.Start = 1;
-  if (this->newPad & PAD_SELECT) this->clicked.Select = 1;
+void Pad::decodeButtons(PadButtons& output, u32 mask) {
+  output.Cross = (mask & PAD_CROSS) != 0;
+  output.Square = (mask & PAD_SQUARE) != 0;
+  output.Triangle = (mask & PAD_TRIANGLE) != 0;
+  output.Circle = (mask & PAD_CIRCLE) != 0;
+  output.DpadUp = (mask & PAD_UP) != 0;
+  output.DpadDown = (mask & PAD_DOWN) != 0;
+  output.DpadLeft = (mask & PAD_LEFT) != 0;
+  output.DpadRight = (mask & PAD_RIGHT) != 0;
+  output.L1 = (mask & PAD_L1) != 0;
+  output.L2 = (mask & PAD_L2) != 0;
+  output.L3 = (mask & PAD_L3) != 0;
+  output.R1 = (mask & PAD_R1) != 0;
+  output.R2 = (mask & PAD_R2) != 0;
+  output.R3 = (mask & PAD_R3) != 0;
+  output.Start = (mask & PAD_START) != 0;
+  output.Select = (mask & PAD_SELECT) != 0;
 }
 
-/** Update pressed buttons state */
-void Pad::handlePressedButtons() {
-  if (this->buttons.cross_p) this->pressed.Cross = 1;
-  if (this->buttons.square_p) this->pressed.Square = 1;
-  if (this->buttons.triangle_p) this->pressed.Triangle = 1;
-  if (this->buttons.circle_p) this->pressed.Circle = 1;
-  if (this->buttons.up_p) this->pressed.DpadUp = 1;
-  if (this->buttons.down_p) this->pressed.DpadDown = 1;
-  if (this->buttons.left_p) this->pressed.DpadLeft = 1;
-  if (this->buttons.right_p) this->pressed.DpadRight = 1;
-  if (this->buttons.l1_p) this->pressed.L1 = 1;
-  if (this->buttons.l2_p) this->pressed.L2 = 1;
-  if (this->buttons.r1_p) this->pressed.R1 = 1;
-  if (this->buttons.r2_p) this->pressed.R2 = 1;
+void Pad::clearAnalog() {
+  leftHorizontal_.reset();
+  leftVertical_.reset();
+  rightHorizontal_.reset();
+  rightVertical_.reset();
+  leftJoyPad = rightJoyPad = {AnalogAxis::kCenter, AnalogAxis::kCenter, 1, 0};
 }
 
-/** Resets state of joys/buttons */
-void Pad::reset() {
-  this->clicked.Cross = 0;
-  this->clicked.Square = 0;
-  this->clicked.Triangle = 0;
-  this->clicked.Circle = 0;
-  this->clicked.DpadUp = 0;
-  this->clicked.DpadDown = 0;
-  this->clicked.DpadLeft = 0;
-  this->clicked.DpadRight = 0;
-  this->clicked.L1 = 0;
-  this->clicked.L2 = 0;
-  this->clicked.L3 = 0;
-  this->clicked.R1 = 0;
-  this->clicked.R2 = 0;
-  this->clicked.R3 = 0;
-  this->clicked.Start = 0;
-  this->clicked.Select = 0;
-
-  this->pressed.Cross = 0;
-  this->pressed.Square = 0;
-  this->pressed.Triangle = 0;
-  this->pressed.Circle = 0;
-  this->pressed.DpadUp = 0;
-  this->pressed.DpadDown = 0;
-  this->pressed.DpadLeft = 0;
-  this->pressed.DpadRight = 0;
-  this->pressed.L1 = 0;
-  this->pressed.L2 = 0;
-  this->pressed.R1 = 0;
-  this->pressed.R2 = 0;
-}
-
-}  // Namespace Tyra
+}  // namespace Tyra
