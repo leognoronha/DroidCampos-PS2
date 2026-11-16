@@ -15,6 +15,8 @@ class MenuAudioSystem final : public Core::ISubsystem {
                     Hardware::Ps2ScratchpadArena& scratchpad) override;
   u32 playCardReader(Tyra::Engine* engine, int volume);
   void shutdown(Tyra::Engine* engine) override;
+  u32 playTerminalVideoAudio(Tyra::Engine* engine, int volume);
+  void stopTerminalVideoAudio(Tyra::Engine* engine, bool interrupted);
 
  private:
   struct Effect {
@@ -22,13 +24,16 @@ class MenuAudioSystem final : public Core::ISubsystem {
     u8* data = nullptr;
   };
   Effect cardReader_, pickupWeapon_, pickupMedkit_;
-  Effect punchImpact_, healUp_, gameOver_;
+  Effect punchImpact_, healUp_, gameOver_, terminalVideo_;
+  u32 terminalVideoTicks_ = 0;
+  bool terminalVideoPlaying_ = false;
+  bool reloadBank_ = false;
   void playCombatCue(Tyra::Engine* engine, Effect& effect);
   audsrv_adpcm_t secretConfirmation_{};
   u8* secretConfirmationData_ = nullptr;
   bool secretConfirmationLoaded_ = false;
   bool loadSample(const char* path, audsrv_adpcm_t& sample, u8*& data,
-                  bool loop = false, u32* duration = nullptr);
+                  bool loop = false, u32* duration = nullptr, long maxBytes = 0);
   u32 cardReaderTicks_ = 0;
   struct Loop {
     audsrv_adpcm_t sample{};

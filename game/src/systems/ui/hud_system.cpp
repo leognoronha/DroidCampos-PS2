@@ -3,6 +3,7 @@
 #include <cstdio>
 #if defined(_EE)
 #include <dma.h>
+#include "systems/audio/menu_audio_system.hpp"
 #endif
 
 #include "core/terminal_documents.hpp"
@@ -13,7 +14,8 @@ namespace Ui {
 
 using namespace Tyra;
 
-HudSystem::HudSystem(UiContextDrawer* drawer) : drawer_(drawer) {}
+HudSystem::HudSystem(UiContextDrawer* drawer, Audio::MenuAudioSystem* audio)
+    : drawer_(drawer), videoAudio_(audio) {}
 
 HudSystem::HudSystem(UiContextDrawer& drawer) : drawer_(&drawer) {}
 
@@ -59,9 +61,8 @@ void HudSystem::shutdown(Engine* engine) {
 }
 
 #if defined(_EE)
-void HudSystem::closeTerminalVideo(Engine* engine) {
-  if (videoAudioLoaded_) engine->audio.song.stopAndUnload();
-  videoAudioLoaded_ = false;
+void HudSystem::closeTerminalVideo(Engine* engine, bool interrupted) {
+  if (videoFile_ && videoAudio_) videoAudio_->stopTerminalVideoAudio(engine, interrupted);
   if (videoTexture_) {
     dma_channel_wait(DMA_CHANNEL_GIF, 0);
     engine->renderer.getTextureRepository().freeBySprite(videoSprite_);
@@ -70,7 +71,7 @@ void HudSystem::closeTerminalVideo(Engine* engine) {
   if (videoFile_) std::fclose(videoFile_);
   videoFile_ = nullptr;
   videoPixels_.reset();
-  videoTicks_ = videoDrainTicks_ = 0;
+  videoTicks_ = videoAudioTicks_ = 0;
   videoFrame_ = -1;
 }
 
@@ -82,7 +83,7 @@ bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
   constexpr int margin = (textureSide - side) / 2;
   constexpr long frameBytes = side * side * sizeof(u16);
   auto finish = [&](bool error) {
-    closeTerminalVideo(engine);
+    closeTerminalVideo(engine, error);
     state.scene.terminalVideoActive = false;
     state.scene.terminalVideoError = error;
     return false;
@@ -97,10 +98,6 @@ bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
     if (size <= 0 || size % frameBytes != 0 ||
         std::fseek(videoFile_, 0, SEEK_SET) != 0) return finish(true);
     videoFrameCount_ = size / frameBytes;
-
-    auto& song = engine->audio.song;
-    videoAudioLoaded_ = song.tryLoadFrameStream(FileUtils::fromCwd("video/claudio.wav"), 44);
-    if (!videoAudioLoaded_) return finish(true);
 
     videoPixels_.reset(new u16[side * side]);
     TextureBuilderData data;
@@ -122,12 +119,12 @@ bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
     elapsed = videoTimer_.getTimeDelta();
     videoTimer_.prime();
     videoTicks_ += elapsed * fps;
+    if (videoAudioTicks_ > 0)
+      videoAudioTicks_ = elapsed >= videoAudioTicks_ ? 0 : videoAudioTicks_ - elapsed;
   }
 
   if (videoFrame_ == videoFrameCount_ - 1 && videoTicks_ >= ticksPerSecond) {
-    videoDrainTicks_ += elapsed;
-    if (engine->audio.song.frameStreamDrained()) return finish(false);
-    if (videoDrainTicks_ >= 5 * ticksPerSecond) return finish(true);
+    if (videoAudioTicks_ == 0) return finish(false);
   }
   drawer_->drawRect(0, 0, 512, 448, Color(0, 0, 0, 128));
   if (videoFrame_ == -1 ||
@@ -148,14 +145,13 @@ bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
     auto& textures = engine->renderer.core.texture;
     textures.updateTextureInfo(videoTexture_);
     if (videoFrame_ == -1) {
-      engine->audio.song.inLoop = false;
-      engine->audio.song.setVolume(state.menu.bgmVolume);
-      engine->audio.song.play();
+      if (!videoAudio_) return finish(true);
+      videoAudioTicks_ = videoAudio_->playTerminalVideoAudio(engine, state.menu.bgmVolume);
+      if (videoAudioTicks_ == 0) return finish(true);
       videoTimer_.prime();
     }
     ++videoFrame_;
   }
-  if (!engine->audio.song.pumpFrameStream()) return finish(true);
   engine->renderer.renderer2D.render(videoSprite_);
   drawer_->getFont().drawText("O: FECHAR", 24, 414, Color(120, 120, 120, 128), .85F);
   return true;

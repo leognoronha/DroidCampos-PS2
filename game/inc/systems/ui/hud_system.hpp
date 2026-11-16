@@ -10,11 +10,13 @@
 
 namespace DroidCampos {
 namespace Systems {
+namespace Audio { class MenuAudioSystem; }
 namespace Ui {
 
 class HudSystem : public Core::ISubsystem {
  public:
-  explicit HudSystem(UiContextDrawer* drawer = nullptr);
+  explicit HudSystem(UiContextDrawer* drawer = nullptr,
+                     Audio::MenuAudioSystem* audio = nullptr);
   explicit HudSystem(UiContextDrawer& drawer);
   ~HudSystem() override = default;
 
@@ -35,7 +37,7 @@ class HudSystem : public Core::ISubsystem {
 
 #if defined(_EE)
   bool renderTerminalVideo(Tyra::Engine* engine, Core::WorldState& state);
-  void closeTerminalVideo(Tyra::Engine* engine);
+  void closeTerminalVideo(Tyra::Engine* engine, bool interrupted = true);
 
   std::FILE* videoFile_ = nullptr;
   Tyra::Texture* videoTexture_ = nullptr;
@@ -43,13 +45,13 @@ class HudSystem : public Core::ISubsystem {
   Tyra::Timer videoTimer_;
   u32 videoTicks_ = 0;
   int videoFrame_ = -1;
-  u32 videoDrainTicks_ = 0;
+  u32 videoAudioTicks_ = 0;
   int videoFrameCount_ = 0;
-  bool videoAudioLoaded_ = false;
   std::unique_ptr<u16[]> videoPixels_;
 #endif
 
   UiContextDrawer* drawer_;
+  Audio::MenuAudioSystem* videoAudio_ = nullptr;
 };
 
 }  // namespace Ui
