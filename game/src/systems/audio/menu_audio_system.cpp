@@ -108,6 +108,8 @@ void MenuAudioSystem::init(Tyra::Engine* engine, Core::WorldState&, Events::Even
   droidAlarm_.loaded = loadSample("audio/droid_alarm.adpcm", droidAlarm_.sample, droidAlarm_.data, true);
   droidSteps_.loaded = loadSample("audio/droid_steps.adpcm", droidSteps_.sample, droidSteps_.data, true);
   loadSample("audio/droid_ce_sabe.adpcm", droidVoice_.sample, droidVoice_.data);
+  secretConfirmationLoaded_ =
+      loadSample("audio/terminal_secret.adpcm", secretConfirmation_, secretConfirmationData_);
   loadSample("audio/card_reader.adpcm", cardReader_.sample, cardReader_.data,
              false, &cardReaderTicks_);
   loadSample("audio/pickup_weapon.adpcm", pickupWeapon_.sample, pickupWeapon_.data);
@@ -219,6 +221,9 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
       sample = &pickupWeapon_.sample;
     else if (events[i].type == Events::EventType::MedkitPickedUp && pickupMedkit_.data)
       sample = &pickupMedkit_.sample;
+    else if (events[i].type == Events::EventType::TerminalSecretUnlocked &&
+             secretConfirmationLoaded_)
+      sample = &secretConfirmation_;
     else if (events[i].type == Events::EventType::MenuBackRequested &&
              backLoaded_)
       sample = &back_;
@@ -347,7 +352,7 @@ void MenuAudioSystem::shutdown(Tyra::Engine* engine) {
   // reset() also stops active voices. Never call it on a menu screen transition.
   if (engine && (backLoaded_ || confirmLoaded_ || navigateLoaded_ ||
                  radioAlertLoaded_ || radioConfirmationLoaded_ || weaponShotLoaded_ ||
-                 weaponReloadLoaded_ || ambience_.loaded || menuMusic_.loaded || droidAlarm_.loaded ||
+                 weaponReloadLoaded_ || secretConfirmationLoaded_ || ambience_.loaded || menuMusic_.loaded || droidAlarm_.loaded ||
                  droidSteps_.loaded || droidVoice_.data || cardReader_.data || pickupWeapon_.data || pickupMedkit_.data ||
                  punchImpact_.data || healUp_.data || gameOver_.data))
     engine->audio.adpcm.reset();
@@ -369,6 +374,10 @@ void MenuAudioSystem::shutdown(Tyra::Engine* engine) {
   droidVoice_ = {};
   droidVoiceVolume_ = -1;
   nextDroidVoiceTick_ = 0;
+  freeSampleData(secretConfirmationData_);
+  secretConfirmationData_ = nullptr;
+  secretConfirmationLoaded_ = false;
+  secretConfirmation_ = {};
   freeSampleData(weaponShotData_);freeSampleData(weaponReloadData_);
   weaponShotData_ = weaponReloadData_ = nullptr;
   weaponShotLoaded_ = weaponReloadLoaded_ = false;

@@ -1,6 +1,9 @@
 #include "systems/ui/hud_system.hpp"
 #include "core/pickup_layout.hpp"
 #include <cstdio>
+#if defined(_EE)
+#include <dma.h>
+#endif
 
 #include "core/terminal_documents.hpp"
 
@@ -31,6 +34,15 @@ void HudSystem::executeStage(Core::HardwareStage stage, Engine* engine,
   (void)scratchpad;
 
   if (stage == Core::HardwareStage::Stage3_GifPath3Render2D) {
+#if defined(_EE)
+    if (state.scene.terminalActive && state.scene.terminalVideoActive &&
+        state.menu.currentScreen == Core::ScreenState::GameplayFps && drawer_) {
+      if (renderTerminalVideo(engine, state)) return;
+    } else {
+      closeTerminalVideo(engine);
+      state.scene.terminalVideoActive = false;
+    }
+#endif
     if (state.menu.currentScreen == Core::ScreenState::GameplayFps &&
         !state.intro.active && drawer_ != nullptr) {
       renderFpsHud(state);
@@ -38,7 +50,116 @@ void HudSystem::executeStage(Core::HardwareStage stage, Engine* engine,
   }
 }
 
-void HudSystem::shutdown(Engine* engine) { (void)engine; }
+void HudSystem::shutdown(Engine* engine) {
+#if defined(_EE)
+  closeTerminalVideo(engine);
+#else
+  (void)engine;
+#endif
+}
+
+#if defined(_EE)
+void HudSystem::closeTerminalVideo(Engine* engine) {
+  if (videoAudioLoaded_) engine->audio.song.stopAndUnload();
+  videoAudioLoaded_ = false;
+  if (videoTexture_) {
+    dma_channel_wait(DMA_CHANNEL_GIF, 0);
+    engine->renderer.getTextureRepository().freeBySprite(videoSprite_);
+    videoTexture_ = nullptr;
+  }
+  if (videoFile_) std::fclose(videoFile_);
+  videoFile_ = nullptr;
+  videoPixels_.reset();
+  videoTicks_ = videoDrainTicks_ = 0;
+  videoFrame_ = -1;
+}
+
+bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
+  constexpr int side = 160;
+  constexpr int fps = 12;
+  constexpr u32 ticksPerSecond = 15625;
+  constexpr int textureSide = 256;
+  constexpr int margin = (textureSide - side) / 2;
+  constexpr long frameBytes = side * side * sizeof(u16);
+  auto finish = [&](bool error) {
+    closeTerminalVideo(engine);
+    state.scene.terminalVideoActive = false;
+    state.scene.terminalVideoError = error;
+    return false;
+  };
+
+  u32 elapsed = 0;
+  if (!videoFile_) {
+    const auto path = FileUtils::fromCwd("video/claudio.rgb565");
+    videoFile_ = std::fopen(path.c_str(), "rb");
+    if (!videoFile_ || std::fseek(videoFile_, 0, SEEK_END) != 0) return finish(true);
+    const long size = std::ftell(videoFile_);
+    if (size <= 0 || size % frameBytes != 0) return finish(true);
+    videoFrameCount_ = size / frameBytes;
+
+    auto& song = engine->audio.song;
+    videoAudioLoaded_ = song.tryLoadFrameStream(FileUtils::fromCwd("video/claudio.wav"), 44);
+    if (!videoAudioLoaded_) return finish(true);
+
+    videoPixels_.reset(new u16[side * side]);
+    TextureBuilderData data;
+    data.name = "terminal_video";
+    data.width = data.height = textureSide;
+    data.bpp = bpp32;
+    data.data = new unsigned char[textureSide * textureSide * 4]{};
+    for (int i = 3; i < textureSide * textureSide * 4; i += 4) data.data[i] = 128;
+    videoTexture_ = engine->renderer.getTextureRepository().add(new Texture(&data));
+    videoTexture_->addLink(videoSprite_.id);
+    videoSprite_.position.set(64, 32);
+    videoSprite_.size.set(side, side);
+    videoSprite_.scale = 384.0F / side;
+    videoSprite_.offset.set(margin, margin);
+    videoSprite_.mode = MODE_REPEAT;
+    videoSprite_.color = Color(128, 128, 128, 128);
+    videoTimer_.prime();
+  } else {
+    elapsed = videoTimer_.getTimeDelta();
+    videoTimer_.prime();
+    videoTicks_ += elapsed * fps;
+  }
+
+  if (videoFrame_ == videoFrameCount_ - 1 && videoTicks_ >= ticksPerSecond) {
+    videoDrainTicks_ += elapsed;
+    if (engine->audio.song.frameStreamDrained()) return finish(false);
+    if (videoDrainTicks_ >= 5 * ticksPerSecond) return finish(true);
+  }
+  drawer_->drawRect(0, 0, 512, 448, Color(0, 0, 0, 128));
+  if (videoFrame_ == -1 ||
+      (videoFrame_ + 1 < videoFrameCount_ && videoTicks_ >= ticksPerSecond)) {
+    if (videoFrame_ >= 0) videoTicks_ -= ticksPerSecond;
+    if (std::fread(videoPixels_.get(), 1, frameBytes, videoFile_) != frameBytes) return finish(true);
+
+    dma_channel_wait(DMA_CHANNEL_GIF, 0);
+    for (int y = 0; y < side; ++y) {
+      auto* rgba = videoTexture_->core->data + ((y + margin) * textureSide + margin) * 4;
+      for (int x = 0; x < side; ++x, rgba += 4) {
+        const u16 rgb = videoPixels_[y * side + x];
+        rgba[0] = ((rgb >> 11) * 255) / 31;
+        rgba[1] = (((rgb >> 5) & 63) * 255) / 63;
+        rgba[2] = ((rgb & 31) * 255) / 31;
+      }
+    }
+    auto& textures = engine->renderer.core.texture;
+    textures.updateTextureInfo(videoTexture_);
+    if (videoFrame_ == -1) {
+      engine->audio.song.inLoop = false;
+      engine->audio.song.setVolume(state.menu.bgmVolume);
+      engine->audio.song.play();
+      videoTimer_.prime();
+    }
+    ++videoFrame_;
+  }
+  if (!engine->audio.song.pumpFrameStream()) return finish(true);
+  engine->renderer.renderer2D.render(videoSprite_);
+  drawer_->getFont().drawText("O: FECHAR", 24, 414, Color(120, 120, 120, 128), .85F);
+  return true;
+}
+#endif
 
 void HudSystem::renderTerminal(const Core::WorldState& state) {
   const Color cyan(80, 120, 116, 128), dim(27, 56, 58, 128);
@@ -50,14 +171,16 @@ void HudSystem::renderTerminal(const Core::WorldState& state) {
   const Color accent = truthSelected ? red : cyan;
   const bool corrupted = truthSelected && terminal.terminalReading &&
       terminal.terminalPage >= Core::kTruthCorruptionFirstPage;
-  const int topicCount = Core::kTruthTopic + (state.encounter.newEntryUnlocked ? 1 : 0);
-  static const char* topics[] = {"CORPORATIVO", "HISTORICO", "OCORRENCIAS", "A VERDADE"};
+  const int documentCount = Core::kTruthTopic + (state.encounter.newEntryUnlocked ? 1 : 0);
+  const int topicCount = documentCount + terminal.terminalSecretUnlocked;
+  const bool secretSelected = terminal.terminalTopic == Core::kSecretTopic;
+  static const char* topics[] = {"CORPORATIVO", "HISTORICO", "OCORRENCIAS", "A VERDADE", "ARQUIVO SECRETO"};
   static const char* summaries[] = {
       "PROTOCOLO DROIDCAMPOS\n\nSTATUS: DESCONTINUADO\nNIVEL DE SIGILO: RESTRITO",
       "RELATORIO PESSOAL - FUNCIONARIO\n\nIDENTIFICACAO: [DADOS SUPRIMIDOS]\nSTATUS: NAO AUTORIZADO",
       "DOSSIE DE INVESTIGACAO - CJE\n\nAMEACA INTERNA / EXTERNA\nNIVEL DE SIGILO: RESTRITO",
       "ARQUIVO DE DIRETORIA\n\nSIGILO ABSOLUTO\nSTATUS: [REGISTRO ADULTERADO]\n\nX: ABRIR NOVO REGISTRO"};
-  const auto& document = Core::kTerminalDocuments[terminal.terminalTopic];
+  const auto& document = Core::kTerminalDocuments[secretSelected ? 0 : terminal.terminalTopic];
 
   drawer_->drawRect(0, 0, 512, 448, black);
   drawer_->drawBlueprintPanel(16, 20, 480, 66, black, cyan);
@@ -66,9 +189,10 @@ void HudSystem::renderTerminal(const Core::WorldState& state) {
   drawer_->drawBlueprintPanel(16, 98, 156, 294, black, dim);
   drawer_->drawBlueprintPanel(182, 98, 314, 294, black, accent);
   font.drawText("ACESSO LOCAL", 28, 112, cyan, .9F);
-  for (int i = 0; i < topicCount; ++i) {
-    const int y = 148 + i * (topicCount == 4 ? 53 : 66);
-    const int height = topicCount == 4 ? 47 : 54;
+  for (int row = 0; row < topicCount; ++row) {
+    const int i = row == documentCount ? Core::kSecretTopic : row;
+    const int y = 148 + row * (topicCount == 5 ? 42 : topicCount == 4 ? 53 : 66);
+    const int height = topicCount == 5 ? 40 : topicCount == 4 ? 47 : 54;
     const Color tabAccent = i == Core::kTruthTopic ? red : cyan;
     const Color tabBorder = i == Core::kTruthTopic ? darkRed : dim;
     const bool selected = terminal.terminalTopic == i;
@@ -77,7 +201,7 @@ void HudSystem::renderTerminal(const Core::WorldState& state) {
     char label[32];
     std::snprintf(label, sizeof(label), "0%d / ARQUIVO", i + 1);
     font.drawText(label, 34, y + 7, selected ? black : tabBorder, .8F);
-    font.drawText(topics[i], 34, y + 26, selected ? black : tabAccent, .85F);
+    font.drawText(topics[i], 34, y + (topicCount == 5 ? 22 : 26), selected ? black : tabAccent, .85F);
   }
   font.drawText("USO INTERNO ETIP", 28, 366, dim, .75F);
   if (terminal.terminalBootFrames > 0) {
@@ -87,7 +211,9 @@ void HudSystem::renderTerminal(const Core::WorldState& state) {
   } else {
     font.drawText(topics[terminal.terminalTopic], 198, 112, accent, 1.0F);
     drawer_->drawRect(198, 156, 282, 1, dim);
-    const char* body = terminal.terminalReading ? document.pages[terminal.terminalPage]
+    const char* body = secretSelected
+        ? (terminal.terminalVideoError ? "VIDEO INDISPONIVEL" : "X: REPRODUZIR VIDEO")
+        : terminal.terminalReading ? document.pages[terminal.terminalPage]
                                                : summaries[terminal.terminalTopic];
     if (corrupted) {
       const unsigned int frame = terminal.terminalAnimationFrame;

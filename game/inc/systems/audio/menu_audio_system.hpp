@@ -24,6 +24,9 @@ class MenuAudioSystem final : public Core::ISubsystem {
   Effect cardReader_, pickupWeapon_, pickupMedkit_;
   Effect punchImpact_, healUp_, gameOver_;
   void playCombatCue(Tyra::Engine* engine, Effect& effect);
+  audsrv_adpcm_t secretConfirmation_{};
+  u8* secretConfirmationData_ = nullptr;
+  bool secretConfirmationLoaded_ = false;
   bool loadSample(const char* path, audsrv_adpcm_t& sample, u8*& data,
                   bool loop = false, u32* duration = nullptr);
   u32 cardReaderTicks_ = 0;

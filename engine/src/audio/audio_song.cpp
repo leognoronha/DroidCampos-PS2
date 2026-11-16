@@ -13,6 +13,7 @@
 #include <tamtypes.h>
 #include <malloc.h>
 #include <cstdlib>
+#include <cstring>
 #include <audsrv.h>
 
 namespace Tyra {
@@ -33,26 +34,83 @@ AudioSong::AudioSong() {
 }
 
 AudioSong::~AudioSong() {
-  if (chunk) delete[] chunk;
+  std::free(chunk);
 }
 
 void AudioSong::init() {
   chunk = static_cast<char*>(memalign(sizeof(char), chunkSize));
 
   initSema();
-  initAUDSRV();
   setSongFormat();
 }
 
 void AudioSong::load(const char* t_path) {
-  if (songLoaded) unloadSong();
-  wav = fopen(t_path, "rb");
-  TYRA_ASSERT(wav != nullptr, "Failed to open wav file!");
-  rewindSongToStart();
-  songLoaded = true;
+  const bool loaded = tryLoad(t_path, 0x30, false);
+  TYRA_ASSERT(loaded, "Failed to open wav file!");
+  (void)loaded;
 }
 
 void AudioSong::load(const std::string& t_path) { load(t_path.c_str()); }
+
+bool AudioSong::tryLoadFrameStream(const std::string& path, long offset) {
+  return tryLoad(path.c_str(), offset, true);
+}
+
+bool AudioSong::tryLoad(const char* path, long offset, bool frameDriven) {
+  FILE* file = fopen(path, "rb");
+  if (!file) return false;
+  if (fseek(file, offset, SEEK_SET) != 0 || fgetc(file) == EOF) {
+    fclose(file);
+    return false;
+  }
+  long pcmBytes = 0;
+  if (frameDriven) {
+    // The converter writes a canonical PCM header and whole stereo samples.
+    unsigned char header[44];
+    auto read32 = [&](int offset) {
+      return u32(header[offset]) | (u32(header[offset + 1]) << 8) |
+             (u32(header[offset + 2]) << 16) | (u32(header[offset + 3]) << 24);
+    };
+    if (offset != 44 || std::fseek(file, 0, SEEK_SET) != 0 ||
+        std::fread(header, 1, sizeof(header), file) != sizeof(header) ||
+        std::memcmp(header, "RIFF", 4) || std::memcmp(header + 8, "WAVEfmt ", 8) ||
+        read32(16) != 16 || read32(20) != 0x00020001 || read32(24) != 22050 ||
+        read32(28) != 88200 || read32(32) != 0x00100004 ||
+        std::memcmp(header + 36, "data", 4) || read32(40) == 0 ||
+        read32(40) % FramePcmStream::kSampleBytes != 0 ||
+        std::fseek(file, 0, SEEK_END) != 0 || std::ftell(file) < 44 ||
+        static_cast<unsigned long>(std::ftell(file) - 44) != read32(40)) {
+      std::fclose(file);
+      return false;
+    }
+    pcmBytes = read32(40);
+  }
+  if (songLoaded) stopAndUnload();
+  WaitSema(streamSema);
+  wav = file;
+  pcmOffset = offset;
+  frameStream = frameDriven;
+  framePcm_.reset(pcmBytes);
+  if (frameStream) {
+    setSongFormat();
+  } else {
+    initAUDSRV();
+  }
+  rewindSongToStart();
+  songLoaded = true;
+  SignalSema(streamSema);
+  return true;
+}
+
+void AudioSong::stopAndUnload() {
+  WaitSema(streamSema);
+  if (songLoaded) {
+    stop();
+    if (frameStream) audsrv_stop_audio();
+    unloadSong();
+  }
+  SignalSema(streamSema);
+}
 
 void AudioSong::play() {
   TYRA_ASSERT(songLoaded, "Cant play song because was not loaded!");
@@ -94,6 +152,9 @@ void AudioSong::initSema() {
   sema.max_count = 1;
   sema.option = 0;
   fillbufferSema = CreateSema(&sema);
+  sema.init_count = 1;
+  streamSema = CreateSema(&sema);
+  TYRA_ASSERT(streamSema >= 0, "Could not create audio stream semaphore");
   TYRA_LOG("AudioSong semaphore created");
 }
 
@@ -104,11 +165,12 @@ void AudioSong::initSema() {
 void AudioSong::unloadSong() {
   songLoaded = false;
   fclose(wav);
+  wav = nullptr;
 }
 
 /** Fseek on wav. */
 void AudioSong::rewindSongToStart() {
-  if (wav != nullptr) fseek(wav, 0x30, SEEK_SET);
+  if (wav != nullptr) fseek(wav, pcmOffset, SEEK_SET);
   chunkReadStatus = 0;
   songFinished = false;
 }
@@ -134,6 +196,26 @@ void AudioSong::setVolume(const u8& t_vol) {
 }
 
 void AudioSong::work() {
+  if (PollSema(streamSema) < 0) return;
+  if (!frameStream) pumpStream();
+  SignalSema(streamSema);
+}
+
+bool AudioSong::pumpFrameStream() {
+  if (!frameStream || !songPlaying || songFinished) return true;
+  return framePcm_.pump(wav, audsrv_available(), audsrv_play_audio);
+}
+
+bool AudioSong::frameStreamDrained() const {
+  // The file ends with a short silence guard for the DMA tail. The remaining
+  // queue may contain a partial hardware block that will never play.
+  constexpr int silenceGuardBytes = 8192;
+  if (!frameStream || !framePcm_.submitted()) return false;
+  const int queued = audsrv_queued();
+  return queued >= 0 && queued <= silenceGuardBytes / 2;
+}
+
+void AudioSong::pumpStream() {
   if (!songPlaying || !songLoaded) return;
   if (songFinished) {
     if (inLoop) {
@@ -141,13 +223,14 @@ void AudioSong::work() {
         songListeners[i]->listener->onAudioFinish();
       rewindSongToStart();
     } else {
-      stop();
+      // Let the last samples already queued in AUDSRV finish playing.
+      songPlaying = false;
       return;
     }
   }
 
   if (chunkReadStatus > 0) {
-    WaitSema(fillbufferSema);  // wait until previous chunk wasn't finished
+    if (PollSema(fillbufferSema) < 0) return;
     audsrv_wait_audio(chunkReadStatus);
     audsrv_play_audio(chunk, chunkReadStatus);
     for (u32 i = 0; i < getListenersCount(); i++)
@@ -156,7 +239,7 @@ void AudioSong::work() {
 
   chunkReadStatus = fread(chunk, 1, chunkSize, wav);
 
-  if (chunkReadStatus < (s32)chunkSize) songFinished = true;
+  if (chunkReadStatus <= 0) songFinished = true;
 }
 
 u32 AudioSong::addListener(AudioListener* t_listener) {
