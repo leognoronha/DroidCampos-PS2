@@ -40,10 +40,11 @@ volta a lista a qualquer momento. Triangulo fecha o terminal.
 
 Os arquivos em `game/res/video` e `game/res/audio/terminal_secret.adpcm`
 seguem com os demais recursos no build. Para regenera-los, use
-`python tools/build_terminal_secret.py ClaudioDroid1.mp4 CAMINHO_DO_WAV --docker`
+`python tools/build_terminal_secret.py ClaudioDroid1-comprimido.mp4 --docker`
 com FFmpeg e a imagem local do Tyra. Sem Docker, disponibilize o `adpenc` do
-PS2SDK no PATH e omita `--docker`. O video usa leitura sequencial de RGB565
-a 240 x 240 e 15 fps, cerca de 1,73 MB/s antes do audio.
+PS2SDK no PATH e omita `--docker`. Passe o WAV como segundo argumento
+somente para trocar o toque de confirmação. O vídeo usa leitura sequencial de RGB565
+a 160 × 160 e 12 fps. A trilha mono de 11.025 Hz é carregada em ADPCM no SPU2.
 
 ## Validacao
 

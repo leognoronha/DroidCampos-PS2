@@ -3,7 +3,6 @@ import argparse
 from pathlib import Path
 import subprocess
 import tempfile
-import wave
 
 root = Path(__file__).resolve().parents[1]
 
@@ -22,27 +21,35 @@ def main():
                         str(source.resolve()), '-map_metadata', '-1',
                         *map(str, options)], check=True)
 
+    def encode_adpcm(wav, encoded):
+        if args.docker:
+            subprocess.run(['docker', 'run', '--rm', '--network', 'none',
+                            '--mount', f'type=bind,source={wav.parent},target=/audio',
+                            '--entrypoint', args.adpenc, 'h4570/tyra:latest',
+                            f'/audio/{wav.name}', f'/audio/{encoded.name}'], check=True)
+        else:
+            subprocess.run([args.adpenc, str(wav), str(encoded)], check=True)
+
     video_dir = root / 'game/res/video'
     video_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='terminal-video-', dir=video_dir) as scratch:
         scratch = Path(scratch)
         image = scratch / 'claudio.rgb565'
-        audio = scratch / 'claudio.wav'
-        pcm = scratch / 'claudio.pcm'
+        audio = scratch / 'claudio.adpcm'
+        pcm = scratch / 'claudio.wav'
         convert(args.video, '-map', '0:v:0', '-vf', 'fps=12,scale=160:160:flags=lanczos',
                 '-pix_fmt', 'rgb565le', '-f', 'rawvideo', image)
-        convert(args.video, '-map', '0:a:0', '-ac', 2, '-ar', 22050, '-f', 's16le', pcm)
         frames, remainder = divmod(image.stat().st_size, 160 * 160 * 2)
         if not frames or remainder:
             raise ValueError('Incomplete RGB565 video')
-        soundtrack = pcm.read_bytes()
-        # Keep a silent stereo tail beyond the last picture to drain AUDSRV.
-        picture_bytes = ((frames * 22050 + 11) // 12) * 4
-        if not soundtrack or len(soundtrack) % 4 or len(soundtrack) > picture_bytes + 7350:
-            raise ValueError('Invalid PCM or audio and video durations do not match')
-        with wave.open(str(audio), 'wb') as output:
-            output.setparams((2, 2, 22050, 0, 'NONE', 'not compressed'))
-            output.writeframes(soundtrack.ljust(picture_bytes, b'\0') + bytes(8192))
+        samples = (frames * 11025 + 11) // 12
+        convert(args.video, '-map', '0:a:0', '-af',
+                f'aresample=11025,apad,atrim=end_sample={samples}',
+                '-ac', 1, '-ar', 11025, '-c:a', 'pcm_s16le', pcm)
+        encode_adpcm(pcm, audio)
+        data = audio.read_bytes()
+        if data[:7] != b'APCM\x01\x01\x00' or not 32 <= len(data) <= 320 * 1024:
+            raise ValueError('Invalid terminal ADPCM')
         for asset in (image, audio):
             asset.replace(video_dir / asset.name)
         print(f'{frames} frames, {frames / 12:.2f} seconds')
@@ -55,14 +62,7 @@ def main():
         encoded = Path(scratch) / 'terminal_secret.adpcm'
         convert(args.confirmation, '-ac', 1, '-ar', 22050, '-c:a', 'pcm_s16le',
                 '-fflags', '+bitexact', '-flags:a', '+bitexact', pcm)
-        if args.docker:
-            subprocess.run(['docker', 'run', '--rm', '--mount',
-                            f'type=bind,source={scratch},target=/audio',
-                            '--entrypoint', args.adpenc, 'h4570/tyra:latest',
-                            '/audio/confirmation.wav', '/audio/terminal_secret.adpcm'],
-                           check=True)
-        else:
-            subprocess.run([args.adpenc, str(pcm), str(encoded)], check=True)
+        encode_adpcm(pcm, encoded)
         (root / 'game/res/audio/terminal_secret.adpcm').write_bytes(encoded.read_bytes())
 
 

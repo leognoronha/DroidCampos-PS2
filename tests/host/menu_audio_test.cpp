@@ -11,7 +11,7 @@ int main(int argc,char**argv) {
   Tyra::Engine engine;Events::EventBus bus;Hardware::Ps2ScratchpadArena scratch;
   Systems::Input::InputSystem input;Systems::Audio::MenuAudioSystem audio;
   audio.init(&engine,state,bus);audio.init(&engine,state,bus);
-  assert(HostAudio::loaded.size()==19&&HostAudio::resets==0);
+  assert(HostAudio::loaded.size()==20&&HostAudio::resets==0);
   auto* confirm=static_cast<audsrv_adpcm_t*>(nullptr);
   auto* back=confirm;
   auto* navigate=confirm;
@@ -168,7 +168,7 @@ int main(int argc,char**argv) {
   state.menu.sfxVolume=0;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.empty());
   for(int volume:HostAudio::volumes)assert(volume==0);
   state.menu.sfxVolume=30;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.size()==1);
-  for(int i=0;i<23;++i)assert(HostAudio::volumes[i]==(((i>=3&&i<=5)||i==20||i==22)?0:30));
+  for(int i=0;i<23;++i)assert(HostAudio::volumes[i]==(((i>=3&&i<=5)||i==19||i==20||i==22)?0:30));
   HostAudio::playResult=-1;poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.size()==1);
   HostAudio::played.clear();audio.executeStage(Core::HardwareStage::Stage3_GifPath3Render2D,&engine,state,bus,scratch);assert(HostAudio::played.empty());
   HostAudio::playResult = Tyra::ADPCM_OK;
@@ -308,7 +308,7 @@ int main(int argc,char**argv) {
          HostAudio::volumes[3] == 0 && HostAudio::volumes[20] == 0);
   audio.shutdown(&engine);audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==1);
   // A complete second lifecycle must not retain samples in SPU2.
-  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==19);
+  audio.init(&engine,state,bus);assert(HostAudio::loaded.size()==20);
   audio.shutdown(&engine);assert(HostAudio::loaded.empty()&&HostAudio::resets==2);
   // Optional asset failure must leave menus usable, without touching shared banks.
   HostAudio::failLoad=true;audio.init(&engine,state,bus);poll(Core::ScreenState::MainMenu,true,false);
@@ -316,5 +316,20 @@ int main(int argc,char**argv) {
   HostAudio::failLoad=false;Tyra::FileUtils::root="missing-menu-audio/";
   audio.init(&engine,state,bus);poll(Core::ScreenState::MainMenu,true,false);assert(HostAudio::played.empty());audio.shutdown(&engine);
   assert(HostAudio::resets==2);
+  Tyra::FileUtils::root=argv[1];
+  audio.init(&engine,state,bus);
+  const auto soundtrack = audio.playTerminalVideoAudio(&engine, 66);
+  assert(soundtrack > 44 * 15625 && soundtrack < 45 * 15625);
+  assert(HostAudio::channels.back()==19 && HostAudio::volumes[19]==66);
+  audio.stopTerminalVideoAudio(&engine, false);
+  simulate();
+  assert(HostAudio::volumes[19]==0 && HostAudio::resets==2);
+  assert(audio.playTerminalVideoAudio(&engine, 66)==soundtrack);
+  audio.stopTerminalVideoAudio(&engine, true);
+  simulate();
+  assert(HostAudio::volumes[19]==0 && HostAudio::resets==3);
+  assert(audio.playTerminalVideoAudio(&engine, 66)==soundtrack);
+  audio.stopTerminalVideoAudio(&engine, false);
+  audio.shutdown(&engine);
   std::cout<<"Menu audio passed: action mapping, settings, mute, busy voices, load failure and lifecycle\n";
 }

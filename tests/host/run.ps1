@@ -10,7 +10,6 @@ try {
   $algorithm = 'engine/src/renderer/core/3d/clipper/planes_clip_algorithm.cpp'
   $core = 'engine/src/renderer/3d/pipeline/static/core'
   $cases = @(
-    @{Name='frame-pcm-stream'; Args=@('-Iengine/inc', 'tests/host/frame_pcm_stream_test.cpp')},
     @{Name='memory-card'; Args=$game+@('-Itests/host/memory_card_stubs','tests/host/memory_card_test.cpp','game/src/core/checkpoint.cpp','game/src/core/memory_card.cpp')},
     @{Name='radio-effects'; Args=$game+@('tests/host/radio_effects_test.cpp','game/src/systems/weapon/weapon_system.cpp','game/src/events/event_bus.cpp','game/src/hardware/ps2_scratchpad.cpp')},
     @{Name='droid-interaction'; Args=$game+@('tests/host/droid_interaction_test.cpp','game/src/systems/input/input_system.cpp','game/src/systems/player/player_controller_system.cpp','game/src/systems/physics/collision_system.cpp','game/src/events/event_bus.cpp','game/src/hardware/ps2_scratchpad.cpp')},
