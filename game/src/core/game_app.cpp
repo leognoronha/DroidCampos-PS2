@@ -20,7 +20,7 @@ GameApp::GameApp(Tyra::Engine* engine)
       weaponSystem_(&render3dSystem_),
       enemySystem_(&render3dSystem_),
       radioCodecSystem_(&uiDrawer_),
-      hudSystem_(&uiDrawer_),
+      hudSystem_(&uiDrawer_, &menuAudioSystem_),
       menuSystem_(&uiDrawer_),
       sceneIntroSystem_(&uiDrawer_) {
   worldState_.resetToDefaults();
