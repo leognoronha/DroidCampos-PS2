@@ -61,8 +61,8 @@ void HudSystem::shutdown(Engine* engine) {
 }
 
 #if defined(_EE)
-void HudSystem::closeTerminalVideo(Engine* engine, bool interrupted) {
-  if (videoFile_ && videoAudio_) videoAudio_->stopTerminalVideoAudio(engine, interrupted);
+void HudSystem::closeTerminalVideo(Engine* engine) {
+  if (videoFile_ && videoAudio_) videoAudio_->stopTerminalVideoAudio(engine);
   if (videoTexture_) {
     dma_channel_wait(DMA_CHANNEL_GIF, 0);
     engine->renderer.getTextureRepository().freeBySprite(videoSprite_);
@@ -83,7 +83,7 @@ bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
   constexpr int margin = (textureSide - side) / 2;
   constexpr long frameBytes = side * side * sizeof(u16);
   auto finish = [&](bool error) {
-    closeTerminalVideo(engine, error);
+    closeTerminalVideo(engine);
     state.scene.terminalVideoActive = false;
     state.scene.terminalVideoError = error;
     return false;
@@ -127,6 +127,19 @@ bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
     if (videoAudioTicks_ == 0) return finish(false);
   }
   drawer_->drawRect(0, 0, 512, 448, Color(0, 0, 0, 128));
+  if (videoFrame_ == -1) {
+    if (!videoAudio_) return finish(true);
+    const int duration = videoAudio_->playTerminalVideoAudio(engine, state.menu.bgmVolume);
+    if (duration < 0) return finish(true);
+    if (duration == 0) {
+      drawer_->getFont().drawText("AGUARDE...  O: FECHAR", 24, 414,
+                                 Color(120, 120, 120, 128), .85F);
+      return true;
+    }
+    videoAudioTicks_ = duration;
+    videoTicks_ = 0;
+    videoTimer_.prime();
+  }
   if (videoFrame_ == -1 ||
       (videoFrame_ + 1 < videoFrameCount_ && videoTicks_ >= ticksPerSecond)) {
     if (videoFrame_ >= 0) videoTicks_ -= ticksPerSecond;
@@ -144,12 +157,6 @@ bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
     }
     auto& textures = engine->renderer.core.texture;
     textures.updateTextureInfo(videoTexture_);
-    if (videoFrame_ == -1) {
-      if (!videoAudio_) return finish(true);
-      videoAudioTicks_ = videoAudio_->playTerminalVideoAudio(engine, state.menu.bgmVolume);
-      if (videoAudioTicks_ == 0) return finish(true);
-      videoTimer_.prime();
-    }
     ++videoFrame_;
   }
   engine->renderer.renderer2D.render(videoSprite_);

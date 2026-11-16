@@ -37,7 +37,7 @@ class HudSystem : public Core::ISubsystem {
 
 #if defined(_EE)
   bool renderTerminalVideo(Tyra::Engine* engine, Core::WorldState& state);
-  void closeTerminalVideo(Tyra::Engine* engine, bool interrupted = true);
+  void closeTerminalVideo(Tyra::Engine* engine);
 
   std::FILE* videoFile_ = nullptr;
   Tyra::Texture* videoTexture_ = nullptr;
