@@ -23,7 +23,7 @@ executável. No PCSX2, abra esse ELF com a BIOS configurada.
 Extraia o pacote em um pendrive FAT32 e abra `DroidCampos` na lista **Apps**
 do OPL. O ELF, o `title.cfg` e os recursos ficam em `APPS/DroidCampos/`.
 
-O primeiro checkpoint é salvo ao entrar no interior da ETIP. O jogo atualiza
+O primeiro checkpoint é salvo ao entrar no interior da Instalação. O jogo atualiza
 o save ao iniciar as ondas e após a terceira onda. **Load Game** retoma o
 último checkpoint válido no Memory Card da entrada 1. O jogo também funciona
 sem cartão, com o retry das ondas em memória.
