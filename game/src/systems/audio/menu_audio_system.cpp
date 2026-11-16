@@ -127,23 +127,28 @@ void MenuAudioSystem::init(Tyra::Engine* engine, Core::WorldState&, Events::Even
   initialized_ = true;
 }
 
-u32 MenuAudioSystem::playTerminalVideoAudio(Tyra::Engine* engine, int volume) {
-  if (!terminalVideo_.data) return 0;
+int MenuAudioSystem::playTerminalVideoAudio(Tyra::Engine* engine, int volume) {
+  if (!terminalVideo_.data) return -1;
   if (volume <= 0) return terminalVideoTicks_;
-  if (engine->audio.adpcm.tryPlay(&terminalVideo_.sample, kTerminalVideoChannel) !=
-      Tyra::ADPCM_OK) return 0;
-  engine->audio.adpcm.setVolume(static_cast<u8>(std::clamp(volume, 0, 100)), kTerminalVideoChannel);
-  terminalVideoPlaying_ = true;
-  return terminalVideoTicks_;
+  // The preferred voice may still be finishing a muted previous play.
+  // Gameplay is suspended in the terminal, so use a free player-weapon voice.
+  for (s8 channel = kTerminalVideoChannel; channel >= 10; --channel) {
+    const auto result = engine->audio.adpcm.tryPlay(&terminalVideo_.sample, channel);
+    if (result == Tyra::ADPCM_ERROR) return -1;
+    if (result != Tyra::ADPCM_OK) continue;
+    engine->audio.adpcm.setVolume(static_cast<u8>(std::clamp(volume, 0, 100)), channel);
+    mutedVideoChannels_ &= ~(1U << channel);
+    terminalVideoChannel_ = channel;
+    return terminalVideoTicks_;
+  }
+  return 0;
 }
 
-void MenuAudioSystem::stopTerminalVideoAudio(Tyra::Engine* engine, bool interrupted) {
-  if (!terminalVideoPlaying_) return;
-  engine->audio.adpcm.setVolume(0, kTerminalVideoChannel);
-  terminalVideoPlaying_ = false;
-  // This AUDSRV has no per-voice stop. Reload the bank after an interruption
-  // so the dedicated channel is available on an immediate replay.
-  reloadBank_ = interrupted;
+void MenuAudioSystem::stopTerminalVideoAudio(Tyra::Engine* engine) {
+  if (terminalVideoChannel_ < 0) return;
+  engine->audio.adpcm.setVolume(0, terminalVideoChannel_);
+  mutedVideoChannels_ |= 1U << terminalVideoChannel_;
+  terminalVideoChannel_ = -1;
 }
 
 u32 MenuAudioSystem::playCardReader(Tyra::Engine* engine, int volume) {
@@ -166,10 +171,6 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
                                    Core::WorldState& state, Events::EventBus& bus,
                                    Hardware::Ps2ScratchpadArena&) {
   if (!engine || !initialized_) return;
-  if (reloadBank_) {
-    shutdown(engine);
-    init(engine, state, bus);
-  }
   if (stage == Core::HardwareStage::Stage1_EeVu0Simulation) {
     // Weapon events are emitted in simulation, after input and player movement.
     if ((state.menu.currentScreen == Core::ScreenState::GameplayFps ||
@@ -184,7 +185,13 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
           if(events[i].intParam>=0)
             engine->audio.adpcm.tryPlay(&weaponShot_,6+events[i].intParam%4);
           else {
-            engine->audio.adpcm.tryPlay(&weaponShot_, nextWeaponChannel_);
+            const auto channel = nextWeaponChannel_;
+            const u32 mask = 1U << channel;
+            if (engine->audio.adpcm.tryPlay(&weaponShot_, channel) == Tyra::ADPCM_OK &&
+                (mutedVideoChannels_ & mask)) {
+              engine->audio.adpcm.setVolume(static_cast<u8>(state.menu.sfxVolume), channel);
+              mutedVideoChannels_ &= ~mask;
+            }
             nextWeaponChannel_ = nextWeaponChannel_ == kTerminalVideoChannel - 1 ? 10 : nextWeaponChannel_ + 1;
           }
         } else if (events[i].type == Events::EventType::WeaponReloadStarted &&
@@ -231,7 +238,8 @@ void MenuAudioSystem::executeStage(Core::HardwareStage stage, Tyra::Engine* engi
     for (int channel = 0; channel < kAmbienceChannel; ++channel) {
       if (channel != kMenuMusicChannel && channel != kDroidAlarmChannel &&
           channel != kDroidStepsChannel && channel != kDroidVoiceChannel &&
-          channel != kTerminalVideoChannel && channel != kRadioChannel)
+          channel != kTerminalVideoChannel && channel != kRadioChannel &&
+          channel != terminalVideoChannel_ && !(mutedVideoChannels_ & (1U << channel)))
         engine->audio.adpcm.setVolume(static_cast<u8>(volume), static_cast<s8>(channel));
     }
     volume_ = volume;
@@ -389,7 +397,8 @@ void MenuAudioSystem::shutdown(Tyra::Engine* engine) {
     *effect = {};
   }
   cardReaderTicks_ = terminalVideoTicks_ = 0;
-  terminalVideoPlaying_ = reloadBank_ = false;
+  terminalVideoChannel_ = -1;
+  mutedVideoChannels_ = 0;
   freeSampleData(ambience_.data);
   freeSampleData(menuMusic_.data);
   freeSampleData(droidAlarm_.data);
