@@ -1,7 +1,5 @@
 # DroidCampos-PS2 v1.1.0
 
-Lançamento privado do episódio ETIP para PlayStation 2.
-
 ## Compilar
 
 Com o Docker Desktop em execução, rode `docker compose run --rm compiler`
