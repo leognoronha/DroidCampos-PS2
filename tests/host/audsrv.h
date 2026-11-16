@@ -10,6 +10,7 @@ inline std::vector<audsrv_adpcm_t*> played;
 inline std::vector<int> channels;
 inline int volumes[24] = {};
 inline int playResult=0;
+inline int busyChannel=-2;
 inline bool failLoad=false;
 inline int resets=0;
 }

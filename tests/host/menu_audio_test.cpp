@@ -321,15 +321,20 @@ int main(int argc,char**argv) {
   const auto soundtrack = audio.playTerminalVideoAudio(&engine, 66);
   assert(soundtrack > 44 * 15625 && soundtrack < 45 * 15625);
   assert(HostAudio::channels.back()==19 && HostAudio::volumes[19]==66);
-  audio.stopTerminalVideoAudio(&engine, false);
+  audio.stopTerminalVideoAudio(&engine);
   simulate();
   assert(HostAudio::volumes[19]==0 && HostAudio::resets==2);
+  HostAudio::busyChannel=19;
   assert(audio.playTerminalVideoAudio(&engine, 66)==soundtrack);
-  audio.stopTerminalVideoAudio(&engine, true);
+  assert(HostAudio::channels.back()==18 && HostAudio::volumes[18]==66);
+  audio.stopTerminalVideoAudio(&engine);
+  state.menu.sfxVolume=75;
+  audio.executeStage(Core::HardwareStage::Stage0_IopInputPoll,&engine,state,bus,scratch);
   simulate();
-  assert(HostAudio::volumes[19]==0 && HostAudio::resets==3);
+  assert(HostAudio::volumes[19]==0 && HostAudio::volumes[18]==0 && HostAudio::resets==2);
+  HostAudio::busyChannel=-2;
   assert(audio.playTerminalVideoAudio(&engine, 66)==soundtrack);
-  audio.stopTerminalVideoAudio(&engine, false);
+  audio.stopTerminalVideoAudio(&engine);
   audio.shutdown(&engine);
   std::cout<<"Menu audio passed: action mapping, settings, mute, busy voices, load failure and lifecycle\n";
 }

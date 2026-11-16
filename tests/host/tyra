@@ -20,7 +20,7 @@ struct Timer {
   void prime(){last=ticks;}
   u32 getTimeDelta(){return ticks-last;}
 };
-enum {ADPCM_OK=0};
+enum {ADPCM_OK=0, ADPCM_CHANNEL_USED, ADPCM_NO_FREE_CHANNELS, ADPCM_ERROR};
 struct Vec2 {
   float x=0,y=0;Vec2()=default;Vec2(float a,float b):x(a),y(b){}
   void set(float a,float b){x=a;y=b;}
@@ -158,7 +158,11 @@ struct Renderer {
 struct AudioAdpcm {
   void reset(){HostAudio::loaded.clear();++HostAudio::resets;}
   void setVolume(u8 volume,s8 channel){assert(channel>=0&&channel<24);HostAudio::volumes[channel]=volume;}
-  int tryPlay(audsrv_adpcm_t* sample, s8 channel = -1){assert(HostAudio::loaded.count(sample));HostAudio::played.push_back(sample);HostAudio::channels.push_back(channel);return HostAudio::playResult;}
+  int tryPlay(audsrv_adpcm_t* sample, s8 channel = -1){
+    assert(HostAudio::loaded.count(sample));
+    if (channel==HostAudio::busyChannel) return ADPCM_CHANNEL_USED;
+    HostAudio::played.push_back(sample);HostAudio::channels.push_back(channel);return HostAudio::playResult;
+  }
 };
 struct Audio {AudioAdpcm adpcm;};
 struct Engine {Pad pad;Renderer renderer;Audio audio;};
