@@ -11,6 +11,8 @@
 
 #pragma once
 
+#include "audio/frame_pcm_stream.hpp"
+
 #include "./audio_listener_ref.hpp"
 #include <audsrv.h>
 #include <string>
@@ -40,6 +42,7 @@ class AudioSong {
   // Frame-driven PCM stream for video. Pump it from the game thread.
   bool tryLoadFrameStream(const std::string& path, long pcmOffset);
   bool pumpFrameStream();
+  bool frameStreamDrained() const;
   void stopAndUnload();
 
   void play();
@@ -78,6 +81,7 @@ class AudioSong {
   FILE* wav = nullptr;
   long pcmOffset = 0x30;
   bool frameStream = false;
+  FramePcmStream framePcm_;
   audsrv_fmt_t format;
   std::vector<AudioListenerRef*> songListeners;
 

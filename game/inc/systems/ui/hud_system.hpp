@@ -43,6 +43,7 @@ class HudSystem : public Core::ISubsystem {
   Tyra::Timer videoTimer_;
   u32 videoTicks_ = 0;
   int videoFrame_ = -1;
+  u32 videoDrainTicks_ = 0;
   int videoFrameCount_ = 0;
   bool videoAudioLoaded_ = false;
   std::unique_ptr<u16[]> videoPixels_;

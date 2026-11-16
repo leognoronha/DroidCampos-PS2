@@ -13,6 +13,7 @@
 #include <tamtypes.h>
 #include <malloc.h>
 #include <cstdlib>
+#include <cstring>
 #include <audsrv.h>
 
 namespace Tyra {
@@ -33,7 +34,7 @@ AudioSong::AudioSong() {
 }
 
 AudioSong::~AudioSong() {
-  if (chunk) delete[] chunk;
+  std::free(chunk);
 }
 
 void AudioSong::init() {
@@ -62,11 +63,34 @@ bool AudioSong::tryLoad(const char* path, long offset, bool frameDriven) {
     fclose(file);
     return false;
   }
+  long pcmBytes = 0;
+  if (frameDriven) {
+    // The converter writes a canonical PCM header and whole stereo samples.
+    unsigned char header[44];
+    auto read32 = [&](int offset) {
+      return u32(header[offset]) | (u32(header[offset + 1]) << 8) |
+             (u32(header[offset + 2]) << 16) | (u32(header[offset + 3]) << 24);
+    };
+    if (offset != 44 || std::fseek(file, 0, SEEK_SET) != 0 ||
+        std::fread(header, 1, sizeof(header), file) != sizeof(header) ||
+        std::memcmp(header, "RIFF", 4) || std::memcmp(header + 8, "WAVEfmt ", 8) ||
+        read32(16) != 16 || read32(20) != 0x00020001 || read32(24) != 22050 ||
+        read32(28) != 88200 || read32(32) != 0x00100004 ||
+        std::memcmp(header + 36, "data", 4) || read32(40) == 0 ||
+        read32(40) % FramePcmStream::kSampleBytes != 0 ||
+        std::fseek(file, 0, SEEK_END) != 0 || std::ftell(file) < 44 ||
+        static_cast<unsigned long>(std::ftell(file) - 44) != read32(40)) {
+      std::fclose(file);
+      return false;
+    }
+    pcmBytes = read32(40);
+  }
   if (songLoaded) stopAndUnload();
   WaitSema(streamSema);
   wav = file;
   pcmOffset = offset;
   frameStream = frameDriven;
+  framePcm_.reset(pcmBytes);
   if (frameStream) {
     setSongFormat();
   } else {
@@ -179,14 +203,16 @@ void AudioSong::work() {
 
 bool AudioSong::pumpFrameStream() {
   if (!frameStream || !songPlaying || songFinished) return true;
-  const int available = audsrv_available();
-  if (available < 0) return false;
-  if (available < 1024) return true;
-  const int bytes = (available < chunkSize ? available : chunkSize) & ~3;
-  const int read = fread(chunk, 1, bytes, wav);
-  if (ferror(wav)) return false;
-  if (read < bytes) songFinished = true;
-  return read == 0 || audsrv_play_audio(chunk, read) == read;
+  return framePcm_.pump(wav, audsrv_available(), audsrv_play_audio);
+}
+
+bool AudioSong::frameStreamDrained() const {
+  // The file ends with a short silence guard for the DMA tail. The remaining
+  // queue may contain a partial hardware block that will never play.
+  constexpr int silenceGuardBytes = 8192;
+  if (!frameStream || !framePcm_.submitted()) return false;
+  const int queued = audsrv_queued();
+  return queued >= 0 && queued <= silenceGuardBytes / 2;
 }
 
 void AudioSong::pumpStream() {

@@ -70,12 +70,14 @@ void HudSystem::closeTerminalVideo(Engine* engine) {
   if (videoFile_) std::fclose(videoFile_);
   videoFile_ = nullptr;
   videoPixels_.reset();
-  videoTicks_ = 0;
+  videoTicks_ = videoDrainTicks_ = 0;
   videoFrame_ = -1;
 }
 
 bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
-  constexpr int side = 240;
+  constexpr int side = 160;
+  constexpr int fps = 12;
+  constexpr u32 ticksPerSecond = 15625;
   constexpr int textureSide = 256;
   constexpr int margin = (textureSide - side) / 2;
   constexpr long frameBytes = side * side * sizeof(u16);
@@ -86,6 +88,7 @@ bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
     return false;
   };
 
+  u32 elapsed = 0;
   if (!videoFile_) {
     const auto path = FileUtils::fromCwd("video/claudio.rgb565");
     videoFile_ = std::fopen(path.c_str(), "rb");
@@ -108,22 +111,28 @@ bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
     videoTexture_ = engine->renderer.getTextureRepository().add(new Texture(&data));
     videoTexture_->addLink(videoSprite_.id);
     videoSprite_.position.set(64, 32);
-    videoSprite_.size.set(384, 384);
-    videoSprite_.mode = MODE_STRETCH;
+    videoSprite_.size.set(side, side);
+    videoSprite_.scale = 384.0F / side;
+    videoSprite_.offset.set(margin, margin);
+    videoSprite_.mode = MODE_REPEAT;
     videoSprite_.color = Color(128, 128, 128, 128);
     videoTimer_.prime();
   } else {
-    videoTicks_ += videoTimer_.getTimeDelta();
+    elapsed = videoTimer_.getTimeDelta();
     videoTimer_.prime();
+    videoTicks_ += elapsed * fps;
   }
 
-  const int targetFrame = static_cast<int>(static_cast<unsigned long long>(videoTicks_) * 15 / 15625);
-  if (targetFrame >= videoFrameCount_) return finish(false);
+  if (videoFrame_ == videoFrameCount_ - 1 && videoTicks_ >= ticksPerSecond) {
+    videoDrainTicks_ += elapsed;
+    if (engine->audio.song.frameStreamDrained()) return finish(false);
+    if (videoDrainTicks_ >= 5 * ticksPerSecond) return finish(true);
+  }
   drawer_->drawRect(0, 0, 512, 448, Color(0, 0, 0, 128));
-  if (targetFrame != videoFrame_) {
-    if (((videoFrame_ == -1 || targetFrame != videoFrame_ + 1) &&
-         std::fseek(videoFile_, targetFrame * frameBytes, SEEK_SET) != 0) ||
-        std::fread(videoPixels_.get(), 1, frameBytes, videoFile_) != frameBytes) return finish(true);
+  if (videoFrame_ == -1 ||
+      (videoFrame_ + 1 < videoFrameCount_ && videoTicks_ >= ticksPerSecond)) {
+    if (videoFrame_ >= 0) videoTicks_ -= ticksPerSecond;
+    if (std::fread(videoPixels_.get(), 1, frameBytes, videoFile_) != frameBytes) return finish(true);
 
     dma_channel_wait(DMA_CHANNEL_GIF, 0);
     for (int y = 0; y < side; ++y) {
@@ -143,7 +152,7 @@ bool HudSystem::renderTerminalVideo(Engine* engine, Core::WorldState& state) {
       engine->audio.song.play();
       videoTimer_.prime();
     }
-    videoFrame_ = targetFrame;
+    ++videoFrame_;
   }
   if (!engine->audio.song.pumpFrameStream()) return finish(true);
   engine->renderer.renderer2D.render(videoSprite_);
